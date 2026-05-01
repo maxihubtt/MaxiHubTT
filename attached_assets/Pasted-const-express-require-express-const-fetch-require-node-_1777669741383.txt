@@ -1,0 +1,101 @@
+const express = require("express");
+const fetch = require("node-fetch");
+
+const app = express();
+app.use(express.json());
+
+const TOKEN = "8618853756:AAGHCJ97GUNeQJnSc75IP3ZF70JgvHI0DxE";
+const GROUP_ID = "-1003402083882";
+
+let jobs = {};
+
+// 🚐 RECEIVE JOB FROM WEBSITE
+app.post("/send-job", async (req,res)=>{
+
+const id = "M"+Math.floor(Math.random()*9999);
+
+const job = {
+id,
+pickup:req.body.pickup,
+dropoff:req.body.dropoff,
+name:req.body.name,
+phone:req.body.phone,
+price:req.body.price
+};
+
+jobs[id] = job;
+
+const claimLink = `https://t.me/MxiHub_Job_bot?start=${id}`;
+
+await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+chat_id:GROUP_ID,
+text:`🚐 NEW JOB
+
+📍 ${job.pickup} → ${job.dropoff}
+💰 ${job.price}
+
+Click CLAIM to get customer info`,
+reply_markup:{
+inline_keyboard:[[
+{ text:"🚐 CLAIM JOB", url: claimLink }
+]]
+}
+})
+});
+
+res.send({status:"ok"});
+});
+
+// 🚐 DRIVER CLAIM SYSTEM
+setInterval(async ()=>{
+
+let res = await fetch(`https://api.telegram.org/bot${TOKEN}/getUpdates`);
+let data = await res.json();
+
+data.result.forEach(async update=>{
+
+if(update.message && update.message.text.startsWith("/start M")){
+
+let id = update.message.text.split(" ")[1];
+let driverId = update.message.chat.id;
+let driverName = update.message.from.first_name;
+
+let job = jobs[id];
+if(!job) return;
+
+// send driver private info
+await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+chat_id:driverId,
+text:`✅ JOB CLAIMED
+
+👤 ${job.name}
+📞 ${job.phone}
+📍 ${job.pickup} → ${job.dropoff}`
+})
+});
+
+// update group
+await fetch(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({
+chat_id:GROUP_ID,
+text:`📌 Job ${id} claimed by ${driverName}`
+})
+});
+
+delete jobs[id];
+
+}
+
+});
+
+},3000);
+
+app.listen(3000, ()=>console.log("Bot running"));
