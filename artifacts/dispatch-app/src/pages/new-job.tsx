@@ -48,7 +48,7 @@ export default function NewJob() {
         });
         queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
         queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
-        setLocation("/");
+        setLocation("/admin");
       },
       onError: (error) => {
         toast({

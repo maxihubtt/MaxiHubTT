@@ -27,11 +27,20 @@ pnpm workspace monorepo using TypeScript. MxiHub Dispatch — a transport job di
 - `lib/api-client-react` — Generated React Query hooks
 - `lib/api-zod` — Generated Zod validation schemas
 
+## Routes
+
+| Path | Description |
+|------|-------------|
+| `/` | Consumer booking page — Maxi Hub TT, warm island design, fare calculator, 25% deposit |
+| `/admin` | Internal dispatcher dashboard — job stats and live feed |
+| `/admin/new-job` | Manual job dispatch form (internal) |
+| `/jobs/:id` | Job detail view (internal) |
+
 ## Key Features
 
-- **Job booking**: POST `/api/jobs` creates a job in the DB and sends a message to the Telegram group
+- **Consumer booking**: Fare calculator for T&T routes (Port of Spain, San Fernando, etc.), 25% deposit notice, submits job to Telegram group
 - **Driver claiming**: Telegram bot polls every 3 seconds; when a driver sends `/start <jobId>`, they get the customer's contact details and the group is notified
-- **Live dashboard**: Real-time stats (total/pending/claimed/completed) and job feed
+- **Live dashboard**: Real-time stats (total/pending/claimed/completed) and job feed at `/admin`
 
 ## Environment Variables / Secrets
 

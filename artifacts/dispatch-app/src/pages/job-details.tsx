@@ -34,7 +34,7 @@ export default function JobDetails() {
         <div className="max-w-3xl mx-auto text-center py-20">
           <h2 className="text-2xl font-bold mb-2">Job Not Found</h2>
           <p className="text-muted-foreground font-mono mb-6">Could not locate job record {id}</p>
-          <Link href="/">
+          <Link href="/admin">
             <Button variant="outline"><ArrowLeft className="mr-2 h-4 w-4"/> Back to Feed</Button>
           </Link>
         </div>
@@ -47,7 +47,7 @@ export default function JobDetails() {
       <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4">
         
         <div className="mb-6 flex items-center justify-between">
-          <Link href="/">
+          <Link href="/admin">
             <Button variant="ghost" size="sm" className="font-mono text-muted-foreground uppercase text-xs">
               <ArrowLeft className="mr-2 h-3 w-3" /> Back
             </Button>
