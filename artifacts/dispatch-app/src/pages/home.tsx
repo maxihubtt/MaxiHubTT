@@ -9,16 +9,38 @@ import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Ca
 
 const WHATSAPP_URL = "https://wa.me/18684818039?text=Hi%20Maxi%20Hub%20TT%2C%20I%20would%20like%20to%20book%20a%20ride.";
 
+function isWest(loc: string): boolean {
+  return ["pos", "port of spain", "diego", "st james", "westmoorings", "chaguaramas", "maraval", "st clair", "woodbrook", "petit valley", "carenage", "west"].some(k => loc.includes(k));
+}
+
+function isSouth(loc: string): boolean {
+  return ["san fernando", "penal", "siparia", "point fortin", "fyzabad", "cedros", "moruga", "princes town", "gasparillo", "marabella", "south"].some(k => loc.includes(k));
+}
+
+function southDepth(loc: string): number {
+  if (["point fortin", "cedros", "fyzabad", "moruga", "siparia"].some(k => loc.includes(k))) return 3;
+  if (["penal", "princes town", "gasparillo"].some(k => loc.includes(k))) return 2;
+  if (["san fernando", "marabella"].some(k => loc.includes(k))) return 1;
+  return 1;
+}
+
 function calculateFare(pickup: string, dropoff: string, tripType: string, pax: number): number {
   const p = pickup.toLowerCase();
   const d = dropoff.toLowerCase();
 
   let base = 0;
 
+  const crossWestSouth = (isWest(p) && isSouth(d)) || (isSouth(p) && isWest(d));
+
   if (d.includes("airport") || p.includes("airport")) {
     base = 400;
   } else if (d.includes("maracas") || d.includes("las cuevas")) {
     base = 800;
+  } else if (crossWestSouth) {
+    const depth = isSouth(d) ? southDepth(d) : southDepth(p);
+    if (depth === 1) base = 1000;
+    else if (depth === 2) base = 1200;
+    else base = 1400;
   } else if (d.includes("pos") || d.includes("diego") || d.includes("st james") || d.includes("port of spain")) {
     base = 300;
   } else if (d.includes("chaguanas") || d.includes("cunupia")) {
@@ -482,6 +504,53 @@ export default function Home() {
         </div>
       </main>
 
+      {/* How It Works */}
+      <section className="py-16 px-6 md:px-12" style={{ background: "linear-gradient(180deg, #FFFBF4 0%, #f0fdf8 100%)" }}>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <div className="h-0.5 w-16 mx-auto mb-4 rounded-full" style={{ background: "linear-gradient(90deg, #ce1126, #000, #ce1126)" }} />
+            <h2 className="text-3xl font-black text-teal-900 mb-2">How It Works</h2>
+            <p className="text-teal-700/70 text-sm">Booking your ride takes less than 2 minutes.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
+            <div className="hidden md:block absolute top-10 left-[calc(16.67%+1rem)] right-[calc(16.67%+1rem)] h-0.5 bg-amber-200" />
+            {[
+              {
+                step: "1",
+                icon: "📍",
+                title: "Enter Your Route",
+                desc: "Fill in your pickup location, dropoff, trip type, passengers, and preferred date and time.",
+              },
+              {
+                step: "2",
+                icon: "💳",
+                title: "Pay 25% Deposit",
+                desc: "See your instant fare estimate and secure your booking with a small deposit. The balance is paid to your driver.",
+              },
+              {
+                step: "3",
+                icon: "🚐",
+                title: "Your Driver Arrives",
+                desc: "A verified driver claims your job and contacts you directly. Sit back and enjoy the ride.",
+              },
+            ].map(({ step, icon, title, desc }) => (
+              <div key={step} className="flex flex-col items-center text-center relative z-10">
+                <div className="w-20 h-20 rounded-full flex items-center justify-center text-3xl mb-4 shadow-md border-4 border-white"
+                     style={{ background: "linear-gradient(135deg, #f0fdf4, #d1fae5)" }}>
+                  {icon}
+                </div>
+                <div className="w-7 h-7 rounded-full text-xs font-black text-white flex items-center justify-center -mt-3 mb-4 shadow"
+                     style={{ background: "linear-gradient(135deg, #0f3d2e, #1a5c42)" }}>
+                  {step}
+                </div>
+                <h3 className="text-teal-900 font-bold text-lg mb-2">{title}</h3>
+                <p className="text-teal-700/70 text-sm leading-relaxed max-w-xs">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="text-amber-50 text-sm py-8 px-6 md:px-12 text-center"
               style={{ background: "linear-gradient(90deg, #0f3d2e 0%, #1a5c42 60%, #0f3d2e 100%)" }}>
@@ -499,7 +568,7 @@ export default function Home() {
           <MessageCircle className="w-4 h-4" />
           Chat with us on WhatsApp
         </a>
-        <p className="text-teal-400/60 text-xs mt-4">Safe. Smooth. On Time. Dat's How We Roll.</p>
+        <p className="text-teal-400/60 text-xs mt-4">Safe. Smooth. On Time. That's How We Roll.</p>
       </footer>
 
       {/* Floating WhatsApp button */}
