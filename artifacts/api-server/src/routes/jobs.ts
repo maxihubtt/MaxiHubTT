@@ -32,6 +32,34 @@ router.get("/jobs/stats", requireAdmin, async (req, res) => {
   res.json(stats);
 });
 
+router.patch("/jobs/:id/complete", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
+
+  if (!job) {
+    res.status(404).json({ error: "Job not found" });
+    return;
+  }
+
+  if (job.status === "completed") {
+    res.status(409).json({ error: "Job is already completed" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(jobsTable)
+    .set({ status: "completed", updatedAt: new Date() })
+    .where(eq(jobsTable.id, id))
+    .returning();
+
+  req.log.info({ jobId: id }, "Job marked as completed");
+  res.json({
+    ...updated,
+    createdAt: updated.createdAt.toISOString(),
+    updatedAt: updated.updatedAt.toISOString(),
+  });
+});
+
 router.get("/jobs/:id", async (req, res) => {
   const { id } = req.params;
   const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));

@@ -337,6 +337,90 @@ export function useGetJobStats<
 }
 
 /**
+ * @summary Mark a job as completed
+ */
+export const getCompleteJobUrl = (id: string) => {
+  return `/api/jobs/${id}/complete`;
+};
+
+export const completeJob = async (
+  id: string,
+  options?: RequestInit,
+): Promise<Job> => {
+  return customFetch<Job>(getCompleteJobUrl(id), {
+    ...options,
+    method: "PATCH",
+  });
+};
+
+export const getCompleteJobMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeJob>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof completeJob>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["completeJob"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof completeJob>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return completeJob(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CompleteJobMutationResult = NonNullable<
+  Awaited<ReturnType<typeof completeJob>>
+>;
+
+export type CompleteJobMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Mark a job as completed
+ */
+export const useCompleteJob = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeJob>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof completeJob>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getCompleteJobMutationOptions(options));
+};
+
+/**
  * @summary Get a job by ID
  */
 export const getGetJobUrl = (id: string) => {

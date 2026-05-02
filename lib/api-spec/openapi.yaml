@@ -87,6 +87,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/JobStats"
 
+  /jobs/{id}/complete:
+    patch:
+      operationId: completeJob
+      tags: [jobs]
+      summary: Mark a job as completed
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job marked as completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Job already completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /jobs/{id}:
     get:
       operationId: getJob

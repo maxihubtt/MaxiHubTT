@@ -1,9 +1,11 @@
-import { Job, JobStatus } from "@workspace/api-client-react";
+import { Job, JobStatus, useCompleteJob, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { Link } from "wouter";
-import { MapPin, Navigation, DollarSign, Clock } from "lucide-react";
+import { DollarSign, Clock, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { JobStatusBadge } from "./job-status-badge";
-import { formatCurrency, formatRelativeTime } from "@/lib/format";
+import { formatRelativeTime } from "@/lib/format";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 interface JobCardProps {
   job: Job;
@@ -12,7 +14,25 @@ interface JobCardProps {
 
 export function JobCard({ job, index }: JobCardProps) {
   const isPending = job.status === JobStatus.pending;
-  
+  const isClaimed = job.status === JobStatus.claimed;
+  const isCompleted = job.status === JobStatus.completed;
+  const [confirmed, setConfirmed] = useState(false);
+  const queryClient = useQueryClient();
+  const completeJob = useCompleteJob();
+
+  const handleComplete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirmed) { setConfirmed(true); return; }
+    completeJob.mutate({ id: job.id }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
+        setConfirmed(false);
+      },
+    });
+  };
+
   return (
     <Link href={`/jobs/${job.id}`}>
       <Card 
@@ -71,9 +91,25 @@ export function JobCard({ job, index }: JobCardProps) {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-1.5 mt-4 text-xs">
-                <Clock className="h-3 w-3" />
-                <span>{formatRelativeTime(job.createdAt)}</span>
+              <div className="flex items-center justify-between w-full mt-4">
+                <div className="flex items-center gap-1.5 text-xs">
+                  <Clock className="h-3 w-3" />
+                  <span>{formatRelativeTime(job.createdAt)}</span>
+                </div>
+                {!isCompleted && (
+                  <button
+                    onClick={handleComplete}
+                    disabled={completeJob.isPending}
+                    className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-md transition-all ${
+                      confirmed
+                        ? "bg-green-600 text-white animate-pulse"
+                        : "bg-muted/60 text-muted-foreground hover:bg-green-600 hover:text-white"
+                    }`}
+                  >
+                    <CheckCircle2 className="h-3 w-3" />
+                    {completeJob.isPending ? "…" : confirmed ? "Confirm?" : "Complete"}
+                  </button>
+                )}
               </div>
             </div>
           </div>

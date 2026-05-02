@@ -57,6 +57,26 @@ export const GetJobStatsResponse = zod.object({
 });
 
 /**
+ * @summary Mark a job as completed
+ */
+export const CompleteJobParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const CompleteJobResponse = zod.object({
+  id: zod.string(),
+  pickup: zod.string(),
+  dropoff: zod.string(),
+  name: zod.string(),
+  phone: zod.string(),
+  price: zod.string(),
+  status: zod.enum(["pending", "claimed", "completed"]),
+  claimedBy: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
  * @summary Get a job by ID
  */
 export const GetJobParams = zod.object({

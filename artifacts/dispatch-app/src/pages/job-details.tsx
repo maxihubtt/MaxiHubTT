@@ -1,21 +1,38 @@
 import { useRoute, Link } from "wouter";
-import { useGetJob, getGetJobQueryKey } from "@workspace/api-client-react";
+import { useGetJob, getGetJobQueryKey, useCompleteJob, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { JobStatusBadge } from "@/components/job-status-badge";
 import { formatRelativeTime, formatTime } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, MapPin, User, Phone, DollarSign, Clock, Hash, CheckCircle } from "lucide-react";
+import { ArrowLeft, User, Phone, DollarSign, Hash, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JobStatus } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 export default function JobDetails() {
   const [, params] = useRoute("/jobs/:id");
   const id = params?.id || "";
+  const [confirmed, setConfirmed] = useState(false);
+  const queryClient = useQueryClient();
+  const completeJob = useCompleteJob();
 
   const { data: job, isLoading, isError } = useGetJob(id, {
     query: { enabled: !!id, queryKey: getGetJobQueryKey(id) }
   });
+
+  const handleComplete = () => {
+    if (!confirmed) { setConfirmed(true); return; }
+    completeJob.mutate({ id }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetJobQueryKey(id) });
+        queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
+        queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
+        setConfirmed(false);
+      },
+    });
+  };
 
   if (isLoading) {
     return (
@@ -52,7 +69,24 @@ export default function JobDetails() {
               <ArrowLeft className="mr-2 h-3 w-3" /> Back
             </Button>
           </Link>
-          <JobStatusBadge status={job.status} />
+          <div className="flex items-center gap-3">
+            <JobStatusBadge status={job.status} />
+            {job.status !== JobStatus.completed && (
+              <Button
+                size="sm"
+                onClick={handleComplete}
+                disabled={completeJob.isPending}
+                className={`font-bold uppercase tracking-wider text-xs transition-all ${
+                  confirmed
+                    ? "bg-green-600 hover:bg-green-700 text-white animate-pulse"
+                    : "bg-muted text-muted-foreground hover:bg-green-600 hover:text-white"
+                }`}
+              >
+                <CheckCircle className="mr-1.5 h-3.5 w-3.5" />
+                {completeJob.isPending ? "Saving…" : confirmed ? "Tap again to confirm" : "Mark Complete"}
+              </Button>
+            )}
+          </div>
         </div>
 
         <Card className="overflow-hidden border-border/50">
