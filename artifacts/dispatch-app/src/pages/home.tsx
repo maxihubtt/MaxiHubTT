@@ -74,9 +74,7 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
   if (beachTier !== null && !airportInvolved) {
     // 18+ pax on a beach run: $100 per person
     if (pax >= 18) {
-      base = pax * 100;
-      if (tripType === "round") base = base * 1.7;
-      return Math.ceil(base);
+      return pax * 100;
     }
     const [westRate, centralEastRate, southRate] = NORTH_COAST_RATES[beachTier];
     const origin = northCoastTier(d) !== null ? p : d; // the non-beach side is the origin
@@ -96,10 +94,6 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
     base = 350;
   } else if (pickup && dropoff) {
     base = 400;
-  }
-
-  if (tripType === "round") {
-    base = base * 1.7;
   }
 
   if (pax > 12 && pax <= 15) base += 100;
