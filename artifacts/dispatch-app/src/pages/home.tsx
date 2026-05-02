@@ -132,15 +132,18 @@ function getMinDatetime(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:00`;
 }
 
-const PAX_OPTIONS = [
-  { value: 1,  label: "1–4 Passengers (Car / Small Group)" },
-  { value: 5,  label: "5–8 Passengers (Mini Group)" },
-  { value: 9,  label: "9–12 Passengers (12-Seater Maxi)" },
-  { value: 13, label: "13–15 Passengers (14–15 Seater Maxi)" },
-  { value: 16, label: "16–18 Passengers (18-Seater Maxi)" },
-  { value: 19, label: "19–22 Passengers (22-Seater Maxi)" },
-  { value: 23, label: "23–24 Passengers (24-Seater Maxi)" },
-];
+function vehicleForPax(pax: number): string {
+  if (pax <= 4)  return "Car / Small Van";
+  if (pax <= 12) return "12-Seater Maxi";
+  if (pax <= 15) return "15-Seater Maxi";
+  if (pax <= 18) return "18-Seater Maxi";
+  if (pax <= 22) return "22-Seater Maxi";
+  return "24-Seater Maxi";
+}
+
+function paxLabel(pax: number): string {
+  return `${pax} passenger${pax !== 1 ? "s" : ""} · 1 × ${vehicleForPax(pax)}`;
+}
 
 function BookingLookup() {
   const [refInput, setRefInput] = useState("");
@@ -341,12 +344,12 @@ export default function Home() {
     if (!isFormValid) { setShowErrors(true); return; }
 
     const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
-    const paxLabel = PAX_OPTIONS.find(o => o.value === pax)?.label ?? `${pax} passengers`;
+    const passengerDesc = paxLabel(pax);
     const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
-    const priceNote = `TTD ${fareCeiled} (${tripLabel}, ${paxLabel}) — Pickup: ${pickupDatetime}${returnNote}`;
+    const priceNote = `TTD ${fareCeiled} (${tripLabel}, ${passengerDesc}) — Pickup: ${pickupDatetime}${returnNote}`;
 
     createJob.mutate(
-      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: paxLabel } },
+      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: passengerDesc } },
       {
         onSuccess: (job) => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
@@ -594,21 +597,26 @@ export default function Home() {
 
                 {/* Passengers */}
                 <div className="space-y-1.5">
-                  <Label htmlFor="paxSelect" className="text-teal-900 font-semibold flex items-center gap-2 text-sm">
+                  <Label className="text-teal-900 font-semibold flex items-center gap-2 text-sm">
                     <Users className="w-3.5 h-3.5 text-teal-600" />
                     Passengers
                   </Label>
-                  <select
-                    id="paxSelect"
-                    data-testid="select-pax"
-                    className="w-full h-11 px-4 rounded-xl border-2 border-teal-100 bg-white focus:border-teal-500 focus:outline-none text-teal-900 text-sm transition-colors"
-                    value={pax}
-                    onChange={(e) => setPax(parseInt(e.target.value))}
-                  >
-                    {PAX_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-3 rounded-xl border-2 border-teal-100 bg-white px-4 h-11">
+                    <button
+                      type="button"
+                      onClick={() => setPax(p => Math.max(1, p - 1))}
+                      className="w-7 h-7 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 font-bold text-lg flex items-center justify-center hover:bg-teal-100 transition-colors shrink-0"
+                    >−</button>
+                    <span className="flex-1 text-center text-teal-900 font-bold text-base tabular-nums">{pax}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPax(p => Math.min(24, p + 1))}
+                      className="w-7 h-7 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 font-bold text-lg flex items-center justify-center hover:bg-teal-100 transition-colors shrink-0"
+                    >+</button>
+                  </div>
+                  <p className="text-xs text-teal-600/80 font-medium px-1">
+                    1 × {vehicleForPax(pax)}
+                  </p>
                 </div>
 
                 {/* Pickup date & time */}
@@ -720,7 +728,7 @@ export default function Home() {
                         <div>
                           <span className="text-teal-800 font-medium text-sm">Estimated Fare</span>
                           <p className="text-xs text-teal-600/70">
-                            {tripType === "round" ? "Round trip" : "One way"} · {PAX_OPTIONS.find(o => o.value === pax)?.label}
+                            {tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}
                           </p>
                         </div>
                         <span className="text-2xl font-black text-teal-900">TTD {fareCeiled}</span>
