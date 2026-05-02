@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { eq, count } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db, jobsTable } from "@workspace/db";
 import { CreateJobBody } from "@workspace/api-zod";
 import { sendJobToGroup, notifyGroupClaimed, sendJobDetailsToDriver } from "../lib/telegram";
 import { logger } from "../lib/logger";
+import { requireAdmin } from "../middleware/requireAdmin";
 
 const router = Router();
 
@@ -11,7 +12,7 @@ function generateId(): string {
   return "M" + Math.floor(Math.random() * 9999).toString().padStart(4, "0");
 }
 
-router.get("/jobs", async (req, res) => {
+router.get("/jobs", requireAdmin, async (req, res) => {
   const jobs = await db.select().from(jobsTable).orderBy(jobsTable.createdAt);
   res.json(jobs.map(j => ({
     ...j,
@@ -20,7 +21,7 @@ router.get("/jobs", async (req, res) => {
   })));
 });
 
-router.get("/jobs/stats", async (req, res) => {
+router.get("/jobs/stats", requireAdmin, async (req, res) => {
   const all = await db.select().from(jobsTable);
   const stats = {
     total: all.length,

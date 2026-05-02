@@ -1,20 +1,28 @@
 import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Zap, LayoutDashboard, Plus, Clock } from "lucide-react";
+import { Zap, LayoutDashboard, Plus, Clock, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export function Layout({ children }: LayoutProps) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const [time, setTime] = useState(new Date().toLocaleTimeString());
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const interval = setInterval(() => setTime(new Date().toLocaleTimeString()), 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+    queryClient.invalidateQueries({ queryKey: ["admin-auth"] });
+    navigate("/admin/login");
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-background selection:bg-primary selection:text-primary-foreground dark">

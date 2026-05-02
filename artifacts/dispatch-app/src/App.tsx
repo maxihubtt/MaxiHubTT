@@ -7,7 +7,9 @@ import Home from "@/pages/home";
 import Dashboard from "@/pages/dashboard";
 import NewJob from "@/pages/new-job";
 import JobDetails from "@/pages/job-details";
+import AdminLogin from "@/pages/admin-login";
 import NotFound from "@/pages/not-found";
+import { AdminGuard } from "@/components/admin-guard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,8 +24,17 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
-      <Route path="/admin" component={Dashboard} />
-      <Route path="/admin/new-job" component={NewJob} />
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin">
+        <AdminGuard>
+          <Dashboard />
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/new-job">
+        <AdminGuard>
+          <NewJob />
+        </AdminGuard>
+      </Route>
       <Route path="/jobs/:id" component={JobDetails} />
       <Route component={NotFound} />
     </Switch>
