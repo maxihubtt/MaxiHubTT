@@ -67,6 +67,14 @@ function identifyRegion(loc: string): RegionKey {
   return "west";
 }
 
+function paxSurcharge(pax: number): number {
+  if (pax > 22) return 350;
+  if (pax > 18) return 250;
+  if (pax > 15) return 150;
+  if (pax > 12) return 100;
+  return 0;
+}
+
 function calculateFare(pickup: string, dropoff: string, tripType: string, pax: number): number {
   const p = pickup.toLowerCase();
   const d = dropoff.toLowerCase();
@@ -76,21 +84,23 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
   // Beach runs — explicit lookup table
   const beach = identifyBeach(d) ?? identifyBeach(p);
   if (beach !== null && !airportInvolved) {
-    // 18+ pax on a north coast beach run → $100 per person
+    // 18+ pax on a north coast beach run → $100 per person (flat, no surcharge)
     if (pax >= 18 && NORTH_COAST_BEACHES.includes(beach)) {
       return pax * 100;
     }
     const origin = identifyBeach(d) !== null ? p : d;
     const region = identifyRegion(origin);
     const [oneWayRate, roundRate] = BEACH_RATES[beach][region];
-    return tripType === "round" ? roundRate : oneWayRate;
+    const base = tripType === "round" ? roundRate : oneWayRate;
+    return base + paxSurcharge(pax);
   }
 
   const southInvolved = isSouth(d) || isSouth(p);
 
   // South non-beach: tiered by passenger count
   if (southInvolved && !airportInvolved) {
-    if (pax >= 18) return 1500;
+    if (pax > 18) return 1500;
+    if (pax > 15) return 1200;
     if (pax >= 10) return 1000;
     return 800;
   }
@@ -107,10 +117,7 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
     base = 400;
   }
 
-  if (pax > 12 && pax <= 15) base += 100;
-  if (pax > 15 && pax <= 18) base += 150;
-  if (pax > 18 && pax <= 22) base += 250;
-  if (pax > 22) base += 350;
+  base += paxSurcharge(pax);
 
   if (base > 0 && base < 300) base = 300;
 
