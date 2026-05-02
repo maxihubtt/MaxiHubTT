@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useCreateJob, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
+import { useCreateJob, useGetJob, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -91,6 +91,93 @@ const PAX_OPTIONS = [
   { value: 23, label: "23–24 Passengers (24-Seater Maxi)" },
 ];
 
+function BookingLookup() {
+  const [refInput, setRefInput] = useState("");
+  const [searchId, setSearchId] = useState("");
+
+  const { data: job, isLoading, isError } = useGetJob(searchId, {
+    query: { enabled: !!searchId },
+  });
+
+  const statusLabel: Record<string, { label: string; color: string }> = {
+    pending:   { label: "Awaiting Driver", color: "text-amber-700 bg-amber-50 border-amber-200" },
+    claimed:   { label: "Driver Assigned", color: "text-teal-700 bg-teal-50 border-teal-200" },
+    completed: { label: "Completed",        color: "text-gray-600 bg-gray-50 border-gray-200" },
+  };
+
+  return (
+    <section className="py-16 px-6 md:px-12 bg-white/60">
+      <div className="max-w-xl mx-auto">
+        <div className="text-center mb-8">
+          <div className="h-0.5 w-16 mx-auto mb-4 rounded-full" style={{ background: "linear-gradient(90deg, #ce1126, #000, #ce1126)" }} />
+          <h2 className="text-3xl font-black text-teal-900 mb-2">Track Your Booking</h2>
+          <p className="text-teal-700/70 text-sm">Enter the booking reference from your confirmation to check the status of your ride.</p>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="e.g. M1234"
+            value={refInput}
+            onChange={(e) => setRefInput(e.target.value.toUpperCase())}
+            onKeyDown={(e) => e.key === "Enter" && setSearchId(refInput.trim())}
+            className="flex-1 h-12 px-4 rounded-xl border-2 border-teal-100 bg-white text-teal-900 placeholder:text-teal-400 focus:border-teal-500 focus:outline-none text-sm font-mono tracking-widest"
+          />
+          <button
+            onClick={() => setSearchId(refInput.trim())}
+            disabled={!refInput.trim() || isLoading}
+            className="h-12 px-6 rounded-xl text-sm font-bold text-white transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+            style={{ background: "linear-gradient(135deg, #0f3d2e, #1a5c42)" }}
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Look Up"}
+          </button>
+        </div>
+
+        {searchId && !isLoading && isError && (
+          <div className="mt-4 p-4 rounded-xl border border-red-200 bg-red-50 text-sm text-red-700 text-center">
+            No booking found for <strong>{searchId}</strong>. Please check your reference and try again.
+          </div>
+        )}
+
+        {job && (
+          <div className="mt-6 rounded-2xl border border-teal-100 bg-white shadow-md overflow-hidden">
+            <div className="h-1.5 w-full" style={{ background: "linear-gradient(90deg, #ce1126, #000, #ce1126, #f59e0b, #0f3d2e)" }} />
+            <div className="p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono text-teal-500 tracking-widest">Ref: {job.id}</span>
+                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusLabel[job.status]?.color ?? "text-gray-600 bg-gray-50 border-gray-200"}`}>
+                  {statusLabel[job.status]?.label ?? job.status}
+                </span>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex gap-2 items-start">
+                  <MapPin className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                  <div><p className="text-xs text-teal-500 uppercase tracking-wider">Pickup</p><p className="font-semibold text-teal-900">{job.pickup}</p></div>
+                </div>
+                <div className="flex gap-2 items-start">
+                  <Navigation className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
+                  <div><p className="text-xs text-teal-500 uppercase tracking-wider">Dropoff</p><p className="font-semibold text-teal-900">{job.dropoff}</p></div>
+                </div>
+              </div>
+              {job.status === "claimed" && job.claimedBy && (
+                <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 flex items-start gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
+                  <p className="text-xs text-teal-700">A driver has claimed your booking and will contact you shortly.</p>
+                </div>
+              )}
+              {job.status === "pending" && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
+                  <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <p className="text-xs text-teal-700">Your booking is waiting to be claimed by a driver. You'll be contacted shortly.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function Home() {
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
@@ -169,13 +256,18 @@ export default function Home() {
               <p className="text-xs text-teal-600 font-mono uppercase tracking-wider mb-1">Pickup Time</p>
               <p className="text-sm font-semibold text-teal-900">{formattedDate}</p>
             </div>
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 w-full mb-6 text-left">
-              <p className="text-xs text-teal-600 font-mono uppercase tracking-wider mb-1">Deposit Paid</p>
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 w-full mb-3 text-left">
+              <p className="text-xs text-teal-600 font-mono uppercase tracking-wider mb-1">Deposit Due</p>
               <p className="text-2xl font-bold text-teal-900">TTD {bookedJob.deposit}</p>
-              <p className="text-xs text-teal-600 mt-1">Remaining TTD {bookedJob.fare - bookedJob.deposit} due to driver</p>
+              <p className="text-xs text-teal-600 mt-1">Total fare: TTD {bookedJob.fare} · Balance of TTD {bookedJob.fare - bookedJob.deposit} payable to your driver on the day</p>
             </div>
-            <p className="text-xs text-teal-500 font-mono mb-6">Ref: {bookedJob.id}</p>
-            <p className="text-sm text-teal-700 mb-6">Your driver will be in touch. Please keep your phone nearby.</p>
+            <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 w-full mb-6 text-left flex items-start gap-3">
+              <Info className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
+              <p className="text-xs text-teal-700 leading-relaxed">
+                Our team will contact you on <strong>{bookedJob.name.split(" ")[0]}'s</strong> number via WhatsApp to collect the deposit and confirm your driver. Please keep your phone nearby.
+              </p>
+            </div>
+            <p className="text-xs text-teal-500 font-mono mb-6">Booking Ref: <strong>{bookedJob.id}</strong> — save this to track your ride</p>
             <Button
               className="w-full text-white font-bold"
               style={{ background: "linear-gradient(135deg, #0f3d2e, #1a5c42)" }}
@@ -495,7 +587,7 @@ export default function Home() {
                       <Loader2 className="w-5 h-5 animate-spin" /> Confirming your booking...
                     </span>
                   ) : fare > 0 ? (
-                    `Pay TTD ${deposit} Deposit — Book Now`
+                    `Confirm Booking — TTD ${deposit} Deposit Due`
                   ) : (
                     "Enter Route to See Your Fare"
                   )}
@@ -558,6 +650,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <BookingLookup />
 
       {/* Footer */}
       <footer className="text-amber-50 text-sm py-8 px-6 md:px-12 text-center"
