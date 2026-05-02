@@ -61,6 +61,16 @@ export function Layout({ children }: LayoutProps) {
                 New Job
               </Button>
             </Link>
+
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleLogout}
+              className="text-muted-foreground hover:text-foreground"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </header>
