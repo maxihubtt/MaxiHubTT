@@ -87,6 +87,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/JobStats"
 
+  /jobs/{id}/driver-info:
+    patch:
+      operationId: updateDriverInfo
+      tags: [jobs]
+      summary: Set vehicle type and number plate for a claimed job
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDriverInfoBody"
+      responses:
+        "200":
+          description: Driver info updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /jobs/{id}/complete:
     patch:
       operationId: completeJob
@@ -174,6 +205,12 @@ components:
         claimedBy:
           type: string
           nullable: true
+        vehicleType:
+          type: string
+          nullable: true
+        numberPlate:
+          type: string
+          nullable: true
         createdAt:
           type: string
           format: date-time
@@ -227,6 +264,14 @@ components:
         - pending
         - claimed
         - completed
+
+    UpdateDriverInfoBody:
+      type: object
+      properties:
+        vehicleType:
+          type: string
+        numberPlate:
+          type: string
 
     ErrorResponse:
       type: object

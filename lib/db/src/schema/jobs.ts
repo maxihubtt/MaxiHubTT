@@ -11,6 +11,8 @@ export const jobsTable = pgTable("jobs", {
   price: text("price").notNull(),
   status: text("status").notNull().default("pending"),
   claimedBy: text("claimed_by"),
+  vehicleType: text("vehicle_type"),
+  numberPlate: text("number_plate"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

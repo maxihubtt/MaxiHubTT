@@ -32,6 +32,27 @@ router.get("/jobs/stats", requireAdmin, async (req, res) => {
   res.json(stats);
 });
 
+router.patch("/jobs/:id/driver-info", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { vehicleType, numberPlate } = req.body as { vehicleType?: string; numberPlate?: string };
+
+  const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
+  if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+
+  const [updated] = await db
+    .update(jobsTable)
+    .set({
+      ...(vehicleType !== undefined && { vehicleType }),
+      ...(numberPlate !== undefined && { numberPlate }),
+      updatedAt: new Date(),
+    })
+    .where(eq(jobsTable.id, id))
+    .returning();
+
+  req.log.info({ jobId: id, vehicleType, numberPlate }, "Driver info updated");
+  res.json({ ...updated, createdAt: updated.createdAt.toISOString(), updatedAt: updated.updatedAt.toISOString() });
+});
+
 router.patch("/jobs/:id/complete", requireAdmin, async (req, res) => {
   const { id } = req.params;
   const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));

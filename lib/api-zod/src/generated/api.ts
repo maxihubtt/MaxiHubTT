@@ -28,6 +28,8 @@ export const ListJobsResponseItem = zod.object({
   price: zod.string(),
   status: zod.enum(["pending", "claimed", "completed"]),
   claimedBy: zod.string().nullish(),
+  vehicleType: zod.string().nullish(),
+  numberPlate: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -57,6 +59,33 @@ export const GetJobStatsResponse = zod.object({
 });
 
 /**
+ * @summary Set vehicle type and number plate for a claimed job
+ */
+export const UpdateDriverInfoParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const UpdateDriverInfoBody = zod.object({
+  vehicleType: zod.string().optional(),
+  numberPlate: zod.string().optional(),
+});
+
+export const UpdateDriverInfoResponse = zod.object({
+  id: zod.string(),
+  pickup: zod.string(),
+  dropoff: zod.string(),
+  name: zod.string(),
+  phone: zod.string(),
+  price: zod.string(),
+  status: zod.enum(["pending", "claimed", "completed"]),
+  claimedBy: zod.string().nullish(),
+  vehicleType: zod.string().nullish(),
+  numberPlate: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
  * @summary Mark a job as completed
  */
 export const CompleteJobParams = zod.object({
@@ -72,6 +101,8 @@ export const CompleteJobResponse = zod.object({
   price: zod.string(),
   status: zod.enum(["pending", "claimed", "completed"]),
   claimedBy: zod.string().nullish(),
+  vehicleType: zod.string().nullish(),
+  numberPlate: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -92,6 +123,8 @@ export const GetJobResponse = zod.object({
   price: zod.string(),
   status: zod.enum(["pending", "claimed", "completed"]),
   claimedBy: zod.string().nullish(),
+  vehicleType: zod.string().nullish(),
+  numberPlate: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });

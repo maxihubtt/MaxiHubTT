@@ -12,3 +12,4 @@ export * from "./healthStatus";
 export * from "./job";
 export * from "./jobStats";
 export * from "./jobStatus";
+export * from "./updateDriverInfoBody";

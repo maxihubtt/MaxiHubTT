@@ -22,6 +22,7 @@ import type {
   HealthStatus,
   Job,
   JobStats,
+  UpdateDriverInfoBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -335,6 +336,93 @@ export function useGetJobStats<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Set vehicle type and number plate for a claimed job
+ */
+export const getUpdateDriverInfoUrl = (id: string) => {
+  return `/api/jobs/${id}/driver-info`;
+};
+
+export const updateDriverInfo = async (
+  id: string,
+  updateDriverInfoBody: UpdateDriverInfoBody,
+  options?: RequestInit,
+): Promise<Job> => {
+  return customFetch<Job>(getUpdateDriverInfoUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateDriverInfoBody),
+  });
+};
+
+export const getUpdateDriverInfoMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDriverInfo>>,
+    TError,
+    { id: string; data: BodyType<UpdateDriverInfoBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateDriverInfo>>,
+  TError,
+  { id: string; data: BodyType<UpdateDriverInfoBody> },
+  TContext
+> => {
+  const mutationKey = ["updateDriverInfo"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateDriverInfo>>,
+    { id: string; data: BodyType<UpdateDriverInfoBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateDriverInfo(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateDriverInfoMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateDriverInfo>>
+>;
+export type UpdateDriverInfoMutationBody = BodyType<UpdateDriverInfoBody>;
+export type UpdateDriverInfoMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Set vehicle type and number plate for a claimed job
+ */
+export const useUpdateDriverInfo = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateDriverInfo>>,
+    TError,
+    { id: string; data: BodyType<UpdateDriverInfoBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateDriverInfo>>,
+  TError,
+  { id: string; data: BodyType<UpdateDriverInfoBody> },
+  TContext
+> => {
+  return useMutation(getUpdateDriverInfoMutationOptions(options));
+};
 
 /**
  * @summary Mark a job as completed

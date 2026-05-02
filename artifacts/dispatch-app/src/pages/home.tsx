@@ -158,10 +158,37 @@ function BookingLookup() {
                   <div><p className="text-xs text-teal-500 uppercase tracking-wider">Dropoff</p><p className="font-semibold text-teal-900">{job.dropoff}</p></div>
                 </div>
               </div>
-              {job.status === "claimed" && job.claimedBy && (
-                <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 flex items-start gap-3">
-                  <CheckCircle2 className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
-                  <p className="text-xs text-teal-700">A driver has claimed your booking and will contact you shortly.</p>
+                      {job.status === "claimed" && (
+                <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
+                    <p className="text-xs font-semibold text-teal-700 uppercase tracking-wide">Driver Assigned</p>
+                  </div>
+                  {job.claimedBy && (
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <p className="text-teal-400 uppercase tracking-wider mb-0.5">Driver</p>
+                        <p className="font-bold text-teal-900">{job.claimedBy}</p>
+                      </div>
+                      {job.vehicleType && (
+                        <div>
+                          <p className="text-teal-400 uppercase tracking-wider mb-0.5">Vehicle</p>
+                          <p className="font-bold text-teal-900">{job.vehicleType}</p>
+                        </div>
+                      )}
+                      {job.numberPlate && (
+                        <div className="col-span-2">
+                          <p className="text-teal-400 uppercase tracking-wider mb-0.5">Plate Number</p>
+                          <p className="font-bold text-teal-900 font-mono tracking-widest text-sm">{job.numberPlate}</p>
+                        </div>
+                      )}
+                      {!job.vehicleType && !job.numberPlate && (
+                        <div className="col-span-2">
+                          <p className="text-teal-600/70">Vehicle details will be added shortly. You'll be contacted to confirm.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {job.status === "pending" && (

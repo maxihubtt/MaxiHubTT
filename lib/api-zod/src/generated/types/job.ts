@@ -16,6 +16,8 @@ export interface Job {
   price: string;
   status: JobStatus;
   claimedBy?: string | null;
+  vehicleType?: string | null;
+  numberPlate?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

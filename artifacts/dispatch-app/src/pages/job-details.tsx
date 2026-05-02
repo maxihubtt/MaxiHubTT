@@ -1,15 +1,15 @@
 import { useRoute, Link } from "wouter";
-import { useGetJob, getGetJobQueryKey, useCompleteJob, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
+import { useGetJob, getGetJobQueryKey, useCompleteJob, useUpdateDriverInfo, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { JobStatusBadge } from "@/components/job-status-badge";
 import { formatRelativeTime, formatTime } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Phone, DollarSign, Hash, CheckCircle } from "lucide-react";
+import { ArrowLeft, User, Phone, DollarSign, Hash, CheckCircle, Car, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JobStatus } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function JobDetails() {
   const [, params] = useRoute("/jobs/:id");
@@ -17,10 +17,34 @@ export default function JobDetails() {
   const [confirmed, setConfirmed] = useState(false);
   const queryClient = useQueryClient();
   const completeJob = useCompleteJob();
+  const updateDriverInfo = useUpdateDriverInfo();
+  const [vehicleType, setVehicleType] = useState("");
+  const [numberPlate, setNumberPlate] = useState("");
+  const [driverInfoSaved, setDriverInfoSaved] = useState(false);
 
   const { data: job, isLoading, isError } = useGetJob(id, {
     query: { enabled: !!id, queryKey: getGetJobQueryKey(id) }
   });
+
+  useEffect(() => {
+    if (job) {
+      setVehicleType(job.vehicleType ?? "");
+      setNumberPlate(job.numberPlate ?? "");
+    }
+  }, [job?.vehicleType, job?.numberPlate]);
+
+  const handleSaveDriverInfo = () => {
+    updateDriverInfo.mutate(
+      { id, data: { vehicleType, numberPlate } },
+      {
+        onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: getGetJobQueryKey(id) });
+          setDriverInfoSaved(true);
+          setTimeout(() => setDriverInfoSaved(false), 3000);
+        },
+      }
+    );
+  };
 
   const handleComplete = () => {
     if (!confirmed) { setConfirmed(true); return; }
@@ -180,6 +204,55 @@ export default function JobDetails() {
             </div>
           </div>
 
+        </Card>
+
+        {/* Driver info panel — admin only, always editable */}
+        <Card className="mt-4 overflow-hidden border-border/50">
+          <div className="bg-muted/30 border-b border-border/50 px-6 py-4 flex items-center gap-2">
+            <Car className="h-4 w-4 text-primary" />
+            <h3 className="font-mono text-xs text-muted-foreground uppercase tracking-wider">Vehicle Details</h3>
+            <span className="ml-auto text-xs text-muted-foreground italic">Visible to customer after saving</span>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Vehicle Type</label>
+                <input
+                  type="text"
+                  value={vehicleType}
+                  onChange={(e) => setVehicleType(e.target.value)}
+                  placeholder="e.g. 12-Seater Maxi"
+                  className="w-full h-10 px-3 rounded-lg border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-mono uppercase tracking-wider text-muted-foreground">Number Plate</label>
+                <input
+                  type="text"
+                  value={numberPlate}
+                  onChange={(e) => setNumberPlate(e.target.value.toUpperCase())}
+                  placeholder="e.g. PDK 1234"
+                  className="w-full h-10 px-3 rounded-lg border border-border bg-background text-foreground text-sm font-mono tracking-widest uppercase focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors"
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                size="sm"
+                onClick={handleSaveDriverInfo}
+                disabled={updateDriverInfo.isPending}
+                className="font-bold uppercase tracking-wider text-xs"
+              >
+                <Save className="mr-1.5 h-3.5 w-3.5" />
+                {updateDriverInfo.isPending ? "Saving…" : "Save Vehicle Info"}
+              </Button>
+              {driverInfoSaved && (
+                <span className="text-xs text-green-500 font-mono animate-in fade-in">
+                  ✓ Saved — customer can now see this
+                </span>
+              )}
+            </div>
+          </div>
         </Card>
       </div>
     </Layout>

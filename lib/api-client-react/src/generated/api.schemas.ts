@@ -26,6 +26,8 @@ export interface Job {
   price: string;
   status: JobStatus;
   claimedBy?: string | null;
+  vehicleType?: string | null;
+  numberPlate?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -43,6 +45,11 @@ export interface JobStats {
   pending: number;
   claimed: number;
   completed: number;
+}
+
+export interface UpdateDriverInfoBody {
+  vehicleType?: string;
+  numberPlate?: string;
 }
 
 export interface ErrorResponse {
