@@ -34,15 +34,16 @@ export async function sendJobToGroup(job: {
   pickup: string;
   dropoff: string;
   price: string;
+  passengers?: string | null;
 }): Promise<boolean> {
   if (!GROUP_ID) return false;
 
-  const botUsername = TOKEN?.split(":")[0];
   const claimLink = `https://t.me/MxiHub_Job_bot?start=${job.id}`;
+  const paxLine = job.passengers ? `Passengers: ${job.passengers}\n` : "";
 
   return telegramRequest("sendMessage", {
     chat_id: GROUP_ID,
-    text: `NEW JOB #${job.id}\n\nFrom: ${job.pickup}\nTo: ${job.dropoff}\nPrice: ${job.price}\n\nTap CLAIM to accept this job.`,
+    text: `NEW JOB #${job.id}\n\nFrom: ${job.pickup}\nTo: ${job.dropoff}\n${paxLine}Price: ${job.price}\n\nTap CLAIM to accept this job.`,
     reply_markup: {
       inline_keyboard: [[
         { text: "CLAIM JOB", url: claimLink },

@@ -102,7 +102,7 @@ router.post("/jobs", async (req, res) => {
     return;
   }
 
-  const { pickup, dropoff, name, phone, price } = parsed.data;
+  const { pickup, dropoff, name, phone, price, passengers } = parsed.data;
   const id = generateId();
 
   const [job] = await db.insert(jobsTable).values({
@@ -112,10 +112,11 @@ router.post("/jobs", async (req, res) => {
     name,
     phone,
     price,
+    passengers: passengers ?? null,
     status: "pending",
   }).returning();
 
-  const sent = await sendJobToGroup({ id, pickup, dropoff, price });
+  const sent = await sendJobToGroup({ id, pickup, dropoff, price, passengers });
   if (!sent) {
     req.log.warn({ jobId: id }, "Failed to send job to Telegram group");
   }

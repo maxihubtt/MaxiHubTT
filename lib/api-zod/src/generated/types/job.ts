@@ -14,6 +14,7 @@ export interface Job {
   name: string;
   phone: string;
   price: string;
+  passengers?: string | null;
   status: JobStatus;
   claimedBy?: string | null;
   vehicleType?: string | null;

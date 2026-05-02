@@ -12,4 +12,5 @@ export interface CreateJobBody {
   name: string;
   phone: string;
   price: string;
+  passengers?: string;
 }

@@ -341,12 +341,12 @@ export default function Home() {
     if (!isFormValid) { setShowErrors(true); return; }
 
     const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
-    const paxLabel = PAX_OPTIONS.find(o => o.value === pax)?.label ?? `${pax} pax`;
+    const paxLabel = PAX_OPTIONS.find(o => o.value === pax)?.label ?? `${pax} passengers`;
     const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
     const priceNote = `TTD ${fareCeiled} (${tripLabel}, ${paxLabel}) — Pickup: ${pickupDatetime}${returnNote}`;
 
     createJob.mutate(
-      { data: { pickup, dropoff, name, phone, price: priceNote } },
+      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: paxLabel } },
       {
         onSuccess: (job) => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });

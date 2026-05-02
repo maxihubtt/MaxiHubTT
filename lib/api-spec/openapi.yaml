@@ -199,6 +199,9 @@ components:
           type: string
         price:
           type: string
+        passengers:
+          type: string
+          nullable: true
         status:
           type: string
           enum: [pending, claimed, completed]
@@ -240,6 +243,8 @@ components:
         phone:
           type: string
         price:
+          type: string
+        passengers:
           type: string
       required:
         - pickup

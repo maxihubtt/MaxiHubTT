@@ -26,6 +26,7 @@ export const ListJobsResponseItem = zod.object({
   name: zod.string(),
   phone: zod.string(),
   price: zod.string(),
+  passengers: zod.string().nullish(),
   status: zod.enum(["pending", "claimed", "completed"]),
   claimedBy: zod.string().nullish(),
   vehicleType: zod.string().nullish(),
@@ -45,6 +46,7 @@ export const CreateJobBody = zod.object({
   name: zod.string(),
   phone: zod.string(),
   price: zod.string(),
+  passengers: zod.string().optional(),
 });
 
 /**
@@ -77,6 +79,7 @@ export const UpdateDriverInfoResponse = zod.object({
   name: zod.string(),
   phone: zod.string(),
   price: zod.string(),
+  passengers: zod.string().nullish(),
   status: zod.enum(["pending", "claimed", "completed"]),
   claimedBy: zod.string().nullish(),
   vehicleType: zod.string().nullish(),
@@ -99,6 +102,7 @@ export const CompleteJobResponse = zod.object({
   name: zod.string(),
   phone: zod.string(),
   price: zod.string(),
+  passengers: zod.string().nullish(),
   status: zod.enum(["pending", "claimed", "completed"]),
   claimedBy: zod.string().nullish(),
   vehicleType: zod.string().nullish(),
@@ -121,6 +125,7 @@ export const GetJobResponse = zod.object({
   name: zod.string(),
   phone: zod.string(),
   price: zod.string(),
+  passengers: zod.string().nullish(),
   status: zod.enum(["pending", "claimed", "completed"]),
   claimedBy: zod.string().nullish(),
   vehicleType: zod.string().nullish(),
