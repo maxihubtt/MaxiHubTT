@@ -181,20 +181,22 @@ function BookingLookup() {
 export default function Home() {
   const [pickup, setPickup] = useState("");
   const [dropoff, setDropoff] = useState("");
-  const [tripType, setTripType] = useState<"one-way" | "round">("one-way");
+  const [tripType, setTripType] = useState<"one-way" | "round" | null>(null);
   const [pax, setPax] = useState(1);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [pickupDatetime, setPickupDatetime] = useState("");
   const [datetimeError, setDatetimeError] = useState("");
+  const [returnDatetime, setReturnDatetime] = useState("");
+  const [returnDatetimeError, setReturnDatetimeError] = useState("");
   const [bookedJob, setBookedJob] = useState<{
-    id: string; name: string; pickup: string; dropoff: string; deposit: number; fare: number; pickupDatetime: string;
+    id: string; name: string; pickup: string; dropoff: string; deposit: number; fare: number; pickupDatetime: string; returnDatetime: string; tripType: string;
   } | null>(null);
 
   const queryClient = useQueryClient();
   const createJob = useCreateJob();
 
-  const fare = useMemo(() => calculateFare(pickup, dropoff, tripType, pax), [pickup, dropoff, tripType, pax]);
+  const fare = useMemo(() => tripType ? calculateFare(pickup, dropoff, tripType, pax) : 0, [pickup, dropoff, tripType, pax]);
   const deposit = fare > 0 ? Math.ceil(fare * 0.25) : 0;
   const fareCeiled = fare > 0 ? Math.ceil(fare) : 0;
 
@@ -213,26 +215,57 @@ export default function Home() {
   const handleDatetimeChange = (value: string) => {
     setPickupDatetime(value);
     validateDatetime(value);
+    // Re-validate return time if already set
+    if (returnDatetime) validateReturnDatetime(value, returnDatetime);
+  };
+
+  const validateReturnDatetime = (pickup: string, ret: string) => {
+    if (!ret) { setReturnDatetimeError(""); return; }
+    if (!pickup) { setReturnDatetimeError("Please set a pickup time first."); return; }
+    const pickupDate = new Date(pickup);
+    const returnDate = new Date(ret);
+    if (returnDate <= pickupDate) {
+      setReturnDatetimeError("Return time must be after your pickup time.");
+    } else {
+      setReturnDatetimeError("");
+    }
+  };
+
+  const handleReturnDatetimeChange = (value: string) => {
+    setReturnDatetime(value);
+    validateReturnDatetime(pickupDatetime, value);
+    setShowErrors(false);
   };
 
   const [showErrors, setShowErrors] = useState(false);
 
-  const isFormValid = fare > 0 && name.trim() && phone.trim() && pickupDatetime && !datetimeError;
+  const isFormValid =
+    !!tripType &&
+    fare > 0 &&
+    name.trim() !== "" &&
+    phone.trim() !== "" &&
+    pickupDatetime !== "" &&
+    !datetimeError &&
+    (tripType !== "round" || (returnDatetime !== "" && !returnDatetimeError));
 
   const fieldErrors = {
-    pickup: showErrors && !pickup.trim(),
-    dropoff: showErrors && !dropoff.trim(),
-    fare: showErrors && fare === 0 && pickup.trim() && dropoff.trim(),
-    datetime: showErrors && (!pickupDatetime || !!datetimeError),
-    name: showErrors && !name.trim(),
-    phone: showErrors && !phone.trim(),
+    pickup:         showErrors && !pickup.trim(),
+    dropoff:        showErrors && !dropoff.trim(),
+    tripType:       showErrors && !tripType,
+    datetime:       showErrors && (!pickupDatetime || !!datetimeError),
+    returnDatetime: showErrors && tripType === "round" && (!returnDatetime || !!returnDatetimeError),
+    name:           showErrors && !name.trim(),
+    phone:          showErrors && !phone.trim(),
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isFormValid) { setShowErrors(true); return; }
 
-    const priceNote = `TTD ${fareCeiled} (${tripType === "round" ? "Round Trip" : "One Way"}, ${PAX_OPTIONS.find(o => o.value === pax)?.label ?? pax + " pax"}) — Pickup: ${pickupDatetime}`;
+    const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
+    const paxLabel = PAX_OPTIONS.find(o => o.value === pax)?.label ?? `${pax} pax`;
+    const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
+    const priceNote = `TTD ${fareCeiled} (${tripLabel}, ${paxLabel}) — Pickup: ${pickupDatetime}${returnNote}`;
 
     createJob.mutate(
       { data: { pickup, dropoff, name, phone, price: priceNote } },
@@ -240,7 +273,7 @@ export default function Home() {
         onSuccess: (job) => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
-          setBookedJob({ id: job.id, name, pickup, dropoff, deposit, fare: fareCeiled, pickupDatetime });
+          setBookedJob({ id: job.id, name, pickup, dropoff, deposit, fare: fareCeiled, pickupDatetime, returnDatetime, tripType: tripType ?? "one-way" });
         },
       }
     );
@@ -264,9 +297,21 @@ export default function Home() {
               Thank you, <strong>{bookedJob.name}</strong>! Your ride from <strong>{bookedJob.pickup}</strong> to <strong>{bookedJob.dropoff}</strong> is confirmed.
             </p>
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 w-full mb-3 text-left">
-              <p className="text-xs text-teal-600 font-mono uppercase tracking-wider mb-1">Pickup Time</p>
+              <p className="text-xs text-teal-600 font-mono uppercase tracking-wider mb-1">
+                {bookedJob.tripType === "round" ? "Outbound Pickup" : "Pickup Time"}
+              </p>
               <p className="text-sm font-semibold text-teal-900">{formattedDate}</p>
             </div>
+            {bookedJob.tripType === "round" && bookedJob.returnDatetime && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 w-full mb-3 text-left">
+                <p className="text-xs text-teal-600 font-mono uppercase tracking-wider mb-1">Return Pickup</p>
+                <p className="text-sm font-semibold text-teal-900">
+                  {new Date(bookedJob.returnDatetime).toLocaleString("en-TT", {
+                    weekday: "long", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit"
+                  })}
+                </p>
+              </div>
+            )}
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 w-full mb-3 text-left">
               <p className="text-xs text-teal-600 font-mono uppercase tracking-wider mb-1">Deposit Due</p>
               <p className="text-2xl font-bold text-teal-900">TTD {bookedJob.deposit}</p>
@@ -285,7 +330,7 @@ export default function Home() {
               onClick={() => {
                 setBookedJob(null);
                 setPickup(""); setDropoff(""); setName(""); setPhone("");
-                setPickupDatetime(""); setTripType("one-way"); setPax(1);
+                setPickupDatetime(""); setReturnDatetime(""); setReturnDatetimeError(""); setTripType(null); setPax(1);
               }}
             >
               Book Another Ride
@@ -448,15 +493,17 @@ export default function Home() {
                     <ArrowLeftRight className="w-3.5 h-3.5 text-teal-600" />
                     Trip Type
                   </Label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className={`grid grid-cols-2 gap-2 rounded-xl p-0.5 ${fieldErrors.tripType ? "ring-2 ring-red-400" : ""}`}>
                     {(["one-way", "round"] as const).map((type) => (
                       <button
                         key={type}
                         type="button"
-                        onClick={() => setTripType(type)}
+                        onClick={() => { setTripType(type); if (type === "one-way") { setReturnDatetime(""); setReturnDatetimeError(""); } setShowErrors(false); }}
                         className={`h-11 rounded-xl border-2 text-sm font-semibold transition-all ${
                           tripType === type
                             ? "border-teal-600 bg-teal-600 text-white"
+                            : tripType === null
+                            ? "border-dashed border-teal-200 bg-white text-teal-600 hover:border-teal-400"
                             : "border-teal-100 bg-white text-teal-800 hover:border-teal-300"
                         }`}
                       >
@@ -464,6 +511,7 @@ export default function Home() {
                       </button>
                     ))}
                   </div>
+                  {fieldErrors.tripType && <p className="text-xs text-red-600 font-medium mt-1">Please select a trip type.</p>}
                 </div>
 
                 {/* Passengers */}
@@ -512,6 +560,38 @@ export default function Home() {
                     <p className="text-xs text-teal-600/60">Minimum 1 hour notice required for all bookings.</p>
                   )}
                 </div>
+
+                {/* Return Date & Time — only for round trips */}
+                {tripType === "round" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="returnDatetime" className="text-teal-900 font-semibold flex items-center gap-2 text-sm">
+                      <Calendar className="w-3.5 h-3.5 text-amber-500" />
+                      Return Date & Time
+                    </Label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-500/50 pointer-events-none" />
+                      <input
+                        id="returnDatetime"
+                        data-testid="input-return-datetime"
+                        type="datetime-local"
+                        min={pickupDatetime || getMinDatetime()}
+                        className={`w-full h-11 pl-9 pr-4 rounded-xl border-2 bg-white focus:outline-none text-teal-900 text-sm transition-colors ${fieldErrors.returnDatetime ? "border-red-400 focus:border-red-400" : "border-amber-200 focus:border-amber-400"}`}
+                        value={returnDatetime}
+                        onChange={(e) => handleReturnDatetimeChange(e.target.value)}
+                        required
+                      />
+                    </div>
+                    {returnDatetimeError ? (
+                      <p className="text-xs text-red-600 font-medium">{returnDatetimeError}</p>
+                    ) : fieldErrors.returnDatetime ? (
+                      <p className="text-xs text-red-600 font-medium">Please select a return date and time.</p>
+                    ) : returnDatetime ? (
+                      <p className="text-xs text-teal-600">Return pickup confirmed.</p>
+                    ) : (
+                      <p className="text-xs text-amber-600/80">When should your driver pick you up on the way back?</p>
+                    )}
+                  </div>
+                )}
 
                 {/* Name & Phone */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
