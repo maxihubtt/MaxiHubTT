@@ -72,6 +72,12 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
   // North coast beaches — origin-aware pricing
   const beachTier = northCoastTier(d) ?? northCoastTier(p);
   if (beachTier !== null && !airportInvolved) {
+    // 18+ pax on a beach run: $100 per person
+    if (pax >= 18) {
+      base = pax * 100;
+      if (tripType === "round") base = base * 1.7;
+      return Math.ceil(base);
+    }
     const [westRate, centralEastRate, southRate] = NORTH_COAST_RATES[beachTier];
     const origin = northCoastTier(d) !== null ? p : d; // the non-beach side is the origin
     if (isSouth(origin)) {
