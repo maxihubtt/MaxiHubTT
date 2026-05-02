@@ -215,11 +215,22 @@ export default function Home() {
     validateDatetime(value);
   };
 
+  const [showErrors, setShowErrors] = useState(false);
+
   const isFormValid = fare > 0 && name.trim() && phone.trim() && pickupDatetime && !datetimeError;
+
+  const fieldErrors = {
+    pickup: showErrors && !pickup.trim(),
+    dropoff: showErrors && !dropoff.trim(),
+    fare: showErrors && fare === 0 && pickup.trim() && dropoff.trim(),
+    datetime: showErrors && (!pickupDatetime || !!datetimeError),
+    name: showErrors && !name.trim(),
+    phone: showErrors && !phone.trim(),
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isFormValid) return;
+    if (!isFormValid) { setShowErrors(true); return; }
 
     const priceNote = `TTD ${fareCeiled} (${tripType === "round" ? "Round Trip" : "One Way"}, ${PAX_OPTIONS.find(o => o.value === pax)?.label ?? pax + " pax"}) — Pickup: ${pickupDatetime}`;
 
@@ -403,11 +414,12 @@ export default function Home() {
                       id="pickup"
                       data-testid="input-pickup"
                       placeholder="e.g. Maracas Bay, POS, Piarco Airport..."
-                      className="h-11 border-teal-100 rounded-xl focus-visible:ring-teal-500 bg-white text-teal-900 placeholder:text-teal-400"
+                      className={`h-11 rounded-xl focus-visible:ring-teal-500 bg-white text-teal-900 placeholder:text-teal-400 ${fieldErrors.pickup ? "border-red-400 border-2" : "border-teal-100"}`}
                       value={pickup}
-                      onChange={(e) => setPickup(e.target.value)}
+                      onChange={(e) => { setPickup(e.target.value); setShowErrors(false); }}
                       required
                     />
+                    {fieldErrors.pickup && <p className="text-xs text-red-600 font-medium mt-1">Please enter a pickup location.</p>}
                   </div>
 
                   <div className="space-y-1.5 relative z-10">
@@ -421,11 +433,12 @@ export default function Home() {
                       id="dropoff"
                       data-testid="input-dropoff"
                       placeholder="e.g. San Fernando, Chaguanas, Las Cuevas..."
-                      className="h-11 border-teal-100 rounded-xl focus-visible:ring-teal-500 bg-white text-teal-900 placeholder:text-teal-400"
+                      className={`h-11 rounded-xl focus-visible:ring-teal-500 bg-white text-teal-900 placeholder:text-teal-400 ${fieldErrors.dropoff ? "border-red-400 border-2" : "border-teal-100"}`}
                       value={dropoff}
-                      onChange={(e) => setDropoff(e.target.value)}
+                      onChange={(e) => { setDropoff(e.target.value); setShowErrors(false); }}
                       required
                     />
+                    {fieldErrors.dropoff && <p className="text-xs text-red-600 font-medium mt-1">Please enter a dropoff location.</p>}
                   </div>
                 </div>
 
@@ -485,9 +498,9 @@ export default function Home() {
                       data-testid="input-datetime"
                       type="datetime-local"
                       min={getMinDatetime()}
-                      className="w-full h-11 pl-9 pr-4 rounded-xl border-2 border-teal-100 bg-white focus:border-teal-500 focus:outline-none text-teal-900 text-sm transition-colors"
+                      className={`w-full h-11 pl-9 pr-4 rounded-xl border-2 bg-white focus:outline-none text-teal-900 text-sm transition-colors ${fieldErrors.datetime ? "border-red-400 focus:border-red-400" : "border-teal-100 focus:border-teal-500"}`}
                       value={pickupDatetime}
-                      onChange={(e) => handleDatetimeChange(e.target.value)}
+                      onChange={(e) => { handleDatetimeChange(e.target.value); setShowErrors(false); }}
                       required
                     />
                   </div>
@@ -510,11 +523,12 @@ export default function Home() {
                         id="name"
                         data-testid="input-name"
                         placeholder="e.g. Kezia"
-                        className="pl-9 h-11 border-teal-100 rounded-xl focus-visible:ring-teal-500 bg-white text-teal-900 placeholder:text-teal-400"
+                        className={`pl-9 h-11 rounded-xl focus-visible:ring-teal-500 bg-white text-teal-900 placeholder:text-teal-400 ${fieldErrors.name ? "border-red-400 border-2" : "border-teal-100"}`}
                         value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e) => { setName(e.target.value); setShowErrors(false); }}
                         required
                       />
+                      {fieldErrors.name && <p className="text-xs text-red-600 font-medium mt-1">Required.</p>}
                     </div>
                   </div>
                   <div className="space-y-1.5">
@@ -526,11 +540,12 @@ export default function Home() {
                         data-testid="input-phone"
                         type="tel"
                         placeholder="868-XXX-XXXX"
-                        className="pl-9 h-11 border-teal-100 rounded-xl focus-visible:ring-teal-500 bg-white text-teal-900 placeholder:text-teal-400"
+                        className={`pl-9 h-11 rounded-xl focus-visible:ring-teal-500 bg-white text-teal-900 placeholder:text-teal-400 ${fieldErrors.phone ? "border-red-400 border-2" : "border-teal-100"}`}
                         value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
+                        onChange={(e) => { setPhone(e.target.value); setShowErrors(false); }}
                         required
                       />
+                      {fieldErrors.phone && <p className="text-xs text-red-600 font-medium mt-1">Required.</p>}
                     </div>
                   </div>
                 </div>
@@ -578,20 +593,32 @@ export default function Home() {
                 <Button
                   type="submit"
                   data-testid="button-book"
-                  disabled={!isFormValid || createJob.isPending}
-                  className="w-full h-14 text-base font-black rounded-xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 text-white border-0"
-                  style={{ background: isFormValid ? "linear-gradient(135deg, #0f3d2e, #1a5c42)" : undefined }}
+                  disabled={createJob.isPending}
+                  onClick={() => { if (!isFormValid) setShowErrors(true); }}
+                  className="w-full h-auto py-3 rounded-xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 text-white border-0 flex flex-col items-center gap-0.5"
+                  style={{ background: "linear-gradient(135deg, #0f3d2e, #1a5c42)" }}
                 >
                   {createJob.isPending ? (
-                    <span className="flex items-center gap-2">
+                    <span className="flex items-center gap-2 text-base font-black">
                       <Loader2 className="w-5 h-5 animate-spin" /> Confirming your booking...
                     </span>
                   ) : fare > 0 ? (
-                    `Confirm Booking — TTD ${deposit} Deposit Due`
+                    <>
+                      <span className="text-base font-black leading-tight">Confirm Booking</span>
+                      <span className="text-xs font-semibold opacity-90">TTD {deposit} deposit due on confirmation</span>
+                    </>
                   ) : (
-                    "Enter Route to See Your Fare"
+                    <span className="text-base font-black">Enter Route to See Your Fare</span>
                   )}
                 </Button>
+
+                {/* Validation summary */}
+                {showErrors && !isFormValid && (
+                  <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                    <Info className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                    <p className="text-xs text-red-700 font-medium">Please fill in all highlighted fields before confirming your booking.</p>
+                  </div>
+                )}
 
                 {/* Deposit note */}
                 <div className="text-center">
