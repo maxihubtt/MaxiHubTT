@@ -28,6 +28,14 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
   const p = pickup.toLowerCase();
   const d = dropoff.toLowerCase();
 
+  // South round trip: TTD 100 per person, minimum TTD 1,000 if under 10 people
+  // This takes priority over all other south pricing when trip is round
+  const southInvolved = isSouth(d) || isSouth(p);
+  if (tripType === "round" && southInvolved && !d.includes("airport") && !p.includes("airport")) {
+    const perPerson = pax * 100;
+    return pax < 10 ? Math.max(perPerson, 1000) : perPerson;
+  }
+
   let base = 0;
 
   const crossWestSouth = (isWest(p) && isSouth(d)) || (isSouth(p) && isWest(d));
