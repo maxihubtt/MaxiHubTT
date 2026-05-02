@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, MessageCircle } from "lucide-react";
+import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, MessageCircle, Plane, Waves, Briefcase } from "lucide-react";
 
 const WHATSAPP_URL = "https://wa.me/18684818039?text=Hi%20Maxi%20Hub%20TT%2C%20I%20would%20like%20to%20book%20a%20ride.";
 
@@ -517,7 +517,7 @@ export default function Home() {
           <Card className="w-full max-w-lg shadow-xl shadow-amber-900/5 border-amber-100 bg-white/80 backdrop-blur-sm rounded-3xl overflow-hidden">
             <div className="h-2 w-full" style={{ background: "linear-gradient(90deg, #ce1126, #000, #ce1126, #f59e0b, #0f3d2e)" }} />
             <CardHeader className="pb-2 pt-6">
-              <CardTitle className="text-2xl text-teal-900 font-black">Book Your Maxi</CardTitle>
+              <CardTitle id="booking-form" className="text-2xl text-teal-900 font-black">Book Your Maxi</CardTitle>
               <CardDescription className="text-teal-700/70">
                 Private hire rates. Transparent pricing. No surprise quotes.
               </CardDescription>
@@ -796,6 +796,65 @@ export default function Home() {
           </Card>
         </div>
       </main>
+
+      {/* Services section */}
+      <section className="py-16 px-6 md:px-12 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="h-0.5 w-16 mx-auto mb-4 rounded-full" style={{ background: "linear-gradient(90deg, #ce1126, #000, #ce1126)" }} />
+            <h2 className="text-3xl font-black text-teal-900 mb-2">What We Do</h2>
+            <p className="text-teal-700/70 text-sm">Premium private hire for every occasion across Trinidad & Tobago.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {[
+              {
+                icon: <Plane className="w-6 h-6" />,
+                title: "Airport Runs",
+                desc: "Stress-free transfers to and from Piarco International Airport. On time, every time — no haggling, fixed fares.",
+                color: "bg-sky-50 border-sky-100 text-sky-700",
+                iconBg: "bg-sky-100 text-sky-600",
+              },
+              {
+                icon: <Waves className="w-6 h-6" />,
+                title: "Beach Limes",
+                desc: "Maracas, Las Cuevas, Mayaro, Icacos and more. We know the routes. You focus on the vibes.",
+                color: "bg-teal-50 border-teal-100 text-teal-700",
+                iconBg: "bg-teal-100 text-teal-600",
+              },
+              {
+                icon: <Users className="w-6 h-6" />,
+                title: "Group Events",
+                desc: "Family reunions, fetes, school trips, sporting events. One call, one maxi, everyone rides together.",
+                color: "bg-amber-50 border-amber-100 text-amber-700",
+                iconBg: "bg-amber-100 text-amber-600",
+              },
+              {
+                icon: <Briefcase className="w-6 h-6" />,
+                title: "Corporate Hire",
+                desc: "Professional, punctual, and presentable. We move your team so you can focus on business.",
+                color: "bg-slate-50 border-slate-100 text-slate-700",
+                iconBg: "bg-slate-100 text-slate-600",
+              },
+            ].map(({ icon, title, desc, color, iconBg }) => (
+              <div key={title} className={`rounded-2xl border p-6 flex gap-4 items-start ${color}`}>
+                <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>
+                  {icon}
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-black text-teal-900 text-base mb-1">{title}</h3>
+                  <p className="text-sm leading-relaxed text-teal-800/70">{desc}</p>
+                  <button
+                    onClick={() => document.getElementById("booking-form")?.scrollIntoView({ behavior: "smooth" })}
+                    className="mt-3 text-xs font-bold text-teal-700 underline underline-offset-2 hover:text-teal-900 transition-colors"
+                  >
+                    Book Now →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Fleet / Special Events banner */}
       <section className="py-10 px-6 md:px-12 bg-teal-900">
