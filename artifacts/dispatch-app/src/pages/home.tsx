@@ -10,7 +10,7 @@ import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Ca
 const WHATSAPP_URL = "https://wa.me/18684818039?text=Hi%20Maxi%20Hub%20TT%2C%20I%20would%20like%20to%20book%20a%20ride.";
 
 function isWest(loc: string): boolean {
-  return ["pos", "port of spain", "diego", "st james", "westmoorings", "chaguaramas", "maraval", "st clair", "woodbrook", "petit valley", "carenage", "west"].some(k => loc.includes(k));
+  return ["pos", "port of spain", "diego", "st james", "westmoorings", "chaguaramas", "maraval", "st clair", "woodbrook", "petit valley", "carenage", "west", "laventille", "morvant", "barataria", "san juan", "st joseph", "curepe", "valsayn", "mount lambert"].some(k => loc.includes(k));
 }
 
 function isCentral(loc: string): boolean {
@@ -18,18 +18,37 @@ function isCentral(loc: string): boolean {
 }
 
 function isEast(loc: string): boolean {
-  return ["arima", "tunapuna", "arouca", "tacarigua", "sangre grande", "valencia", "grand bazaar", "trincity", "d'abadie", "malabar", "east"].some(k => loc.includes(k));
+  return ["arima", "tunapuna", "arouca", "tacarigua", "sangre grande", "valencia", "grand bazaar", "trincity", "d'abadie", "malabar", "east", "toco", "matelot", "balandra", "saline", "demerara"].some(k => loc.includes(k));
 }
 
 function isSouth(loc: string): boolean {
-  return ["san fernando", "penal", "siparia", "point fortin", "fyzabad", "cedros", "moruga", "princes town", "gasparillo", "marabella", "south"].some(k => loc.includes(k));
+  return ["san fernando", "penal", "siparia", "point fortin", "fyzabad", "cedros", "moruga", "princes town", "gasparillo", "marabella", "barrackpore", "rio claro", "south"].some(k => loc.includes(k));
 }
 
-function southDepth(loc: string): number {
-  if (["point fortin", "cedros", "fyzabad", "moruga", "siparia"].some(k => loc.includes(k))) return 3;
-  if (["penal", "princes town", "gasparillo"].some(k => loc.includes(k))) return 2;
-  if (["san fernando", "marabella"].some(k => loc.includes(k))) return 1;
-  return 1;
+// East sub-zones (from west perspective — distance-based)
+function eastSubzone(loc: string): "near" | "mid" | "far" | "toco" {
+  if (["toco", "matelot", "balandra", "saline"].some(k => loc.includes(k))) return "toco";
+  if (["san juan", "st joseph", "curepe", "valsayn", "mount lambert", "barataria", "laventille", "morvant"].some(k => loc.includes(k))) return "near";
+  if (["valencia", "demerara", "sangre grande"].some(k => loc.includes(k))) return "far";
+  return "mid"; // arima, trincity, arouca, tunapuna, tacarigua
+}
+
+// South sub-zones (from west perspective — distance-based)
+function southSubzone(loc: string): "close" | "mid" | "far" | "deep" {
+  if (["cedros", "moruga"].some(k => loc.includes(k))) return "deep";
+  if (["point fortin"].some(k => loc.includes(k))) return "far";
+  if (["penal", "siparia", "fyzabad", "barrackpore", "princes town", "rio claro"].some(k => loc.includes(k))) return "mid";
+  return "close"; // san fernando, marabella, gasparillo
+}
+
+type ZoneKey = "west" | "central" | "east" | "south";
+
+function getZone(loc: string): ZoneKey | null {
+  if (isSouth(loc)) return "south";
+  if (isEast(loc)) return "east";
+  if (isCentral(loc)) return "central";
+  if (isWest(loc)) return "west";
+  return null;
 }
 
 type BeachKey = "maracas" | "las_cuevas" | "blanchisseuse" | "manzanilla" | "mayaro" | "vessigny" | "icacos";
@@ -51,7 +70,7 @@ const BEACH_RATES: Record<BeachKey, Record<RegionKey, [number, number]>> = {
 
 function identifyBeach(loc: string): BeachKey | null {
   if (loc.includes("maracas") || loc.includes("tyrico")) return "maracas";
-  if (loc.includes("las cuevas") || loc.includes("toco") || loc.includes("matelot")) return "las_cuevas";
+  if (loc.includes("las cuevas")) return "las_cuevas";
   if (loc.includes("blanchisseuse") || loc.includes("paria")) return "blanchisseuse";
   if (loc.includes("manzanilla")) return "manzanilla";
   if (loc.includes("mayaro")) return "mayaro";
@@ -81,10 +100,10 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
 
   const airportInvolved = d.includes("airport") || p.includes("airport");
 
-  // Beach runs — explicit lookup table
+  // ── Beach runs ────────────────────────────────────────────
   const beach = identifyBeach(d) ?? identifyBeach(p);
   if (beach !== null && !airportInvolved) {
-    // 16+ pax on a north coast beach run → $100 per person (flat, no surcharge)
+    // 16+ pax north coast beach run → $100/person flat
     if (pax >= 16 && NORTH_COAST_BEACHES.includes(beach)) {
       return pax * 100;
     }
@@ -95,33 +114,55 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
     return base + paxSurcharge(pax);
   }
 
-  const southInvolved = isSouth(d) || isSouth(p);
-
-  // South non-beach: tiered by passenger count
-  if (southInvolved && !airportInvolved) {
-    if (pax > 18) return 1500;
-    if (pax > 15) return 1200;
-    if (pax >= 10) return 1000;
-    return 800;
+  // ── Airport ───────────────────────────────────────────────
+  if (airportInvolved) {
+    return 400 + paxSurcharge(pax);
   }
+
+  // ── 16+ pax round trip → $100/person on ALL non-beach routes ──
+  if (pax >= 16 && tripType === "round") {
+    return pax * 100;
+  }
+
+  // ── Corridor fares ────────────────────────────────────────
+  const pZone = getZone(p);
+  const dZone = getZone(d);
 
   let base = 0;
 
-  if (airportInvolved) {
-    base = 400;
-  } else if (d.includes("pos") || d.includes("diego") || d.includes("st james") || d.includes("port of spain")) {
-    base = 300;
-  } else if (isCentral(d) || d.includes("chaguanas") || d.includes("cunupia")) {
-    base = 350;
-  } else if (pickup && dropoff) {
-    base = 400;
+  if ((pZone === "west" && dZone === "central") || (pZone === "central" && dZone === "west")) {
+    base = tripType === "round" ? 900 : 550;
+
+  } else if ((pZone === "west" && dZone === "east") || (pZone === "east" && dZone === "west")) {
+    const eastLoc = pZone === "east" ? p : d;
+    const sub = eastSubzone(eastLoc);
+    if (sub === "toco")   base = tripType === "round" ? 1500 : 950;
+    else if (sub === "far") base = tripType === "round" ? 1000 : 625;
+    else if (sub === "near") base = tripType === "round" ? 600 : 375;
+    else                   base = tripType === "round" ? 800 : 500; // mid (Arima/Trincity)
+
+  } else if ((pZone === "west" && dZone === "south") || (pZone === "south" && dZone === "west")) {
+    const southLoc = pZone === "south" ? p : d;
+    const sub = southSubzone(southLoc);
+    if (sub === "deep")   base = tripType === "round" ? 1800 : 1150;
+    else if (sub === "far") base = tripType === "round" ? 1500 : 900;
+    else if (sub === "mid") base = tripType === "round" ? 1150 : 700;
+    else                   base = tripType === "round" ? 900 : 500; // close (San Fernando)
+
+  } else if (
+    (pZone === "central" && (dZone === "east" || dZone === "south")) ||
+    ((pZone === "east" || pZone === "south") && dZone === "central") ||
+    (pZone === "east" && dZone === "south") ||
+    (pZone === "south" && dZone === "east")
+  ) {
+    base = tripType === "round" ? 1200 : 700;
+
+  } else {
+    // Intra-zone or unrecognised — safe fallback
+    base = tripType === "round" ? 600 : 400;
   }
 
-  base += paxSurcharge(pax);
-
-  if (base > 0 && base < 300) base = 300;
-
-  return base;
+  return base + paxSurcharge(pax);
 }
 
 function getMinDatetime(): string {
