@@ -797,6 +797,30 @@ export default function Home() {
         </div>
       </main>
 
+      {/* Fleet / Special Events banner */}
+      <section className="py-10 px-6 md:px-12 bg-teal-900">
+        <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div>
+            <p className="text-amber-400 text-xs font-bold uppercase tracking-widest mb-1">Special Events & Corporate</p>
+            <h2 className="text-2xl md:text-3xl font-black text-white leading-tight">
+              Need a fleet for your event?
+            </h2>
+            <p className="text-teal-300 text-sm mt-2 max-w-md">
+              Weddings, school trips, fetes, corporate outings — we coordinate multiple vehicles so your whole crew travels together. Contact us directly to plan your fleet.
+            </p>
+          </div>
+          <a
+            href={`${WHATSAPP_URL}&text=Hi%20Maxi%20Hub%20TT%2C%20I%20need%20a%20fleet%20booking%20for%20a%20special%20event.`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-teal-900 font-black text-sm px-6 py-3 rounded-xl shadow-lg transition-colors whitespace-nowrap"
+          >
+            <MessageCircle className="w-4 h-4" />
+            WhatsApp Us for Fleet Booking
+          </a>
+        </div>
+      </section>
+
       {/* How It Works */}
       <section className="py-16 px-6 md:px-12" style={{ background: "linear-gradient(180deg, #FFFBF4 0%, #f0fdf8 100%)" }}>
         <div className="max-w-4xl mx-auto">
