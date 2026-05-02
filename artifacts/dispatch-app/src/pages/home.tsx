@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight } from "lucide-react";
+import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, MessageCircle } from "lucide-react";
+
+const WHATSAPP_URL = "https://wa.me/18684818039?text=Hi%20Maxi%20Hub%20TT%2C%20I%20would%20like%20to%20book%20a%20ride.";
 
 function calculateFare(pickup: string, dropoff: string, tripType: string, pax: number): number {
   const p = pickup.toLowerCase();
@@ -182,12 +184,25 @@ export default function Home() {
               <p className="text-xs text-amber-300 font-medium tracking-widest uppercase">Premium Shuttle Service</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-1 text-xs font-semibold text-teal-100">
-            <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20">Trinidad & Tobago</span>
-            <span className="mx-2 text-amber-400">✦</span>
-            <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20">Private Hire</span>
-            <span className="mx-2 text-amber-400">✦</span>
-            <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20">Airport Runs</span>
+          <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-1 text-xs font-semibold text-teal-100">
+              <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20">Trinidad & Tobago</span>
+              <span className="mx-2 text-amber-400">✦</span>
+              <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20">Private Hire</span>
+              <span className="mx-2 text-amber-400">✦</span>
+              <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20">Airport Runs</span>
+            </div>
+            <a
+              href={WHATSAPP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="link-whatsapp-header"
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-white shadow-md transition-all hover:scale-105 active:scale-95"
+              style={{ background: "#25D366" }}
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">WhatsApp Us</span>
+            </a>
           </div>
         </div>
 
@@ -473,8 +488,32 @@ export default function Home() {
         <div className="h-0.5 w-24 mx-auto mb-4 rounded-full" style={{ background: "linear-gradient(90deg, #ce1126, #000, #ce1126)" }} />
         <p className="font-black text-base mb-1">Maxi Hub TT</p>
         <p className="text-teal-300 text-xs">Premium Private Hire · Trinidad &amp; Tobago</p>
-        <p className="text-teal-400/60 text-xs mt-2">Safe. Smooth. On Time. Dat's How We Roll.</p>
+        <a
+          href={WHATSAPP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="link-whatsapp-footer"
+          className="inline-flex items-center gap-2 mt-4 px-5 py-2.5 rounded-full text-sm font-bold text-white shadow-lg transition-all hover:scale-105 active:scale-95"
+          style={{ background: "#25D366" }}
+        >
+          <MessageCircle className="w-4 h-4" />
+          Chat with us on WhatsApp
+        </a>
+        <p className="text-teal-400/60 text-xs mt-4">Safe. Smooth. On Time. Dat's How We Roll.</p>
       </footer>
+
+      {/* Floating WhatsApp button */}
+      <a
+        href={WHATSAPP_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        data-testid="link-whatsapp-float"
+        aria-label="Chat on WhatsApp"
+        className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-14 h-14 rounded-full shadow-2xl transition-all hover:scale-110 active:scale-95"
+        style={{ background: "#25D366" }}
+      >
+        <MessageCircle className="w-7 h-7 text-white fill-white" />
+      </a>
     </div>
   );
 }
