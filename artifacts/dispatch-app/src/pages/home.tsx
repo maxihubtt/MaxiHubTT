@@ -28,33 +28,33 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
   const p = pickup.toLowerCase();
   const d = dropoff.toLowerCase();
 
-  // South round trip: TTD 100 per person, minimum TTD 1,000 if under 10 people
-  // This takes priority over all other south pricing when trip is round
   const southInvolved = isSouth(d) || isSouth(p);
-  if (tripType === "round" && southInvolved && !d.includes("airport") && !p.includes("airport")) {
+  const airportInvolved = d.includes("airport") || p.includes("airport");
+
+  // South round trip: TTD 100 per person, minimum TTD 1,000 if under 10 people
+  if (tripType === "round" && southInvolved && !airportInvolved) {
     const perPerson = pax * 100;
     return pax < 10 ? Math.max(perPerson, 1000) : perPerson;
   }
 
+  // South one-way: tiered by passenger count
+  // Under 10 → TTD 800 min | 10–17 → TTD 1,000 | 18+ → TTD 1,500
+  if (tripType === "one-way" && southInvolved && !airportInvolved) {
+    if (pax >= 18) return 1500;
+    if (pax >= 10) return 1000;
+    return 800;
+  }
+
   let base = 0;
 
-  const crossWestSouth = (isWest(p) && isSouth(d)) || (isSouth(p) && isWest(d));
-
-  if (d.includes("airport") || p.includes("airport")) {
+  if (airportInvolved) {
     base = 400;
   } else if (d.includes("maracas") || d.includes("las cuevas")) {
     base = 800;
-  } else if (crossWestSouth) {
-    const depth = isSouth(d) ? southDepth(d) : southDepth(p);
-    if (depth === 1) base = 1000;
-    else if (depth === 2) base = 1200;
-    else base = 1400;
   } else if (d.includes("pos") || d.includes("diego") || d.includes("st james") || d.includes("port of spain")) {
     base = 300;
   } else if (d.includes("chaguanas") || d.includes("cunupia")) {
     base = 350;
-  } else if (d.includes("san fernando") || d.includes("penal")) {
-    base = 550;
   } else if (pickup && dropoff) {
     base = 400;
   }
