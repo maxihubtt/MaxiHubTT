@@ -133,7 +133,7 @@ export default function Home() {
             </div>
             <h2 className="text-2xl font-bold text-teal-950 mb-1">Booking Confirmed!</h2>
             <p className="text-sm text-teal-700 mb-4">
-              Alright <strong>{bookedJob.name}</strong>! Yuh ride from <strong>{bookedJob.pickup}</strong> to <strong>{bookedJob.dropoff}</strong> locked in, gyul/bro!
+              Thank you, <strong>{bookedJob.name}</strong>! Your ride from <strong>{bookedJob.pickup}</strong> to <strong>{bookedJob.dropoff}</strong> is confirmed.
             </p>
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 w-full mb-3 text-left">
               <p className="text-xs text-teal-600 font-mono uppercase tracking-wider mb-1">Pickup Time</p>
@@ -145,7 +145,7 @@ export default function Home() {
               <p className="text-xs text-teal-600 mt-1">Remaining TTD {bookedJob.fare - bookedJob.deposit} due to driver</p>
             </div>
             <p className="text-xs text-teal-500 font-mono mb-6">Ref: {bookedJob.id}</p>
-            <p className="text-sm text-teal-700 mb-6">Yuh driver will be in touch. Keep yuh phone close!</p>
+            <p className="text-sm text-teal-700 mb-6">Your driver will be in touch. Please keep your phone nearby.</p>
             <Button
               className="w-full text-white font-bold"
               style={{ background: "linear-gradient(135deg, #0f3d2e, #1a5c42)" }}
@@ -210,7 +210,7 @@ export default function Home() {
         <div className="border-t border-white/10 py-2 text-center"
              style={{ background: "rgba(0,0,0,0.15)" }}>
           <p className="text-xs text-amber-200 font-medium tracking-widest uppercase">
-            🌴 &nbsp; Safe. Smooth. On Time. Dat's How We Roll. &nbsp; 🌴
+            🌴 &nbsp; Safe. Smooth. On Time. That's How We Roll. &nbsp; 🌴
           </p>
         </div>
       </header>
@@ -236,11 +236,11 @@ export default function Home() {
                 <div className="h-1 w-8 rounded-full" style={{ background: "#ce1126" }} />
               </div>
               <h2 className="text-3xl lg:text-4xl font-extrabold text-teal-900 leading-tight mb-3">
-                Yuh reliable ride <br />
+                Your reliable ride <br />
                 <span style={{ color: "#c8861a" }}>across the island.</span>
               </h2>
               <p className="text-teal-800/80 text-base max-w-md mb-4">
-                Premium private hire shuttle for individuals, groups, airport runs, beach limes & events. No haggling — transparent rates, real reliability.
+                Premium private hire shuttle for individuals, groups, airport runs, beach trips & events. No haggling — transparent rates, real reliability.
               </p>
               <div className="flex flex-wrap gap-2">
                 {["Airport Runs", "Beach Limes", "Group Events", "Corporate"].map(tag => (
@@ -260,7 +260,7 @@ export default function Home() {
             <CardHeader className="pb-2 pt-6">
               <CardTitle className="text-2xl text-teal-900 font-black">Book Your Maxi</CardTitle>
               <CardDescription className="text-teal-700/70">
-                Private hire rates. Transparent pricing. No buss-up quotes.
+                Private hire rates. Transparent pricing. No surprise quotes.
               </CardDescription>
             </CardHeader>
             <CardContent className="pb-6">
@@ -281,7 +281,7 @@ export default function Home() {
                       id="pickup"
                       data-testid="input-pickup"
                       placeholder="e.g. Maracas Bay, POS, Piarco Airport..."
-                      className="h-11 border-teal-100 rounded-xl focus-visible:ring-teal-500 bg-white"
+                      className="h-11 border-teal-100 rounded-xl focus-visible:ring-teal-500 bg-white text-teal-900 placeholder:text-teal-400"
                       value={pickup}
                       onChange={(e) => setPickup(e.target.value)}
                       required
@@ -299,7 +299,7 @@ export default function Home() {
                       id="dropoff"
                       data-testid="input-dropoff"
                       placeholder="e.g. San Fernando, Chaguanas, Las Cuevas..."
-                      className="h-11 border-teal-100 rounded-xl focus-visible:ring-teal-500 bg-white"
+                      className="h-11 border-teal-100 rounded-xl focus-visible:ring-teal-500 bg-white text-teal-900 placeholder:text-teal-400"
                       value={dropoff}
                       onChange={(e) => setDropoff(e.target.value)}
                       required
@@ -388,7 +388,7 @@ export default function Home() {
                         id="name"
                         data-testid="input-name"
                         placeholder="e.g. Kezia"
-                        className="pl-9 h-11 border-teal-100 rounded-xl focus-visible:ring-teal-500 bg-white"
+                        className="pl-9 h-11 border-teal-100 rounded-xl focus-visible:ring-teal-500 bg-white text-teal-900 placeholder:text-teal-400"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
@@ -404,7 +404,7 @@ export default function Home() {
                         data-testid="input-phone"
                         type="tel"
                         placeholder="868-XXX-XXXX"
-                        className="pl-9 h-11 border-teal-100 rounded-xl focus-visible:ring-teal-500 bg-white"
+                        className="pl-9 h-11 border-teal-100 rounded-xl focus-visible:ring-teal-500 bg-white text-teal-900 placeholder:text-teal-400"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         required
@@ -437,7 +437,7 @@ export default function Home() {
                             25% Deposit to Confirm: TTD {deposit}
                           </p>
                           <p className="text-xs text-teal-700/80 mt-1 leading-relaxed">
-                            Balance of TTD {fareCeiled - deposit} paid directly to yuh driver. Deposit holds your booking and covers driver preparation time.
+                            Balance of TTD {fareCeiled - deposit} paid directly to your driver. Deposit holds your booking and covers driver preparation time.
                           </p>
                         </div>
                       </div>
@@ -462,12 +462,12 @@ export default function Home() {
                 >
                   {createJob.isPending ? (
                     <span className="flex items-center gap-2">
-                      <Loader2 className="w-5 h-5 animate-spin" /> Locking in yuh ride...
+                      <Loader2 className="w-5 h-5 animate-spin" /> Confirming your booking...
                     </span>
                   ) : fare > 0 ? (
                     `Pay TTD ${deposit} Deposit — Book Now`
                   ) : (
-                    "Enter Route to See Yuh Fare"
+                    "Enter Route to See Your Fare"
                   )}
                 </Button>
 
