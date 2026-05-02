@@ -13,6 +13,14 @@ function isWest(loc: string): boolean {
   return ["pos", "port of spain", "diego", "st james", "westmoorings", "chaguaramas", "maraval", "st clair", "woodbrook", "petit valley", "carenage", "west"].some(k => loc.includes(k));
 }
 
+function isCentral(loc: string): boolean {
+  return ["chaguanas", "cunupia", "couva", "freeport", "brechin castle", "felicity", "longdenville", "charlieville", "central"].some(k => loc.includes(k));
+}
+
+function isEast(loc: string): boolean {
+  return ["arima", "tunapuna", "arouca", "tacarigua", "sangre grande", "valencia", "grand bazaar", "trincity", "d'abadie", "malabar", "east"].some(k => loc.includes(k));
+}
+
 function isSouth(loc: string): boolean {
   return ["san fernando", "penal", "siparia", "point fortin", "fyzabad", "cedros", "moruga", "princes town", "gasparillo", "marabella", "south"].some(k => loc.includes(k));
 }
@@ -23,6 +31,21 @@ function southDepth(loc: string): number {
   if (["san fernando", "marabella"].some(k => loc.includes(k))) return 1;
   return 1;
 }
+
+// North coast beach tiers — further along the coast = higher tier
+function northCoastTier(loc: string): number | null {
+  if (["blanchisseuse", "toco", "matelot", "las cuevas"].some(k => loc.includes(k))) return 3;
+  if (["tyrico", "paria", "maraval beach"].some(k => loc.includes(k))) return 2;
+  if (["maracas"].some(k => loc.includes(k))) return 1;
+  return null;
+}
+
+// Pricing matrix: [west, central/east, south] by tier
+const NORTH_COAST_RATES: Record<number, [number, number, number]> = {
+  1: [1000, 1200, 1500], // Maracas
+  2: [1100, 1300, 1600], // Tyrico / Paria
+  3: [1200, 1500, 1800], // Las Cuevas / Blanchisseuse / Toco
+};
 
 function calculateFare(pickup: string, dropoff: string, tripType: string, pax: number): number {
   const p = pickup.toLowerCase();
@@ -38,7 +61,6 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
   }
 
   // South one-way: tiered by passenger count
-  // Under 10 → TTD 800 min | 10–17 → TTD 1,000 | 18+ → TTD 1,500
   if (tripType === "one-way" && southInvolved && !airportInvolved) {
     if (pax >= 18) return 1500;
     if (pax >= 10) return 1000;
@@ -47,13 +69,24 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
 
   let base = 0;
 
-  if (airportInvolved) {
+  // North coast beaches — origin-aware pricing
+  const beachTier = northCoastTier(d) ?? northCoastTier(p);
+  if (beachTier !== null && !airportInvolved) {
+    const [westRate, centralEastRate, southRate] = NORTH_COAST_RATES[beachTier];
+    const origin = northCoastTier(d) !== null ? p : d; // the non-beach side is the origin
+    if (isSouth(origin)) {
+      base = southRate;
+    } else if (isCentral(origin) || isEast(origin)) {
+      base = centralEastRate;
+    } else {
+      // west or unrecognised — use west rate as default
+      base = westRate;
+    }
+  } else if (airportInvolved) {
     base = 400;
-  } else if (d.includes("maracas") || d.includes("las cuevas")) {
-    base = 800;
   } else if (d.includes("pos") || d.includes("diego") || d.includes("st james") || d.includes("port of spain")) {
     base = 300;
-  } else if (d.includes("chaguanas") || d.includes("cunupia")) {
+  } else if (isCentral(d) || d.includes("chaguanas") || d.includes("cunupia")) {
     base = 350;
   } else if (pickup && dropoff) {
     base = 400;
