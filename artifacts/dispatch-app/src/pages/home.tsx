@@ -84,8 +84,8 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
   // Beach runs — explicit lookup table
   const beach = identifyBeach(d) ?? identifyBeach(p);
   if (beach !== null && !airportInvolved) {
-    // 18+ pax on a north coast beach run → $100 per person (flat, no surcharge)
-    if (pax >= 18 && NORTH_COAST_BEACHES.includes(beach)) {
+    // 16+ pax on a north coast beach run → $100 per person (flat, no surcharge)
+    if (pax >= 16 && NORTH_COAST_BEACHES.includes(beach)) {
       return pax * 100;
     }
     const origin = identifyBeach(d) !== null ? p : d;
