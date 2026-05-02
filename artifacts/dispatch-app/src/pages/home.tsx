@@ -32,36 +32,64 @@ function southDepth(loc: string): number {
   return 1;
 }
 
-// North coast beach tiers — further along the coast = higher tier
-function northCoastTier(loc: string): number | null {
-  if (["blanchisseuse", "toco", "matelot", "las cuevas"].some(k => loc.includes(k))) return 3;
-  if (["tyrico", "paria", "maraval beach"].some(k => loc.includes(k))) return 2;
-  if (["maracas"].some(k => loc.includes(k))) return 1;
+type BeachKey = "maracas" | "las_cuevas" | "blanchisseuse" | "manzanilla" | "mayaro" | "vessigny" | "icacos";
+type RegionKey = "west" | "east" | "central" | "south";
+
+// North coast beaches (18+ pax → $100/person rule applies)
+const NORTH_COAST_BEACHES: BeachKey[] = ["maracas", "las_cuevas", "blanchisseuse"];
+
+// Full pricing matrix: [one-way, round-trip] per beach per region
+const BEACH_RATES: Record<BeachKey, Record<RegionKey, [number, number]>> = {
+  maracas:       { west: [650, 1000],  east: [750, 1200],  central: [850, 1400],  south: [1200, 2000] },
+  las_cuevas:    { west: [750, 1200],  east: [850, 1400],  central: [950, 1600],  south: [1300, 2200] },
+  blanchisseuse: { west: [900, 1500],  east: [600, 1000],  central: [1100, 1800], south: [1600, 2600] },
+  manzanilla:    { west: [1200, 2000], east: [600, 1000],  central: [900, 1500],  south: [900, 1500]  },
+  mayaro:        { west: [1400, 2400], east: [800, 1400],  central: [1000, 1700], south: [650, 1100]  },
+  vessigny:      { west: [1100, 1800], east: [1300, 2200], central: [800, 1400],  south: [500, 900]   },
+  icacos:        { west: [1600, 2600], east: [1500, 2600], central: [1400, 2400], south: [800, 1400]  },
+};
+
+function identifyBeach(loc: string): BeachKey | null {
+  if (loc.includes("maracas") || loc.includes("tyrico")) return "maracas";
+  if (loc.includes("las cuevas") || loc.includes("toco") || loc.includes("matelot")) return "las_cuevas";
+  if (loc.includes("blanchisseuse") || loc.includes("paria")) return "blanchisseuse";
+  if (loc.includes("manzanilla")) return "manzanilla";
+  if (loc.includes("mayaro")) return "mayaro";
+  if (loc.includes("vessigny")) return "vessigny";
+  if (loc.includes("icacos") || loc.includes("columbus bay")) return "icacos";
   return null;
 }
 
-// Pricing matrix: [west, central/east, south] by tier
-const NORTH_COAST_RATES: Record<number, [number, number, number]> = {
-  1: [1000, 1200, 1500], // Maracas
-  2: [1100, 1300, 1600], // Tyrico / Paria
-  3: [1200, 1500, 1800], // Las Cuevas / Blanchisseuse / Toco
-};
+function identifyRegion(loc: string): RegionKey {
+  if (isSouth(loc)) return "south";
+  if (isEast(loc)) return "east";
+  if (isCentral(loc)) return "central";
+  return "west";
+}
 
 function calculateFare(pickup: string, dropoff: string, tripType: string, pax: number): number {
   const p = pickup.toLowerCase();
   const d = dropoff.toLowerCase();
 
-  const southInvolved = isSouth(d) || isSouth(p);
   const airportInvolved = d.includes("airport") || p.includes("airport");
 
-  // South round trip: TTD 100 per person, minimum TTD 1,000 if under 10 people
-  if (tripType === "round" && southInvolved && !airportInvolved) {
-    const perPerson = pax * 100;
-    return pax < 10 ? Math.max(perPerson, 1000) : perPerson;
+  // Beach runs — explicit lookup table
+  const beach = identifyBeach(d) ?? identifyBeach(p);
+  if (beach !== null && !airportInvolved) {
+    // 18+ pax on a north coast beach run → $100 per person
+    if (pax >= 18 && NORTH_COAST_BEACHES.includes(beach)) {
+      return pax * 100;
+    }
+    const origin = identifyBeach(d) !== null ? p : d;
+    const region = identifyRegion(origin);
+    const [oneWayRate, roundRate] = BEACH_RATES[beach][region];
+    return tripType === "round" ? roundRate : oneWayRate;
   }
 
-  // South one-way: tiered by passenger count
-  if (tripType === "one-way" && southInvolved && !airportInvolved) {
+  const southInvolved = isSouth(d) || isSouth(p);
+
+  // South non-beach: tiered by passenger count
+  if (southInvolved && !airportInvolved) {
     if (pax >= 18) return 1500;
     if (pax >= 10) return 1000;
     return 800;
@@ -69,24 +97,7 @@ function calculateFare(pickup: string, dropoff: string, tripType: string, pax: n
 
   let base = 0;
 
-  // North coast beaches — origin-aware pricing
-  const beachTier = northCoastTier(d) ?? northCoastTier(p);
-  if (beachTier !== null && !airportInvolved) {
-    // 18+ pax on a beach run: $100 per person
-    if (pax >= 18) {
-      return pax * 100;
-    }
-    const [westRate, centralEastRate, southRate] = NORTH_COAST_RATES[beachTier];
-    const origin = northCoastTier(d) !== null ? p : d; // the non-beach side is the origin
-    if (isSouth(origin)) {
-      base = southRate;
-    } else if (isCentral(origin) || isEast(origin)) {
-      base = centralEastRate;
-    } else {
-      // west or unrecognised — use west rate as default
-      base = westRate;
-    }
-  } else if (airportInvolved) {
+  if (airportInvolved) {
     base = 400;
   } else if (d.includes("pos") || d.includes("diego") || d.includes("st james") || d.includes("port of spain")) {
     base = 300;
