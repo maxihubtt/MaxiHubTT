@@ -15,6 +15,7 @@ import AdminDrivers from "@/pages/admin-drivers";
 import NotFound from "@/pages/not-found";
 import { AdminGuard } from "@/components/admin-guard";
 import { DriverGuard } from "@/components/driver-guard";
+import { InstallBanner } from "@/components/install-banner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,6 +70,7 @@ function App() {
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <Router />
         </WouterRouter>
+        <InstallBanner />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
