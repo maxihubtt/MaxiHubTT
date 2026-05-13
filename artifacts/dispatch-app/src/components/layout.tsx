@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Zap, LayoutDashboard, Plus, Clock, LogOut } from "lucide-react";
+import { Zap, LayoutDashboard, Plus, Clock, LogOut, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -45,6 +45,15 @@ export function Layout({ children }: LayoutProps) {
               >
                 <LayoutDashboard className="h-4 w-4" />
                 Live Feed
+              </Link>
+              <Link
+                href="/admin/drivers"
+                className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 ${
+                  location === "/admin/drivers" ? "text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                <Users className="h-4 w-4" />
+                Drivers
               </Link>
             </nav>
           </div>

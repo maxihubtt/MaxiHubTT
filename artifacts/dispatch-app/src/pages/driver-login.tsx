@@ -4,9 +4,9 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function DriverLogin() {
-  const [name, setName] = useState("");
-  const [pin, setPin] = useState("");
-  const [showPin, setShowPin] = useState(false);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [, navigate] = useLocation();
@@ -21,14 +21,14 @@ export default function DriverLogin() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name: name.trim(), pin }),
+        body: JSON.stringify({ username: username.trim(), password }),
       });
       if (res.ok) {
         await qc.invalidateQueries({ queryKey: ["driver-auth"] });
         navigate("/driver/jobs");
       } else {
         const data = await res.json().catch(() => ({}));
-        setError((data as { error?: string }).error ?? "Incorrect PIN");
+        setError((data as { error?: string }).error ?? "Login failed");
       }
     } catch {
       setError("Could not reach server. Please try again.");
@@ -62,26 +62,26 @@ export default function DriverLogin() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <label className="text-teal-400 text-xs font-semibold uppercase tracking-wider">Your Name</label>
+            <label className="text-teal-400 text-xs font-semibold uppercase tracking-wider">Username</label>
             <input
               type="text"
-              placeholder="e.g. Marcus"
-              value={name}
-              onChange={e => { setName(e.target.value); setError(""); }}
-              className="w-full h-12 px-4 rounded-xl bg-white/10 border border-white/15 text-white placeholder:text-teal-600 focus:outline-none focus:border-amber-400 text-sm"
-              autoComplete="name"
+              placeholder="e.g. marcus"
+              value={username}
+              onChange={e => { setUsername(e.target.value); setError(""); }}
+              className="w-full h-12 px-4 rounded-xl bg-white/10 border border-white/15 text-white placeholder:text-teal-600 focus:outline-none focus:border-amber-400 text-sm lowercase"
+              autoComplete="username"
               required
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-teal-400 text-xs font-semibold uppercase tracking-wider">Driver PIN</label>
+            <label className="text-teal-400 text-xs font-semibold uppercase tracking-wider">Password</label>
             <div className="relative">
               <input
-                type={showPin ? "text" : "password"}
-                placeholder="Enter PIN"
-                value={pin}
-                onChange={e => { setPin(e.target.value); setError(""); }}
+                type={showPassword ? "text" : "password"}
+                placeholder="Enter password"
+                value={password}
+                onChange={e => { setPassword(e.target.value); setError(""); }}
                 className={`w-full h-12 px-4 pr-12 rounded-xl bg-white/10 border text-white placeholder:text-teal-600 focus:outline-none text-sm transition-colors ${
                   error ? "border-red-500/60 focus:border-red-400" : "border-white/15 focus:border-amber-400"
                 }`}
@@ -91,10 +91,10 @@ export default function DriverLogin() {
               <button
                 type="button"
                 tabIndex={-1}
-                onClick={() => setShowPin(v => !v)}
+                onClick={() => setShowPassword(v => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-teal-500 hover:text-teal-300 transition-colors"
               >
-                {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             {error && <p className="text-red-400 text-xs font-medium">{error}</p>}
@@ -102,11 +102,13 @@ export default function DriverLogin() {
 
           <button
             type="submit"
-            disabled={loading || !name.trim() || !pin}
+            disabled={loading || !username.trim() || !password}
             className="w-full h-12 rounded-xl font-black text-teal-900 text-sm uppercase tracking-wide disabled:opacity-50 transition-all active:scale-[0.98] mt-2"
             style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)" }}
           >
-            {loading ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Signing in…</span> : "Sign In"}
+            {loading
+              ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Signing in…</span>
+              : "Sign In"}
           </button>
         </form>
       </div>

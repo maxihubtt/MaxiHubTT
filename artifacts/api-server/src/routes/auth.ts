@@ -1,10 +1,14 @@
 import { Router } from "express";
+import { eq } from "drizzle-orm";
+import { db, driversTable } from "@workspace/db";
 import { logger } from "../lib/logger";
+import { verifyPassword } from "../lib/password";
 
 declare module "express-session" {
   interface SessionData {
     admin?: boolean;
     driver?: boolean;
+    driverId?: string;
     driverName?: string;
   }
 }
@@ -50,35 +54,41 @@ router.post("/auth/logout", (req, res) => {
   });
 });
 
-router.post("/auth/driver-login", (req, res) => {
-  const { name, pin } = req.body as { name?: string; pin?: string };
-  const driverPin = process.env.DRIVER_PIN;
+router.post("/auth/driver-login", async (req, res) => {
+  const { username, password } = req.body as { username?: string; password?: string };
 
-  if (!driverPin) {
-    logger.error("DRIVER_PIN environment variable is not set");
-    res.status(500).json({ error: "Server misconfiguration — DRIVER_PIN not set" });
+  if (!username?.trim() || !password?.trim()) {
+    res.status(400).json({ error: "Username and password are required" });
     return;
   }
 
-  if (!name?.trim()) {
-    res.status(400).json({ error: "Name is required" });
+  const [driver] = await db
+    .select()
+    .from(driversTable)
+    .where(eq(driversTable.username, username.trim().toLowerCase()));
+
+  if (!driver) {
+    res.status(401).json({ error: "Invalid username or password" });
     return;
   }
 
-  if (pin === driverPin) {
-    req.session.driver = true;
-    req.session.driverName = name.trim();
-    req.session.save((err) => {
-      if (err) {
-        logger.error({ err }, "Failed to save driver session");
-        res.status(500).json({ error: "Session error" });
-        return;
-      }
-      res.json({ ok: true, name: name.trim() });
-    });
-  } else {
-    res.status(401).json({ error: "Incorrect PIN" });
+  const valid = await verifyPassword(driver.passwordHash, password.trim());
+  if (!valid) {
+    res.status(401).json({ error: "Invalid username or password" });
+    return;
   }
+
+  req.session.driver = true;
+  req.session.driverId = driver.id;
+  req.session.driverName = driver.name;
+  req.session.save((err) => {
+    if (err) {
+      logger.error({ err }, "Failed to save driver session");
+      res.status(500).json({ error: "Session error" });
+      return;
+    }
+    res.json({ ok: true, name: driver.name });
+  });
 });
 
 router.get("/auth/driver-me", (req, res) => {

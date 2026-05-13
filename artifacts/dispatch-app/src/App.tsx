@@ -11,6 +11,7 @@ import AdminLogin from "@/pages/admin-login";
 import DriverJob from "@/pages/driver-job";
 import DriverJobs from "@/pages/driver-jobs";
 import DriverLogin from "@/pages/driver-login";
+import AdminDrivers from "@/pages/admin-drivers";
 import NotFound from "@/pages/not-found";
 import { AdminGuard } from "@/components/admin-guard";
 import { DriverGuard } from "@/components/driver-guard";
@@ -37,6 +38,11 @@ function Router() {
       <Route path="/admin/new-job">
         <AdminGuard>
           <NewJob />
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/drivers">
+        <AdminGuard>
+          <AdminDrivers />
         </AdminGuard>
       </Route>
       <Route path="/jobs/:id" component={JobDetails} />

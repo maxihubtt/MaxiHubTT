@@ -48,7 +48,7 @@ router.get("/jobs/stats", requireAdmin, async (req, res) => {
 });
 
 router.post("/jobs/:id/claim", requireDriver, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params["id"] as string;
   const driverName = req.session.driverName ?? (req.body as { driverName?: string }).driverName ?? "";
 
   if (!driverName.trim()) {
@@ -80,7 +80,7 @@ router.post("/jobs/:id/claim", requireDriver, async (req, res) => {
 });
 
 router.patch("/jobs/:id/driver-info", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params["id"] as string;
   const { vehicleType, numberPlate } = req.body as { vehicleType?: string; numberPlate?: string };
 
   const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
@@ -101,7 +101,7 @@ router.patch("/jobs/:id/driver-info", requireAdmin, async (req, res) => {
 });
 
 router.patch("/jobs/:id/complete", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params["id"] as string;
   const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
 
   if (!job) {
@@ -129,7 +129,7 @@ router.patch("/jobs/:id/complete", requireAdmin, async (req, res) => {
 });
 
 router.get("/jobs/:id", async (req, res) => {
-  const { id } = req.params;
+  const id = req.params["id"] as string;
   const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
   if (!job) {
     res.status(404).json({ error: "Job not found" });
