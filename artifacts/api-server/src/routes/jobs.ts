@@ -5,12 +5,27 @@ import { CreateJobBody } from "@workspace/api-zod";
 import { sendJobToGroup, notifyGroupClaimed, sendJobDetailsToDriver } from "../lib/telegram";
 import { logger } from "../lib/logger";
 import { requireAdmin } from "../middleware/requireAdmin";
+import { requireDriver } from "../middleware/requireDriver";
 
 const router = Router();
 
 function generateId(): string {
   return "M" + Math.floor(Math.random() * 9999).toString().padStart(4, "0");
 }
+
+router.get("/driver/jobs", requireDriver, async (req, res) => {
+  const jobs = await db.select().from(jobsTable).orderBy(jobsTable.createdAt);
+  const driverName = req.session.driverName ?? "";
+  res.json(
+    jobs
+      .filter(j => j.status === "pending" || j.claimedBy === driverName)
+      .map(j => ({
+        ...j,
+        createdAt: j.createdAt.toISOString(),
+        updatedAt: j.updatedAt.toISOString(),
+      }))
+  );
+});
 
 router.get("/jobs", requireAdmin, async (req, res) => {
   const jobs = await db.select().from(jobsTable).orderBy(jobsTable.createdAt);
@@ -32,12 +47,12 @@ router.get("/jobs/stats", requireAdmin, async (req, res) => {
   res.json(stats);
 });
 
-router.post("/jobs/:id/claim", async (req, res) => {
+router.post("/jobs/:id/claim", requireDriver, async (req, res) => {
   const { id } = req.params;
-  const { driverName } = req.body as { driverName?: string };
+  const driverName = req.session.driverName ?? (req.body as { driverName?: string }).driverName ?? "";
 
-  if (!driverName?.trim()) {
-    res.status(400).json({ error: "driverName is required" });
+  if (!driverName.trim()) {
+    res.status(400).json({ error: "Driver name not found in session" });
     return;
   }
 

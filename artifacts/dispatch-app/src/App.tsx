@@ -9,8 +9,11 @@ import NewJob from "@/pages/new-job";
 import JobDetails from "@/pages/job-details";
 import AdminLogin from "@/pages/admin-login";
 import DriverJob from "@/pages/driver-job";
+import DriverJobs from "@/pages/driver-jobs";
+import DriverLogin from "@/pages/driver-login";
 import NotFound from "@/pages/not-found";
 import { AdminGuard } from "@/components/admin-guard";
+import { DriverGuard } from "@/components/driver-guard";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,7 +40,17 @@ function Router() {
         </AdminGuard>
       </Route>
       <Route path="/jobs/:id" component={JobDetails} />
-      <Route path="/driver/jobs/:id" component={DriverJob} />
+      <Route path="/driver/login" component={DriverLogin} />
+      <Route path="/driver/jobs">
+        <DriverGuard>
+          <DriverJobs />
+        </DriverGuard>
+      </Route>
+      <Route path="/driver/jobs/:id">
+        <DriverGuard>
+          <DriverJob />
+        </DriverGuard>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

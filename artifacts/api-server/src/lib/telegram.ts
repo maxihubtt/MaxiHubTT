@@ -39,19 +39,19 @@ export async function sendJobToGroup(job: {
   if (!GROUP_ID) return false;
 
   const appDomain = process.env["REPLIT_DOMAINS"]?.split(",")[0];
-  const claimLink = appDomain
-    ? `https://${appDomain}/driver/jobs/${job.id}`
-    : `https://t.me/MxiHub_Job_bot?start=${job.id}`;
-  const paxLine = job.passengers ? `Passengers: ${job.passengers}\n` : "";
+  const portalLink = appDomain
+    ? `https://${appDomain}/driver/jobs`
+    : null;
+  const paxLine = job.passengers ? `Pax: ${job.passengers}\n` : "";
+
+  const markup = portalLink
+    ? { inline_keyboard: [[{ text: "VIEW JOBS", url: portalLink }]] }
+    : undefined;
 
   return telegramRequest("sendMessage", {
     chat_id: GROUP_ID,
-    text: `NEW JOB #${job.id}\n\nFrom: ${job.pickup}\nTo: ${job.dropoff}\n${paxLine}Price: ${job.price}\n\nTap CLAIM to accept this job.`,
-    reply_markup: {
-      inline_keyboard: [[
-        { text: "CLAIM JOB", url: claimLink },
-      ]],
-    },
+    text: `NEW JOB #${job.id}\n\nFrom: ${job.pickup}\nTo: ${job.dropoff}\n${paxLine}Price: ${job.price}\n\nLog in to the driver portal to claim.`,
+    ...(markup && { reply_markup: markup }),
   });
 }
 
