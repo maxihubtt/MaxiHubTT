@@ -118,6 +118,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /jobs/{id}/claim:
+    post:
+      operationId: claimJob
+      tags: [jobs]
+      summary: Claim a job as a driver
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimJobBody"
+      responses:
+        "200":
+          description: Job claimed successfully — returns full job including customer details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Job already claimed or completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /jobs/{id}/complete:
     patch:
       operationId: completeJob
@@ -269,6 +306,14 @@ components:
         - pending
         - claimed
         - completed
+
+    ClaimJobBody:
+      type: object
+      properties:
+        driverName:
+          type: string
+      required:
+        - driverName
 
     UpdateDriverInfoBody:
       type: object

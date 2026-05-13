@@ -89,6 +89,33 @@ export const UpdateDriverInfoResponse = zod.object({
 });
 
 /**
+ * @summary Claim a job as a driver
+ */
+export const ClaimJobParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const ClaimJobBody = zod.object({
+  driverName: zod.string(),
+});
+
+export const ClaimJobResponse = zod.object({
+  id: zod.string(),
+  pickup: zod.string(),
+  dropoff: zod.string(),
+  name: zod.string(),
+  phone: zod.string(),
+  price: zod.string(),
+  passengers: zod.string().nullish(),
+  status: zod.enum(["pending", "claimed", "completed"]),
+  claimedBy: zod.string().nullish(),
+  vehicleType: zod.string().nullish(),
+  numberPlate: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+/**
  * @summary Mark a job as completed
  */
 export const CompleteJobParams = zod.object({

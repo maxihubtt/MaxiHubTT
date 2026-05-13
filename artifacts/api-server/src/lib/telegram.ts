@@ -38,7 +38,10 @@ export async function sendJobToGroup(job: {
 }): Promise<boolean> {
   if (!GROUP_ID) return false;
 
-  const claimLink = `https://t.me/MxiHub_Job_bot?start=${job.id}`;
+  const appDomain = process.env["REPLIT_DOMAINS"]?.split(",")[0];
+  const claimLink = appDomain
+    ? `https://${appDomain}/driver/jobs/${job.id}`
+    : `https://t.me/MxiHub_Job_bot?start=${job.id}`;
   const paxLine = job.passengers ? `Passengers: ${job.passengers}\n` : "";
 
   return telegramRequest("sendMessage", {

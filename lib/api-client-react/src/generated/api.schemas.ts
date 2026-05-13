@@ -49,6 +49,10 @@ export interface JobStats {
   completed: number;
 }
 
+export interface ClaimJobBody {
+  driverName: string;
+}
+
 export interface UpdateDriverInfoBody {
   vehicleType?: string;
   numberPlate?: string;

@@ -8,6 +8,7 @@ import Dashboard from "@/pages/dashboard";
 import NewJob from "@/pages/new-job";
 import JobDetails from "@/pages/job-details";
 import AdminLogin from "@/pages/admin-login";
+import DriverJob from "@/pages/driver-job";
 import NotFound from "@/pages/not-found";
 import { AdminGuard } from "@/components/admin-guard";
 
@@ -36,6 +37,7 @@ function Router() {
         </AdminGuard>
       </Route>
       <Route path="/jobs/:id" component={JobDetails} />
+      <Route path="/driver/jobs/:id" component={DriverJob} />
       <Route component={NotFound} />
     </Switch>
   );

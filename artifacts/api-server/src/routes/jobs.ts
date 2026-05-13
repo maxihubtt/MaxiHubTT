@@ -32,6 +32,38 @@ router.get("/jobs/stats", requireAdmin, async (req, res) => {
   res.json(stats);
 });
 
+router.post("/jobs/:id/claim", async (req, res) => {
+  const { id } = req.params;
+  const { driverName } = req.body as { driverName?: string };
+
+  if (!driverName?.trim()) {
+    res.status(400).json({ error: "driverName is required" });
+    return;
+  }
+
+  const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
+  if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+  if (job.status !== "pending") {
+    res.status(409).json({ error: "Job is already claimed or completed" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(jobsTable)
+    .set({ status: "claimed", claimedBy: driverName.trim(), updatedAt: new Date() })
+    .where(eq(jobsTable.id, id))
+    .returning();
+
+  await notifyGroupClaimed(id, driverName.trim());
+  req.log.info({ jobId: id, driverName }, "Job claimed via driver portal");
+
+  res.json({
+    ...updated,
+    createdAt: updated.createdAt.toISOString(),
+    updatedAt: updated.updatedAt.toISOString(),
+  });
+});
+
 router.patch("/jobs/:id/driver-info", requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { vehicleType, numberPlate } = req.body as { vehicleType?: string; numberPlate?: string };

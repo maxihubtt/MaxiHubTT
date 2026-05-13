@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  ClaimJobBody,
   CreateJobBody,
   ErrorResponse,
   HealthStatus,
@@ -422,6 +423,93 @@ export const useUpdateDriverInfo = <
   TContext
 > => {
   return useMutation(getUpdateDriverInfoMutationOptions(options));
+};
+
+/**
+ * @summary Claim a job as a driver
+ */
+export const getClaimJobUrl = (id: string) => {
+  return `/api/jobs/${id}/claim`;
+};
+
+export const claimJob = async (
+  id: string,
+  claimJobBody: ClaimJobBody,
+  options?: RequestInit,
+): Promise<Job> => {
+  return customFetch<Job>(getClaimJobUrl(id), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(claimJobBody),
+  });
+};
+
+export const getClaimJobMutationOptions = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof claimJob>>,
+    TError,
+    { id: string; data: BodyType<ClaimJobBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof claimJob>>,
+  TError,
+  { id: string; data: BodyType<ClaimJobBody> },
+  TContext
+> => {
+  const mutationKey = ["claimJob"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof claimJob>>,
+    { id: string; data: BodyType<ClaimJobBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return claimJob(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ClaimJobMutationResult = NonNullable<
+  Awaited<ReturnType<typeof claimJob>>
+>;
+export type ClaimJobMutationBody = BodyType<ClaimJobBody>;
+export type ClaimJobMutationError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Claim a job as a driver
+ */
+export const useClaimJob = <
+  TError = ErrorType<ErrorResponse>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof claimJob>>,
+    TError,
+    { id: string; data: BodyType<ClaimJobBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof claimJob>>,
+  TError,
+  { id: string; data: BodyType<ClaimJobBody> },
+  TContext
+> => {
+  return useMutation(getClaimJobMutationOptions(options));
 };
 
 /**
