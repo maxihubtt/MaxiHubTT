@@ -10,36 +10,81 @@ const waLink = (msg: string) => WA_BASE + encodeURIComponent(msg);
 
 type FareRange = [number, number];
 
+// Normalize user input before zone matching: strip punctuation, expand abbreviations
+function normalizeLoc(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/[.,'\u2018\u2019\u201b`]/g, "")   // strip . , ' ' ` etc.
+    .replace(/\bmt\b/g, "mount")                  // mt → mount
+    .replace(/\bst\b/g, "saint")                  // st → saint (handles "saint james", "saint joseph")
+    .replace(/\bsf\b/g, "san fernando")           // sf → san fernando
+    .replace(/\bpos\b/g, "port of spain")         // pos → port of spain
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function isWest(loc: string): boolean {
-  return ["pos", "port of spain", "diego martin", "st james", "westmoorings", "chaguaramas", "maraval", "st clair", "woodbrook", "petit valley", "carenage", "laventille", "morvant", "barataria", "cocorite", "cascade", "mucurapo", "newtown", "beetham", "west moorings"].some(k => loc.includes(k));
+  return [
+    "port of spain", "pos", "diego martin", "saint james", "st james",
+    "westmoorings", "west moorings", "chaguaramas", "maraval", "saint clair", "st clair",
+    "woodbrook", "petit valley", "carenage", "laventille", "morvant", "cocorite",
+    "cascade", "mucurapo", "newtown", "beetham", "barataria", "aranguez",
+    "el socorro", "mount hope", "mount lambert west", "upper laventille",
+    "success village", "d martin", "santa cruz", "signal hill", "the saddle",
+    "santa cruz",
+  ].some(k => loc.includes(k));
 }
 function isCentral(loc: string): boolean {
-  return ["chaguanas", "cunupia", "couva", "freeport", "brechin castle", "felicity", "longdenville", "charlieville", "carlsen field", "montserrat", "endeavour", "springvale", "chase village", "edinburgh", "kelly village", "caroni", "warrenville"].some(k => loc.includes(k));
+  return [
+    "chaguanas", "cunupia", "couva", "freeport", "brechin castle", "felicity",
+    "longdenville", "charlieville", "carlsen field", "montserrat", "endeavour",
+    "springvale", "chase village", "edinburgh", "kelly village", "caroni",
+    "warrenville", "claxton bay", "gasparillo central", "pointe a pierre",
+    "pointe-a-pierre", "preysal", "mon repos", "mc bean", "mcbean", "skinner park",
+    "naparima bowl",
+  ].some(k => loc.includes(k));
 }
 function isEast(loc: string): boolean {
-  return ["san juan", "st joseph", "curepe", "valsayn", "mount lambert", "tunapuna", "arima", "arouca", "tacarigua", "sangre grande", "valencia", "grand bazaar", "trincity", "d'abadie", "malabar", "maloney", "toco", "matelot", "balandra", "saline", "demerara", "piarco", "lopinot", "santa rosa", "cumana", "guaico", "tumpuna"].some(k => loc.includes(k));
+  return [
+    "san juan", "saint joseph", "st joseph", "curepe", "valsayn", "mount lambert",
+    "tunapuna", "arima", "arouca", "tacarigua", "sangre grande", "valencia",
+    "grand bazaar", "trincity", "dabadie", "d'abadie", "malabar", "maloney",
+    "toco", "matelot", "balandra", "saline", "demerara", "piarco", "lopinot",
+    "santa rosa", "cumana", "guaico", "tumpuna", "saint augustine", "st augustine",
+    "five rivers", "el dorado", "golden grove", "bejucal", "heights of guanapo",
+    "airport", "piarco airport", "international airport",
+  ].some(k => loc.includes(k));
 }
 function isSouth(loc: string): boolean {
-  return ["san fernando", "penal", "siparia", "point fortin", "fyzabad", "cedros", "moruga", "princes town", "gasparillo", "marabella", "barrackpore", "rio claro", "la brea", "debe", "naparima", "williamsville", "tableland", "pointe-a-pierre", "preysal", "mon repos"].some(k => loc.includes(k));
+  return [
+    "san fernando", "penal", "siparia", "point fortin", "fyzabad", "cedros",
+    "moruga", "princes town", "prince town", "gasparillo", "marabella",
+    "barrackpore", "rio claro", "la brea", "debe", "naparima", "williamsville",
+    "tableland", "pointe-a-pierre", "preysal", "mon repos", "paradise pasture",
+    "gulf view", "south park", "pleasantville", "fernando",
+  ].some(k => loc.includes(k));
 }
 function eastSubzone(loc: string): "near" | "mid" | "far" | "toco" {
-  if (["toco", "matelot", "balandra", "saline", "salybia", "brasso seco"].some(k => loc.includes(k))) return "toco";
-  if (["valencia", "demerara", "sangre grande", "guaico", "tumpuna", "cumana"].some(k => loc.includes(k))) return "far";
-  if (["san juan", "st joseph", "curepe", "valsayn", "mount lambert"].some(k => loc.includes(k))) return "near";
+  const n = normalizeLoc(loc);
+  if (["toco", "matelot", "balandra", "saline", "salybia", "brasso seco"].some(k => n.includes(k))) return "toco";
+  if (["valencia", "demerara", "sangre grande", "guaico", "tumpuna", "cumana"].some(k => n.includes(k))) return "far";
+  if (["san juan", "saint joseph", "curepe", "valsayn", "mount lambert"].some(k => n.includes(k))) return "near";
   return "mid";
 }
 function southSubzone(loc: string): "close" | "mid" | "far" | "deep" {
-  if (["cedros", "moruga", "icacos", "columbus bay"].some(k => loc.includes(k))) return "deep";
-  if (["point fortin", "la brea"].some(k => loc.includes(k))) return "far";
-  if (["penal", "siparia", "fyzabad", "barrackpore", "princes town", "rio claro", "debe", "naparima", "williamsville", "tableland"].some(k => loc.includes(k))) return "mid";
+  const n = normalizeLoc(loc);
+  if (["cedros", "moruga", "icacos", "columbus bay"].some(k => n.includes(k))) return "deep";
+  if (["point fortin", "la brea"].some(k => n.includes(k))) return "far";
+  if (["penal", "siparia", "fyzabad", "barrackpore", "princes town", "prince town", "rio claro", "debe", "naparima", "williamsville", "tableland"].some(k => n.includes(k))) return "mid";
   return "close";
 }
 type ZoneKey = "west" | "central" | "east" | "south";
 function getZone(loc: string): ZoneKey | null {
-  if (isSouth(loc)) return "south";
-  if (isEast(loc)) return "east";
-  if (isCentral(loc)) return "central";
-  if (isWest(loc)) return "west";
+  const n = normalizeLoc(loc);
+  if (isSouth(n)) return "south";
+  if (isEast(n)) return "east";
+  if (isCentral(n)) return "central";
+  if (isWest(n)) return "west";
   return null;
 }
 
@@ -56,19 +101,21 @@ const BEACH_RATES: Record<BeachKey, Record<RegionKey, [number, number, number, n
   icacos:        { west: [1600, 2000, 2600, 3000], east: [1500, 1900, 2600, 3000], central: [1400, 1800, 2400, 2800], south: [800, 1000, 1400, 1600]  },
 };
 function identifyBeach(loc: string): BeachKey | null {
-  if (loc.includes("maracas") || loc.includes("tyrico")) return "maracas";
-  if (loc.includes("las cuevas")) return "las_cuevas";
-  if (loc.includes("blanchisseuse") || loc.includes("paria")) return "blanchisseuse";
-  if (loc.includes("manzanilla")) return "manzanilla";
-  if (loc.includes("mayaro")) return "mayaro";
-  if (loc.includes("vessigny")) return "vessigny";
-  if (loc.includes("icacos") || loc.includes("columbus bay")) return "icacos";
+  const n = normalizeLoc(loc);
+  if (n.includes("maracas") || n.includes("tyrico")) return "maracas";
+  if (n.includes("las cuevas")) return "las_cuevas";
+  if (n.includes("blanchisseuse") || n.includes("paria")) return "blanchisseuse";
+  if (n.includes("manzanilla")) return "manzanilla";
+  if (n.includes("mayaro")) return "mayaro";
+  if (n.includes("vessigny")) return "vessigny";
+  if (n.includes("icacos") || n.includes("columbus bay")) return "icacos";
   return null;
 }
 function identifyRegion(loc: string): RegionKey {
-  if (isSouth(loc)) return "south";
-  if (isEast(loc)) return "east";
-  if (isCentral(loc)) return "central";
+  const n = normalizeLoc(loc);
+  if (isSouth(n)) return "south";
+  if (isEast(n)) return "east";
+  if (isCentral(n)) return "central";
   return "west";
 }
 
