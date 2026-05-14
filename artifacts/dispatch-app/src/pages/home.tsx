@@ -8,28 +8,30 @@ const waLink = (msg: string) => WA_BASE + encodeURIComponent(msg);
 
 // ── Fare calculation helpers ─────────────────────────────────────────────────
 
+type FareRange = [number, number];
+
 function isWest(loc: string): boolean {
-  return ["pos", "port of spain", "diego", "st james", "westmoorings", "chaguaramas", "maraval", "st clair", "woodbrook", "petit valley", "carenage", "west", "laventille", "morvant", "barataria", "san juan", "st joseph", "curepe", "valsayn", "mount lambert"].some(k => loc.includes(k));
+  return ["pos", "port of spain", "diego martin", "st james", "westmoorings", "chaguaramas", "maraval", "st clair", "woodbrook", "petit valley", "carenage", "laventille", "morvant", "barataria", "cocorite", "cascade", "mucurapo", "newtown", "beetham", "west moorings"].some(k => loc.includes(k));
 }
 function isCentral(loc: string): boolean {
-  return ["chaguanas", "cunupia", "couva", "freeport", "brechin castle", "felicity", "longdenville", "charlieville", "central"].some(k => loc.includes(k));
+  return ["chaguanas", "cunupia", "couva", "freeport", "brechin castle", "felicity", "longdenville", "charlieville", "carlsen field", "montserrat", "endeavour", "springvale", "chase village", "edinburgh", "kelly village", "caroni", "warrenville"].some(k => loc.includes(k));
 }
 function isEast(loc: string): boolean {
-  return ["arima", "tunapuna", "arouca", "tacarigua", "sangre grande", "valencia", "grand bazaar", "trincity", "d'abadie", "malabar", "east", "toco", "matelot", "balandra", "saline", "demerara"].some(k => loc.includes(k));
+  return ["san juan", "st joseph", "curepe", "valsayn", "mount lambert", "tunapuna", "arima", "arouca", "tacarigua", "sangre grande", "valencia", "grand bazaar", "trincity", "d'abadie", "malabar", "maloney", "toco", "matelot", "balandra", "saline", "demerara", "piarco", "lopinot", "santa rosa", "cumana", "guaico", "tumpuna"].some(k => loc.includes(k));
 }
 function isSouth(loc: string): boolean {
-  return ["san fernando", "penal", "siparia", "point fortin", "fyzabad", "cedros", "moruga", "princes town", "gasparillo", "marabella", "barrackpore", "rio claro", "south"].some(k => loc.includes(k));
+  return ["san fernando", "penal", "siparia", "point fortin", "fyzabad", "cedros", "moruga", "princes town", "gasparillo", "marabella", "barrackpore", "rio claro", "la brea", "debe", "naparima", "williamsville", "tableland", "pointe-a-pierre", "preysal", "mon repos"].some(k => loc.includes(k));
 }
 function eastSubzone(loc: string): "near" | "mid" | "far" | "toco" {
-  if (["toco", "matelot", "balandra", "saline"].some(k => loc.includes(k))) return "toco";
-  if (["san juan", "st joseph", "curepe", "valsayn", "mount lambert", "barataria", "laventille", "morvant"].some(k => loc.includes(k))) return "near";
-  if (["valencia", "demerara", "sangre grande"].some(k => loc.includes(k))) return "far";
+  if (["toco", "matelot", "balandra", "saline", "salybia", "brasso seco"].some(k => loc.includes(k))) return "toco";
+  if (["valencia", "demerara", "sangre grande", "guaico", "tumpuna", "cumana"].some(k => loc.includes(k))) return "far";
+  if (["san juan", "st joseph", "curepe", "valsayn", "mount lambert"].some(k => loc.includes(k))) return "near";
   return "mid";
 }
 function southSubzone(loc: string): "close" | "mid" | "far" | "deep" {
-  if (["cedros", "moruga"].some(k => loc.includes(k))) return "deep";
-  if (["point fortin"].some(k => loc.includes(k))) return "far";
-  if (["penal", "siparia", "fyzabad", "barrackpore", "princes town", "rio claro"].some(k => loc.includes(k))) return "mid";
+  if (["cedros", "moruga", "icacos", "columbus bay"].some(k => loc.includes(k))) return "deep";
+  if (["point fortin", "la brea"].some(k => loc.includes(k))) return "far";
+  if (["penal", "siparia", "fyzabad", "barrackpore", "princes town", "rio claro", "debe", "naparima", "williamsville", "tableland"].some(k => loc.includes(k))) return "mid";
   return "close";
 }
 type ZoneKey = "west" | "central" | "east" | "south";
@@ -40,17 +42,18 @@ function getZone(loc: string): ZoneKey | null {
   if (isWest(loc)) return "west";
   return null;
 }
+
 type BeachKey = "maracas" | "las_cuevas" | "blanchisseuse" | "manzanilla" | "mayaro" | "vessigny" | "icacos";
 type RegionKey = "west" | "east" | "central" | "south";
-const NORTH_COAST_BEACHES: BeachKey[] = ["maracas", "las_cuevas", "blanchisseuse"];
-const BEACH_RATES: Record<BeachKey, Record<RegionKey, [number, number]>> = {
-  maracas:       { west: [650, 1000],  east: [750, 1200],  central: [850, 1400],  south: [1200, 2000] },
-  las_cuevas:    { west: [750, 1200],  east: [850, 1400],  central: [950, 1600],  south: [1300, 2200] },
-  blanchisseuse: { west: [900, 1500],  east: [600, 1000],  central: [1100, 1800], south: [1600, 2600] },
-  manzanilla:    { west: [1200, 2000], east: [600, 1000],  central: [900, 1500],  south: [900, 1500]  },
-  mayaro:        { west: [1400, 2400], east: [800, 1400],  central: [1000, 1700], south: [650, 1100]  },
-  vessigny:      { west: [1100, 1800], east: [1300, 2200], central: [800, 1400],  south: [500, 900]   },
-  icacos:        { west: [1600, 2600], east: [1500, 2600], central: [1400, 2400], south: [800, 1400]  },
+// [owLo, owHi, rtLo, rtHi]
+const BEACH_RATES: Record<BeachKey, Record<RegionKey, [number, number, number, number]>> = {
+  maracas:       { west: [650, 800, 1000, 1200],   east: [750, 900, 1200, 1400],   central: [850, 1050, 1400, 1600],  south: [1200, 1500, 2000, 2400] },
+  las_cuevas:    { west: [750, 950, 1200, 1400],   east: [850, 1050, 1400, 1600],  central: [950, 1150, 1600, 1800],  south: [1300, 1600, 2200, 2600] },
+  blanchisseuse: { west: [900, 1100, 1500, 1800],  east: [600, 800, 1000, 1200],   central: [1100, 1350, 1800, 2100], south: [1600, 2000, 2600, 3000] },
+  manzanilla:    { west: [1200, 1500, 2000, 2400], east: [600, 800, 1000, 1200],   central: [900, 1100, 1500, 1800],  south: [900, 1100, 1500, 1800]  },
+  mayaro:        { west: [1400, 1800, 2400, 2800], east: [800, 1000, 1400, 1600],  central: [1000, 1200, 1700, 2000], south: [650, 800, 1100, 1300]   },
+  vessigny:      { west: [1100, 1400, 1800, 2100], east: [1300, 1600, 2200, 2600], central: [800, 1000, 1400, 1600],  south: [500, 650, 900, 1100]    },
+  icacos:        { west: [1600, 2000, 2600, 3000], east: [1500, 1900, 2600, 3000], central: [1400, 1800, 2400, 2800], south: [800, 1000, 1400, 1600]  },
 };
 function identifyBeach(loc: string): BeachKey | null {
   if (loc.includes("maracas") || loc.includes("tyrico")) return "maracas";
@@ -68,55 +71,58 @@ function identifyRegion(loc: string): RegionKey {
   if (isCentral(loc)) return "central";
   return "west";
 }
-function paxSurcharge(pax: number): number {
-  if (pax > 22) return 350;
-  if (pax > 18) return 250;
-  if (pax > 15) return 150;
-  if (pax > 12) return 100;
-  return 0;
-}
-function calculateFare(pickup: string, dropoff: string, tripType: string, pax: number): number {
+
+function calculateFareRange(pickup: string, dropoff: string, tripType: string): FareRange | null {
   const p = pickup.toLowerCase();
   const d = dropoff.toLowerCase();
-  const airportInvolved = d.includes("airport") || p.includes("airport");
+  const rt = tripType === "round";
+
   const beach = identifyBeach(d) ?? identifyBeach(p);
-  if (beach !== null && !airportInvolved) {
-    if (pax >= 16 && NORTH_COAST_BEACHES.includes(beach)) return pax * 100;
+  if (beach !== null) {
     const origin = identifyBeach(d) !== null ? p : d;
-    const region = identifyRegion(origin);
-    const [oneWayRate, roundRate] = BEACH_RATES[beach][region];
-    return (tripType === "round" ? roundRate : oneWayRate) + paxSurcharge(pax);
+    const r = BEACH_RATES[beach][identifyRegion(origin)];
+    return rt ? [r[2], r[3]] : [r[0], r[1]];
   }
-  if (airportInvolved) return 400 + paxSurcharge(pax);
-  if (pax >= 16 && tripType === "round") return pax * 100;
+
   const pZone = getZone(p);
   const dZone = getZone(d);
-  let base = 0;
+  if (!pZone || !dZone || pZone === dZone) return null;
+
   if ((pZone === "west" && dZone === "central") || (pZone === "central" && dZone === "west")) {
-    base = tripType === "round" ? 900 : 550;
-  } else if ((pZone === "west" && dZone === "east") || (pZone === "east" && dZone === "west")) {
+    return rt ? [800, 1000] : [480, 650];
+  }
+  if ((pZone === "west" && dZone === "east") || (pZone === "east" && dZone === "west")) {
     const sub = eastSubzone(pZone === "east" ? p : d);
-    if (sub === "toco")   base = tripType === "round" ? 1500 : 950;
-    else if (sub === "far") base = tripType === "round" ? 1000 : 625;
-    else if (sub === "near") base = tripType === "round" ? 600 : 375;
-    else                   base = tripType === "round" ? 800 : 500;
-  } else if ((pZone === "west" && dZone === "south") || (pZone === "south" && dZone === "west")) {
+    if (sub === "near") return rt ? [600, 600] : [350, 400];
+    if (sub === "mid")  return rt ? [800, 800] : [480, 520];
+    if (sub === "far")  return rt ? [1000, 1000] : [600, 650];
+    return rt ? [1500, 1500] : [900, 1000];
+  }
+  if ((pZone === "west" && dZone === "south") || (pZone === "south" && dZone === "west")) {
     const sub = southSubzone(pZone === "south" ? p : d);
-    if (sub === "deep")   base = tripType === "round" ? 1800 : 1150;
-    else if (sub === "far") base = tripType === "round" ? 1500 : 900;
-    else if (sub === "mid") base = tripType === "round" ? 1150 : 700;
-    else                   base = tripType === "round" ? 900 : 500;
-  } else if (
+    if (sub === "close") return rt ? [900, 1000] : [500, 600];
+    if (sub === "mid")   return rt ? [1100, 1400] : [650, 900];
+    if (sub === "far")   return rt ? [1500, 1600] : [900, 1050];
+    if (sub === "deep")  return rt ? [1700, 1800] : [1050, 1150];
+    return rt ? [900, 1800] : [500, 1150];
+  }
+  if (
     (pZone === "central" && (dZone === "east" || dZone === "south")) ||
     ((pZone === "east" || pZone === "south") && dZone === "central") ||
     (pZone === "east" && dZone === "south") ||
     (pZone === "south" && dZone === "east")
   ) {
-    base = tripType === "round" ? 1200 : 700;
-  } else {
-    base = tripType === "round" ? 600 : 400;
+    return rt ? [800, 1600] : [500, 1000];
   }
-  return base + paxSurcharge(pax);
+  return null;
+}
+
+function fmtRange([lo, hi]: FareRange): string {
+  if (lo === hi) return `TTD ${lo.toLocaleString("en-TT")}`;
+  return `TTD ${lo.toLocaleString("en-TT")} – ${hi.toLocaleString("en-TT")}`;
+}
+function depositRange([lo, hi]: FareRange): FareRange {
+  return [Math.ceil(lo * 0.25), Math.ceil(hi * 0.25)];
 }
 function getMinDatetime(): string {
   const now = new Date();
@@ -126,7 +132,6 @@ function getMinDatetime(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:00`;
 }
 function vehicleForPax(pax: number): string {
-  if (pax <= 4)  return "Car / Small Van";
   if (pax <= 12) return "12-Seater Maxi";
   if (pax <= 15) return "15-Seater Maxi";
   if (pax <= 18) return "18-Seater Maxi";
@@ -326,7 +331,7 @@ function ConfirmedScreen({
   job,
   onReset,
 }: {
-  job: { id: string; name: string; pickup: string; dropoff: string; deposit: number; fare: number; pickupDatetime: string; returnDatetime: string; tripType: string };
+  job: { id: string; name: string; pickup: string; dropoff: string; fareRange: FareRange; pickupDatetime: string; returnDatetime: string; tripType: string };
   onReset: () => void;
 }) {
   return (
@@ -402,10 +407,16 @@ function ConfirmedScreen({
         {/* Deposit callout */}
         <div className="mt-4 rounded-2xl bg-amber-400/10 border border-amber-400/30 px-4 py-4">
           <p className="text-amber-300 text-xs font-bold uppercase tracking-widest mb-1">Deposit Due to Confirm</p>
-          <p className="text-amber-400 text-4xl font-black leading-none">TTD {job.deposit}</p>
-          <p className="text-teal-400 text-xs mt-2 leading-relaxed">
-            Total fare: <strong className="text-white">TTD {job.fare}</strong> &mdash; balance of TTD {job.fare - job.deposit} paid to your driver on the day.
-          </p>
+          {job.fareRange[0] > 0 ? (
+            <>
+              <p className="text-amber-400 text-3xl font-black leading-none">{fmtRange(depositRange(job.fareRange))}</p>
+              <p className="text-teal-400 text-xs mt-2 leading-relaxed">
+                Estimated total fare: <strong className="text-white">{fmtRange(job.fareRange)}</strong> — balance paid to your driver on the day.
+              </p>
+            </>
+          ) : (
+            <p className="text-amber-300 text-sm mt-1 leading-relaxed">Our team will confirm your exact fare and deposit via WhatsApp shortly.</p>
+          )}
         </div>
 
         {/* Contact note */}
@@ -439,7 +450,7 @@ export default function Home() {
 
   // Step 1 — Details
   const [tripType, setTripType]               = useState<"one-way" | "round" | null>(null);
-  const [pax, setPax]                         = useState(1);
+  const [pax, setPax]                         = useState(8);
   const [pickupDatetime, setPickupDatetime]   = useState("");
   const [returnDatetime, setReturnDatetime]   = useState("");
   const [datetimeError, setDatetimeError]     = useState("");
@@ -452,7 +463,7 @@ export default function Home() {
   // Booking result
   const [bookedJob, setBookedJob] = useState<{
     id: string; name: string; pickup: string; dropoff: string;
-    deposit: number; fare: number; pickupDatetime: string; returnDatetime: string; tripType: string;
+    fareRange: FareRange; pickupDatetime: string; returnDatetime: string; tripType: string;
   } | null>(null);
 
   const [stepErrors, setStepErrors] = useState(false);
@@ -460,9 +471,8 @@ export default function Home() {
   const queryClient = useQueryClient();
   const createJob   = useCreateJob();
 
-  const fare     = useMemo(() => tripType ? calculateFare(pickup, dropoff, tripType, pax) : 0, [pickup, dropoff, tripType, pax]);
-  const deposit  = fare > 0 ? Math.ceil(fare * 0.25) : 0;
-  const fareCeil = fare > 0 ? Math.ceil(fare) : 0;
+  const fareRange = useMemo<FareRange | null>(() => tripType ? calculateFareRange(pickup, dropoff, tripType) : null, [pickup, dropoff, tripType]);
+  const depRange  = fareRange ? depositRange(fareRange) : null;
 
   const validateDatetime = (value: string) => {
     if (!value) { setDatetimeError(""); return; }
@@ -502,7 +512,8 @@ export default function Home() {
     const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
     const passengerDesc = paxLabel(pax);
     const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
-    const priceNote = `TTD ${fareCeil} (${tripLabel}, ${passengerDesc}) — Pickup: ${pickupDatetime}${returnNote}`;
+    const fareLabel = fareRange ? fmtRange(fareRange) : "Quote on request";
+    const priceNote = `${fareLabel} (${tripLabel}, ${passengerDesc}) — Pickup: ${pickupDatetime}${returnNote}`;
 
     createJob.mutate(
       { data: { pickup, dropoff, name, phone, price: priceNote, passengers: passengerDesc } },
@@ -510,7 +521,7 @@ export default function Home() {
         onSuccess: job => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
-          setBookedJob({ id: job.id, name, pickup, dropoff, deposit, fare: fareCeil, pickupDatetime, returnDatetime, tripType });
+          setBookedJob({ id: job.id, name, pickup, dropoff, fareRange: fareRange ?? [0, 0], pickupDatetime, returnDatetime, tripType });
         },
       }
     );
@@ -519,7 +530,7 @@ export default function Home() {
   function resetAll() {
     setStep(0);
     setPickup(""); setDropoff("");
-    setTripType(null); setPax(1);
+    setTripType(null); setPax(8);
     setPickupDatetime(""); setReturnDatetime(""); setDatetimeError(""); setReturnDatetimeError("");
     setName(""); setPhone("");
     setBookedJob(null);
@@ -667,10 +678,13 @@ export default function Home() {
                   {/* Live fare preview */}
                   {pickup.trim() && dropoff.trim() && (
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-teal-700">
-                      <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Estimated Fare</p>
-                      {fare > 0
-                        ? <p className="text-2xl font-black text-teal-900">TTD {Math.ceil(fare)} <span className="text-sm font-normal text-teal-600">one way, 1 pax</span></p>
-                        : <p className="text-sm text-teal-600">Enter specific areas (e.g. Port of Spain, San Fernando) for a fare estimate.</p>}
+                      <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Estimated Fare (one way · select trip type on next step)</p>
+                      {(() => {
+                        const preview = calculateFareRange(pickup, dropoff, "one-way");
+                        return preview
+                          ? <p className="text-2xl font-black text-teal-900">{fmtRange(preview)}</p>
+                          : <p className="text-sm text-teal-600">We'll calculate your fare once you choose trip type — or <a href={waLink("Hi Maxi Hub TT, I'd like a quote for a ride.")} target="_blank" rel="noopener noreferrer" className="underline text-teal-700 font-semibold">WhatsApp us for a quote</a>.</p>;
+                      })()}
                     </div>
                   )}
                 </div>
@@ -716,7 +730,7 @@ export default function Home() {
                       Passengers
                     </label>
                     <div className="flex items-center gap-3 rounded-xl border-2 border-teal-100 bg-white px-4 h-12">
-                      <button type="button" onClick={() => setPax(p => Math.max(1, p - 1))}
+                      <button type="button" onClick={() => setPax(p => Math.max(8, p - 1))}
                         className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 font-bold text-xl flex items-center justify-center hover:bg-teal-100 transition-colors shrink-0">−</button>
                       <span className="flex-1 text-center text-teal-900 font-black text-lg tabular-nums">{pax}</span>
                       <button type="button" onClick={() => setPax(p => Math.min(24, p + 1))}
@@ -774,14 +788,16 @@ export default function Home() {
                   )}
 
                   {/* Running fare */}
-                  {fare > 0 && tripType && (
+                  {tripType && (
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
-                      <div className="flex justify-between items-center">
-                        <div>
+                      <div className="flex justify-between items-center gap-3">
+                        <div className="min-w-0">
                           <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">Estimated Fare</p>
                           <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                         </div>
-                        <p className="text-2xl font-black text-teal-900">TTD {fareCeil}</p>
+                        {fareRange
+                          ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtRange(fareRange)}</p>
+                          : <p className="text-sm font-semibold text-teal-600 shrink-0">Quote on request</p>}
                       </div>
                     </div>
                   )}
@@ -886,24 +902,29 @@ export default function Home() {
                   </div>
 
                   {/* Fare */}
-                  {fare > 0 && (
-                    <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <p className="text-sm font-semibold text-teal-800">Estimated Fare</p>
-                          <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
-                        </div>
-                        <p className="text-3xl font-black text-teal-900">TTD {fareCeil}</p>
+                  <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 space-y-3">
+                    <div className="flex justify-between items-center gap-3">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-teal-800">Estimated Fare</p>
+                        <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                       </div>
-                      <div className="bg-white/70 border border-amber-100 rounded-xl px-3 py-2.5 flex gap-3 items-start">
-                        <Info className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                        <div>
-                          <p className="text-sm font-bold text-teal-900">25% Deposit: TTD {deposit}</p>
-                          <p className="text-xs text-teal-700/80 mt-0.5">Balance of TTD {fareCeil - deposit} paid to your driver on the day.</p>
-                        </div>
+                      {fareRange
+                        ? <p className="text-2xl font-black text-teal-900 shrink-0">{fmtRange(fareRange)}</p>
+                        : <p className="text-sm font-semibold text-teal-500 shrink-0">Quote on request</p>}
+                    </div>
+                    <div className="bg-white/70 border border-amber-100 rounded-xl px-3 py-2.5 flex gap-3 items-start">
+                      <Info className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                      <div>
+                        {depRange
+                          ? <>
+                              <p className="text-sm font-bold text-teal-900">25% Deposit: {fmtRange(depRange)}</p>
+                              <p className="text-xs text-teal-700/80 mt-0.5">Balance paid to your driver on the day.</p>
+                            </>
+                          : <p className="text-sm text-teal-700">Our team will confirm your exact fare and deposit by WhatsApp after booking.</p>
+                        }
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {createJob.isError && (
                     <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2">
@@ -920,9 +941,9 @@ export default function Home() {
                   >
                     {createJob.isPending
                       ? <><Loader2 className="w-5 h-5 animate-spin" /> Confirming...</>
-                      : fare > 0
-                      ? <><CheckCircle2 className="w-5 h-5" /> Confirm Booking &mdash; TTD {deposit} deposit</>
-                      : "Confirm Booking"}
+                      : depRange
+                      ? <><CheckCircle2 className="w-5 h-5" /> Confirm Booking &mdash; {fmtRange(depRange)} deposit</>
+                      : <><CheckCircle2 className="w-5 h-5" /> Confirm Booking</>}
                   </button>
                 </div>
               )}
