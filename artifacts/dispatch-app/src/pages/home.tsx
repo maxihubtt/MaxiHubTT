@@ -119,7 +119,7 @@ function identifyRegion(loc: string): RegionKey {
   return "west";
 }
 
-// Returns [lo, hi] fare for a beach route based on origin region + trip type.
+// Returns [lo, hi] fare for a beach route — used for the step-0 preview before pax is known.
 // BEACH_RATES entries: [owLo, owHi, rtLo, rtHi] (Lo = 12-seat, Hi = 14/15+ seat)
 function getBeachFareRange(pickup: string, dropoff: string, tripType: string): FareRange | null {
   const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
@@ -128,6 +128,17 @@ function getBeachFareRange(pickup: string, dropoff: string, tripType: string): F
   const r = BEACH_RATES[beach][identifyRegion(origin)];
   const rt = tripType === "round";
   return rt ? [r[2], r[3]] : [r[0], r[1]];
+}
+// Returns an exact fare for a beach route once pax is known.
+// ≤12 passengers → 12-seat price (Lo); >12 → 14/15+-seat price (Hi).
+function getBeachExactFare(pickup: string, dropoff: string, pax: number, tripType: string): number | null {
+  const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
+  if (!beach) return null;
+  const origin = identifyBeach(dropoff) !== null ? pickup : dropoff;
+  const r = BEACH_RATES[beach][identifyRegion(origin)];
+  const rt = tripType === "round";
+  if (rt) return pax <= 12 ? r[2] : r[3];
+  return pax <= 12 ? r[0] : r[1];
 }
 
 // ── Route fare tables ─────────────────────────────────────────────────────────
@@ -556,12 +567,12 @@ export default function Home() {
   const queryClient = useQueryClient();
   const createJob   = useCreateJob();
 
-  const fareKey       = useMemo(() => getFareTableKey(pickup, dropoff), [pickup, dropoff]);
-  const exactFare     = useMemo<number | null>(() => fareKey && tripType ? getFareFromTable(fareKey, pax, tripType) : null, [fareKey, pax, tripType]);
-  const beachRange    = useMemo<FareRange | null>(() => tripType ? getBeachFareRange(pickup, dropoff, tripType) : null, [pickup, dropoff, tripType]);
-  // For beach routes use midpoint as the submitted fare value
-  const displayFare   = exactFare ?? (beachRange ? Math.round((beachRange[0] + beachRange[1]) / 2 / 50) * 50 : null);
-  const deposit       = displayFare ? Math.ceil(displayFare * 0.25) : null;
+  const fareKey         = useMemo(() => getFareTableKey(pickup, dropoff), [pickup, dropoff]);
+  const exactFare       = useMemo<number | null>(() => fareKey && tripType ? getFareFromTable(fareKey, pax, tripType) : null, [fareKey, pax, tripType]);
+  const beachRange      = useMemo<FareRange | null>(() => tripType ? getBeachFareRange(pickup, dropoff, tripType) : null, [pickup, dropoff, tripType]);
+  const beachExactFare  = useMemo<number | null>(() => tripType ? getBeachExactFare(pickup, dropoff, pax, tripType) : null, [pickup, dropoff, pax, tripType]);
+  const displayFare     = exactFare ?? beachExactFare;
+  const deposit         = displayFare ? Math.ceil(displayFare * 0.25) : null;
 
   const validateDatetime = (value: string) => {
     if (!value) { setDatetimeError(""); return; }
@@ -903,15 +914,13 @@ export default function Home() {
                           <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">Fare</p>
                           <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                         </div>
-                        {beachRange
-                          ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtRange(beachRange)}</p>
-                          : exactFare
-                          ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtFare(exactFare)}</p>
+                        {displayFare
+                          ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtFare(displayFare)}</p>
                           : <p className="text-sm font-semibold text-teal-600 shrink-0">WhatsApp us for a quote</p>}
                       </div>
-                      {beachRange && (
+                      {beachExactFare && (
                         <p className="text-xs text-teal-500 mt-2 border-t border-amber-200 pt-2">
-                          Beach trip range · exact quote confirmed by WhatsApp after booking.
+                          Beach trip · exact quote confirmed by WhatsApp after booking.
                         </p>
                       )}
                     </div>
@@ -1020,13 +1029,11 @@ export default function Home() {
                   <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 space-y-3">
                     <div className="flex justify-between items-center gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-teal-800">{beachRange ? "Estimated Fare (beach trip)" : "Fare"}</p>
+                        <p className="text-sm font-semibold text-teal-800">{beachExactFare ? "Estimated Fare (beach trip)" : "Fare"}</p>
                         <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                       </div>
-                      {beachRange
-                        ? <p className="text-2xl font-black text-teal-900 shrink-0">{fmtRange(beachRange)}</p>
-                        : exactFare
-                        ? <p className="text-2xl font-black text-teal-900 shrink-0">{fmtFare(exactFare)}</p>
+                      {displayFare
+                        ? <p className="text-2xl font-black text-teal-900 shrink-0">{fmtFare(displayFare)}</p>
                         : <p className="text-sm font-semibold text-teal-500 shrink-0">Quote on request</p>}
                     </div>
                     <div className="bg-white/70 border border-amber-100 rounded-xl px-3 py-2.5 flex gap-3 items-start">
@@ -1035,7 +1042,7 @@ export default function Home() {
                         {deposit
                           ? <>
                               <p className="text-sm font-bold text-teal-900">25% Deposit: TTD {deposit.toLocaleString("en-TT")}</p>
-                              <p className="text-xs text-teal-700/80 mt-0.5">Balance of TTD {((exactFare ?? 0) - deposit).toLocaleString("en-TT")} paid to your driver on the day.</p>
+                              <p className="text-xs text-teal-700/80 mt-0.5">Balance of TTD {((displayFare ?? 0) - deposit).toLocaleString("en-TT")} paid to your driver on the day.</p>
                             </>
                           : <p className="text-sm text-teal-700">Our team will confirm your exact fare and deposit by WhatsApp after booking.</p>
                         }
