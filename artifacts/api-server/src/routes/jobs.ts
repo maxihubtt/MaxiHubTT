@@ -145,33 +145,44 @@ router.get("/jobs/:id", async (req, res) => {
 router.post("/jobs", async (req, res) => {
   const parsed = CreateJobBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: "Invalid request body" });
+    req.log.warn({ issues: parsed.error.issues }, "Invalid create-job request body");
+    res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
     return;
   }
 
   const { pickup, dropoff, name, phone, price, passengers } = parsed.data;
-  const id = generateId();
 
-  const [job] = await db.insert(jobsTable).values({
-    id,
-    pickup,
-    dropoff,
-    name,
-    phone,
-    price,
-    passengers: passengers ?? null,
-    status: "pending",
-  }).returning();
-
-  const sent = await sendJobToGroup({ id, pickup, dropoff, price, passengers });
-  if (!sent) {
-    req.log.warn({ jobId: id }, "Failed to send job to Telegram group");
+  let job: typeof import("@workspace/db").jobsTable.$inferSelect;
+  try {
+    const id = generateId();
+    const [inserted] = await db.insert(jobsTable).values({
+      id,
+      pickup,
+      dropoff,
+      name,
+      phone,
+      price,
+      passengers: passengers ?? null,
+      status: "pending",
+    }).returning();
+    job = inserted;
+  } catch (err) {
+    req.log.error({ err }, "Failed to insert job into database");
+    res.status(500).json({ error: "Failed to create booking. Please try again." });
+    return;
   }
 
   res.status(201).json({
     ...job,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
+  });
+
+  // Fire-and-forget: notify Telegram after responding so it never blocks the client
+  sendJobToGroup({ id: job.id, pickup, dropoff, price, passengers }).then(sent => {
+    if (!sent) req.log.warn({ jobId: job.id }, "Failed to send job to Telegram group");
+  }).catch(err => {
+    req.log.error({ err, jobId: job.id }, "Unexpected error sending job to Telegram");
   });
 });
 

@@ -1044,9 +1044,16 @@ export default function Home() {
                   </div>
 
                   {createJob.isError && (
-                    <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2">
-                      Something went wrong. Please try again.
-                    </p>
+                    <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3 space-y-1">
+                      <p className="font-semibold">Booking failed — please try again.</p>
+                      <p className="text-red-500 text-xs">
+                        {createJob.error instanceof Error ? createJob.error.message : "Unknown error"}
+                      </p>
+                      <p className="text-red-400 text-xs">
+                        If this keeps happening, reach us on{" "}
+                        <a href="https://wa.me/18684818039" className="underline font-medium">WhatsApp</a>.
+                      </p>
+                    </div>
                   )}
 
                   <button
