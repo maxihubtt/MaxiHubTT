@@ -119,6 +119,17 @@ function identifyRegion(loc: string): RegionKey {
   return "west";
 }
 
+// Returns [lo, hi] fare for a beach route based on origin region + trip type.
+// BEACH_RATES entries: [owLo, owHi, rtLo, rtHi] (Lo = 12-seat, Hi = 14/15+ seat)
+function getBeachFareRange(pickup: string, dropoff: string, tripType: string): FareRange | null {
+  const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
+  if (!beach) return null;
+  const origin = identifyBeach(dropoff) !== null ? pickup : dropoff;
+  const r = BEACH_RATES[beach][identifyRegion(origin)];
+  const rt = tripType === "round";
+  return rt ? [r[2], r[3]] : [r[0], r[1]];
+}
+
 // ── Route fare tables ─────────────────────────────────────────────────────────
 // Each table: [ow12, ow14_15, ow18, ow22, ow25, rt12, rt14_15, rt18, rt22, rt25]
 // ow = one-way, rt = round-trip. Prices in TTD.
@@ -545,9 +556,12 @@ export default function Home() {
   const queryClient = useQueryClient();
   const createJob   = useCreateJob();
 
-  const fareKey   = useMemo(() => getFareTableKey(pickup, dropoff), [pickup, dropoff]);
-  const exactFare = useMemo<number | null>(() => fareKey && tripType ? getFareFromTable(fareKey, pax, tripType) : null, [fareKey, pax, tripType]);
-  const deposit   = exactFare ? Math.ceil(exactFare * 0.25) : null;
+  const fareKey       = useMemo(() => getFareTableKey(pickup, dropoff), [pickup, dropoff]);
+  const exactFare     = useMemo<number | null>(() => fareKey && tripType ? getFareFromTable(fareKey, pax, tripType) : null, [fareKey, pax, tripType]);
+  const beachRange    = useMemo<FareRange | null>(() => tripType ? getBeachFareRange(pickup, dropoff, tripType) : null, [pickup, dropoff, tripType]);
+  // For beach routes use midpoint as the submitted fare value
+  const displayFare   = exactFare ?? (beachRange ? Math.round((beachRange[0] + beachRange[1]) / 2 / 50) * 50 : null);
+  const deposit       = displayFare ? Math.ceil(displayFare * 0.25) : null;
 
   const validateDatetime = (value: string) => {
     if (!value) { setDatetimeError(""); return; }
@@ -587,7 +601,7 @@ export default function Home() {
     const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
     const passengerDesc = paxLabel(pax);
     const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
-    const fareLabel = exactFare ? fmtFare(exactFare) : "Quote on request";
+    const fareLabel = beachRange ? fmtRange(beachRange) : displayFare ? fmtFare(displayFare) : "Quote on request";
     const priceNote = `${fareLabel} (${tripLabel}, ${passengerDesc}) — Pickup: ${pickupDatetime}${returnNote}`;
 
     createJob.mutate(
@@ -596,7 +610,7 @@ export default function Home() {
         onSuccess: job => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
-          setBookedJob({ id: job.id, name, pickup, dropoff, fare: exactFare ?? 0, deposit: deposit ?? 0, pickupDatetime, returnDatetime, tripType });
+          setBookedJob({ id: job.id, name, pickup, dropoff, fare: displayFare ?? 0, deposit: deposit ?? 0, pickupDatetime, returnDatetime, tripType });
         },
       }
     );
@@ -754,6 +768,17 @@ export default function Home() {
                   {pickup.trim() && dropoff.trim() && (
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-teal-700">
                       {(() => {
+                        const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
+                        if (beach) {
+                          const br = getBeachFareRange(pickup, dropoff, "one-way");
+                          return br ? (
+                            <>
+                              <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Beach trip · one-way estimate</p>
+                              <p className="text-2xl font-black text-teal-900">{fmtRange(br)}</p>
+                              <p className="text-xs text-teal-500 mt-1">Varies by vehicle size · select trip type &amp; passengers for your exact price</p>
+                            </>
+                          ) : null;
+                        }
                         const key = getFareTableKey(pickup, dropoff);
                         const range = key ? getRouteDisplayRange(key) : null;
                         return range ? (
@@ -879,10 +904,17 @@ export default function Home() {
                           <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">Fare</p>
                           <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                         </div>
-                        {exactFare
+                        {beachRange
+                          ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtRange(beachRange)}</p>
+                          : exactFare
                           ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtFare(exactFare)}</p>
                           : <p className="text-sm font-semibold text-teal-600 shrink-0">WhatsApp us for a quote</p>}
                       </div>
+                      {beachRange && (
+                        <p className="text-xs text-teal-500 mt-2 border-t border-amber-200 pt-2">
+                          Beach trip range · exact quote confirmed by WhatsApp after booking.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -989,10 +1021,12 @@ export default function Home() {
                   <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 space-y-3">
                     <div className="flex justify-between items-center gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-teal-800">Estimated Fare</p>
+                        <p className="text-sm font-semibold text-teal-800">{beachRange ? "Estimated Fare (beach trip)" : "Fare"}</p>
                         <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                       </div>
-                      {exactFare
+                      {beachRange
+                        ? <p className="text-2xl font-black text-teal-900 shrink-0">{fmtRange(beachRange)}</p>
+                        : exactFare
                         ? <p className="text-2xl font-black text-teal-900 shrink-0">{fmtFare(exactFare)}</p>
                         : <p className="text-sm font-semibold text-teal-500 shrink-0">Quote on request</p>}
                     </div>
