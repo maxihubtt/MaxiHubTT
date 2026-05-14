@@ -53,7 +53,7 @@ export default function NewJob() {
       onError: (error) => {
         toast({
           title: "Failed to dispatch",
-          description: error.error || "An error occurred",
+          description: (error as { error?: string }).error || "An error occurred",
           variant: "destructive"
         });
       }

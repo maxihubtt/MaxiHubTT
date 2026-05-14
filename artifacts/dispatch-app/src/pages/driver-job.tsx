@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useParams, useLocation } from "wouter";
-import { useGetJob } from "@workspace/api-client-react";
+import { useGetJob, getGetJobQueryKey } from "@workspace/api-client-react";
 import { useDriverAuth } from "@/components/driver-guard";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, MapPin, Navigation, Users, DollarSign, Phone, User, CheckCircle2, XCircle, ArrowLeft } from "lucide-react";
@@ -24,7 +24,7 @@ export default function DriverJob() {
   const qc = useQueryClient();
 
   const { data: job, isLoading, isError, refetch } = useGetJob(id ?? "", {
-    query: { enabled: !!id, retry: false },
+    query: { queryKey: getGetJobQueryKey(id ?? ""), enabled: !!id, retry: false },
   });
 
   const claimMutation = useMutation({
