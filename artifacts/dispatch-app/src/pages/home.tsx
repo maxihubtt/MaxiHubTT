@@ -1,7 +1,10 @@
 import { useState, useMemo, useCallback } from "react";
 import { useCreateJob, useGetJob, getGetJobQueryKey, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft } from "lucide-react";
+import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle } from "lucide-react";
+
+const WA_BASE = "https://wa.me/18684818039?text=";
+const waLink = (msg: string) => WA_BASE + encodeURIComponent(msg);
 
 // ── Fare calculation helpers ─────────────────────────────────────────────────
 
@@ -532,6 +535,16 @@ export default function Home() {
             <span className="mx-2 text-amber-400">✦</span>
             <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20">Airport Runs</span>
           </div>
+          <a
+            href={waLink("Hi Maxi Hub TT, I'd like to enquire about booking a ride.")}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-white shadow-md transition-all hover:scale-105 active:scale-95"
+            style={{ background: "#25D366" }}
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>WhatsApp</span>
+          </a>
         </div>
         <div className="border-t border-white/10 py-2 text-center" style={{ background: "rgba(0,0,0,0.15)" }}>
           <p className="text-xs text-amber-200 font-medium tracking-widest uppercase">🌴 &nbsp; Safe. Smooth. On Time. That's How We Roll. &nbsp; 🌴</p>
@@ -929,22 +942,25 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             {[
-              { icon: <Plane className="w-6 h-6" />, title: "Airport Runs",    desc: "Stress-free transfers to and from Piarco. On time, every time — fixed fares, no haggling.",                          color: "bg-sky-50 border-sky-100 text-sky-700",    iconBg: "bg-sky-100 text-sky-600"   },
-              { icon: <Waves className="w-6 h-6" />, title: "Beach Limes",     desc: "Maracas, Las Cuevas, Mayaro, Icacos and more. We know the routes. You focus on the vibes.",                            color: "bg-teal-50 border-teal-100 text-teal-700", iconBg: "bg-teal-100 text-teal-600" },
-              { icon: <Users className="w-6 h-6" />, title: "Group Events",    desc: "Family reunions, fetes, school trips, sporting events. One call, one maxi, everyone rides together.",                  color: "bg-amber-50 border-amber-100 text-amber-700", iconBg: "bg-amber-100 text-amber-600" },
-              { icon: <Briefcase className="w-6 h-6" />, title: "Corporate Hire", desc: "Professional, punctual, and presentable. We move your team so you can focus on business.",                          color: "bg-slate-50 border-slate-100 text-slate-700", iconBg: "bg-slate-100 text-slate-600" },
-            ].map(({ icon, title, desc, color, iconBg }) => (
+              { icon: <Plane className="w-6 h-6" />, title: "Airport Runs",    desc: "Stress-free transfers to and from Piarco. On time, every time — fixed fares, no haggling.",              color: "bg-sky-50 border-sky-100 text-sky-700",       iconBg: "bg-sky-100 text-sky-600",       wa: "Hi Maxi Hub TT, I'd like to book an airport run." },
+              { icon: <Waves className="w-6 h-6" />, title: "Beach Limes",     desc: "Maracas, Las Cuevas, Mayaro, Icacos and more. We know the routes. You focus on the vibes.",                        color: "bg-teal-50 border-teal-100 text-teal-700",    iconBg: "bg-teal-100 text-teal-600",    wa: "Hi Maxi Hub TT, I'd like to book a beach trip." },
+              { icon: <Users className="w-6 h-6" />, title: "Group Events",    desc: "Family reunions, fetes, school trips, sporting events. One call, one maxi, everyone rides together.",              color: "bg-amber-50 border-amber-100 text-amber-700", iconBg: "bg-amber-100 text-amber-600",  wa: "Hi Maxi Hub TT, I'd like to book a group event ride." },
+              { icon: <Briefcase className="w-6 h-6" />, title: "Corporate Hire", desc: "Professional, punctual, and presentable. We move your team so you can focus on business.",                    color: "bg-slate-50 border-slate-100 text-slate-700", iconBg: "bg-slate-100 text-slate-600",  wa: "Hi Maxi Hub TT, I'd like to enquire about corporate hire." },
+            ].map(({ icon, title, desc, color, iconBg, wa }) => (
               <div key={title} className={`rounded-2xl border p-6 flex gap-4 items-start ${color}`}>
                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${iconBg}`}>{icon}</div>
                 <div className="flex-1">
                   <h3 className="font-black text-teal-900 text-base mb-1">{title}</h3>
                   <p className="text-sm leading-relaxed text-teal-800/70">{desc}</p>
-                  <button
-                    onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); setTimeout(() => setStep(0), 300); }}
-                    className="mt-3 text-xs font-bold text-teal-700 underline underline-offset-2 hover:text-teal-900 transition-colors"
+                  <a
+                    href={waLink(wa)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-teal-700 hover:text-teal-900 transition-colors"
                   >
-                    Book Now →
-                  </button>
+                    <MessageCircle className="w-3.5 h-3.5" />
+                    WhatsApp Us →
+                  </a>
                 </div>
               </div>
             ))}
@@ -962,18 +978,34 @@ export default function Home() {
               Weddings, school trips, fetes, corporate outings — we coordinate multiple vehicles so your whole crew travels together.
             </p>
           </div>
-          <button
-            onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); setTimeout(() => setStep(0), 300); }}
-            className="shrink-0 px-8 py-4 rounded-xl font-black text-teal-900 text-sm shadow-lg transition-all hover:scale-105 active:scale-95"
+          <a
+            href={waLink("Hi Maxi Hub TT, I'd like to discuss booking a fleet of vehicles for my event.")}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 px-8 py-4 rounded-xl font-black text-teal-900 text-sm shadow-lg transition-all hover:scale-105 active:scale-95 flex items-center gap-2"
             style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)" }}
           >
-            Book a Fleet →
-          </button>
+            <MessageCircle className="w-4 h-4" />
+            WhatsApp Us →
+          </a>
         </div>
       </section>
 
       {/* ── Booking tracker lookup ── */}
       <BookingLookup />
+
+      {/* ── Floating WhatsApp button ── */}
+      <a
+        href={waLink("Hi Maxi Hub TT, I'd like to enquire about booking a ride.")}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat on WhatsApp"
+        className="fixed bottom-6 right-4 z-[9000] flex items-center gap-2 pl-3 pr-4 h-13 rounded-full shadow-2xl text-white font-bold text-sm transition-all hover:scale-105 active:scale-95"
+        style={{ background: "#25D366", height: 52 }}
+      >
+        <MessageCircle className="w-5 h-5 shrink-0" />
+        <span>Chat with us</span>
+      </a>
 
       {/* ── Footer ── */}
       <footer className="py-8 px-6 text-center border-t border-teal-100 bg-[#FFFBF4]">
