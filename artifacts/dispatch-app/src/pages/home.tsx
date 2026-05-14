@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useCreateJob, useGetJob, getGetJobQueryKey, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle } from "lucide-react";
+import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle, AlertTriangle } from "lucide-react";
 
 const WA_BASE = "https://wa.me/18684818039?text=";
 const waLink = (msg: string) => WA_BASE + encodeURIComponent(msg);
@@ -146,23 +146,46 @@ function fmtDt(dt: string) {
 
 function CopyableRef({ bookingId }: { bookingId: string }) {
   const [copied, setCopied] = useState(false);
+
+  // Auto-copy on mount so the ref is already in clipboard when they arrive
+  useEffect(() => {
+    navigator.clipboard.writeText(bookingId).then(() => {
+      setCopied(true);
+    }).catch(() => {});
+  }, [bookingId]);
+
   const copy = useCallback(() => {
     navigator.clipboard.writeText(bookingId).catch(() => {});
     setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
   }, [bookingId]);
+
   return (
-    <button
-      onClick={copy}
-      className="w-full rounded-2xl border-2 border-dashed border-amber-400/50 bg-amber-400/10 px-4 py-5 flex flex-col items-center gap-1 active:scale-[0.97] transition-transform"
-      aria-label="Copy booking reference"
-    >
-      <p className="text-xs font-bold uppercase tracking-widest text-amber-300">Booking Reference</p>
-      <p className="text-5xl font-black font-mono tracking-widest text-amber-400 leading-none mt-1">{bookingId}</p>
-      <div className={`flex items-center gap-1.5 mt-2 text-sm font-semibold transition-colors ${copied ? "text-green-400" : "text-amber-300/70"}`}>
-        {copied ? <><Check className="w-4 h-4" /> Copied!</> : <><Copy className="w-4 h-4" /> Tap to copy</>}
+    <div className="space-y-2">
+      {/* Urgent save warning */}
+      <div className="flex items-start gap-2 rounded-xl border-2 border-amber-400 bg-amber-400/15 px-3 py-2.5">
+        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+        <p className="text-xs font-bold text-amber-300 leading-snug">
+          Save this reference — it's the <span className="underline underline-offset-2">only</span> way to track your booking once you leave this screen.
+        </p>
       </div>
-    </button>
+
+      {/* Tappable ref block */}
+      <button
+        onClick={copy}
+        className="w-full rounded-2xl border-2 border-dashed border-amber-400/60 bg-amber-400/10 px-4 py-5 flex flex-col items-center gap-1 active:scale-[0.97] transition-transform"
+        aria-label="Copy booking reference"
+      >
+        <p className="text-xs font-bold uppercase tracking-widest text-amber-300">Booking Reference</p>
+        <p className="text-5xl font-black font-mono tracking-widest text-amber-400 leading-none mt-1">{bookingId}</p>
+        <div className={`flex items-center gap-1.5 mt-2 text-sm font-bold transition-colors ${copied ? "text-green-400" : "text-amber-300/70"}`}>
+          {copied ? <><Check className="w-4 h-4" /> Copied to clipboard!</> : <><Copy className="w-4 h-4" /> Tap to copy</>}
+        </div>
+      </button>
+
+      <p className="text-center text-xs text-teal-500">
+        Use this at the "Track Your Booking" section on the home page
+      </p>
+    </div>
   );
 }
 
@@ -931,6 +954,48 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {/* ── How it works ── */}
+      <section className="py-14 px-6 md:px-12" style={{ background: "linear-gradient(135deg, #0f3d2e 0%, #0a2e21 100%)" }}>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-amber-400 text-xs font-bold uppercase tracking-widest mb-2">Simple Process</p>
+            <h2 className="text-3xl font-black text-white">Book in under 2 minutes</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
+            {/* connector line desktop */}
+            <div className="hidden md:block absolute top-8 left-[calc(16.66%+1rem)] right-[calc(16.66%+1rem)] h-0.5 bg-amber-400/30" />
+            {[
+              { num: "1", title: "Enter your route", desc: "Type your pickup and dropoff — we'll calculate an instant fare for your journey.", icon: <MapPin className="w-5 h-5" /> },
+              { num: "2", title: "Confirm & deposit", desc: "Pay just 25% upfront to secure your booking. Balance is paid to the driver on the day.", icon: <CheckCircle2 className="w-5 h-5" /> },
+              { num: "3", title: "Driver picks you up", desc: "A driver claims your job and contacts you directly. Track the status in real time.", icon: <Navigation className="w-5 h-5" /> },
+            ].map(({ num, title, desc, icon }) => (
+              <div key={num} className="flex flex-col items-center text-center relative z-10">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center mb-4 shadow-lg text-teal-900 font-black text-xl"
+                  style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)" }}
+                >
+                  {num}
+                </div>
+                <div className="w-8 h-8 rounded-full bg-teal-800/50 border border-teal-700 flex items-center justify-center text-amber-400 mb-3">
+                  {icon}
+                </div>
+                <h3 className="text-white font-black text-base mb-2">{title}</h3>
+                <p className="text-teal-300 text-sm leading-relaxed max-w-xs">{desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-10 flex justify-center">
+            <button
+              onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); }}
+              className="px-8 py-3.5 rounded-xl font-black text-teal-900 text-sm shadow-lg transition-all hover:scale-105 active:scale-95"
+              style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)" }}
+            >
+              Book My Ride →
+            </button>
+          </div>
+        </div>
+      </section>
 
       {/* ── Services section ── */}
       <section className="py-16 px-6 md:px-12 bg-white">
