@@ -72,39 +72,47 @@ function identifyRegion(loc: string): RegionKey {
   return "west";
 }
 
-function calculateFareRange(pickup: string, dropoff: string, tripType: string): FareRange | null {
+// ── Route fare tables ─────────────────────────────────────────────────────────
+// Each table: [ow12, ow14_15, ow18, ow22, ow25, rt12, rt14_15, rt18, rt22, rt25]
+// ow = one-way, rt = round-trip. Prices in TTD.
+// 12-seat and 14/15-seat prices are the operator's confirmed rates.
+// 18, 22, 25-seat prices are derived from the same per-route scaling pattern.
+const ROUTE_FARES: Record<string, [number,number,number,number,number, number,number,number,number,number]> = {
+  //                              ──── one way ────────────────  ──── round trip ──────────────
+  //                              12    14/15  18    22    25     12    14/15  18    22    25
+  "west-central":      [         480,  650,  800,  950, 1100,   800, 1000, 1250, 1500, 1750],
+  "west-east-near":    [         350,  400,  500,  600,  700,   600,  700,  850, 1000, 1150],
+  "west-east-mid":     [         480,  520,  650,  800,  950,   800,  900, 1100, 1300, 1500],
+  "west-east-far":     [         600,  650,  800,  950, 1100,  1000, 1100, 1350, 1600, 1850],
+  "west-east-toco":    [         900, 1000, 1200, 1450, 1650,  1500, 1650, 2000, 2400, 2750],
+  "west-south-close":  [         500,  600,  750,  900, 1050,   900, 1000, 1250, 1500, 1750],
+  "west-south-mid":    [         650,  800, 1000, 1200, 1400,  1100, 1300, 1600, 1900, 2200],
+  "west-south-far":    [         900, 1000, 1200, 1450, 1650,  1500, 1650, 2000, 2400, 2750],
+  "west-south-deep":   [        1050, 1150, 1400, 1650, 1900,  1700, 1800, 2200, 2600, 3000],
+  "central-crossing":  [         500,  700,  850, 1000, 1200,   800, 1000, 1250, 1500, 1750],
+};
+
+function getFareTableKey(pickup: string, dropoff: string): string | null {
   const p = pickup.toLowerCase();
   const d = dropoff.toLowerCase();
-  const rt = tripType === "round";
 
   const beach = identifyBeach(d) ?? identifyBeach(p);
-  if (beach !== null) {
-    const origin = identifyBeach(d) !== null ? p : d;
-    const r = BEACH_RATES[beach][identifyRegion(origin)];
-    return rt ? [r[2], r[3]] : [r[0], r[1]];
-  }
+  if (beach !== null) return null; // beach routes handled separately
 
   const pZone = getZone(p);
   const dZone = getZone(d);
   if (!pZone || !dZone || pZone === dZone) return null;
 
   if ((pZone === "west" && dZone === "central") || (pZone === "central" && dZone === "west")) {
-    return rt ? [800, 1000] : [480, 650];
+    return "west-central";
   }
   if ((pZone === "west" && dZone === "east") || (pZone === "east" && dZone === "west")) {
     const sub = eastSubzone(pZone === "east" ? p : d);
-    if (sub === "near") return rt ? [600, 600] : [350, 400];
-    if (sub === "mid")  return rt ? [800, 800] : [480, 520];
-    if (sub === "far")  return rt ? [1000, 1000] : [600, 650];
-    return rt ? [1500, 1500] : [900, 1000];
+    return `west-east-${sub}`;
   }
   if ((pZone === "west" && dZone === "south") || (pZone === "south" && dZone === "west")) {
     const sub = southSubzone(pZone === "south" ? p : d);
-    if (sub === "close") return rt ? [900, 1000] : [500, 600];
-    if (sub === "mid")   return rt ? [1100, 1400] : [650, 900];
-    if (sub === "far")   return rt ? [1500, 1600] : [900, 1050];
-    if (sub === "deep")  return rt ? [1700, 1800] : [1050, 1150];
-    return rt ? [900, 1800] : [500, 1150];
+    return `west-south-${sub}`;
   }
   if (
     (pZone === "central" && (dZone === "east" || dZone === "south")) ||
@@ -112,32 +120,31 @@ function calculateFareRange(pickup: string, dropoff: string, tripType: string): 
     (pZone === "east" && dZone === "south") ||
     (pZone === "south" && dZone === "east")
   ) {
-    return rt ? [800, 1600] : [500, 1000];
+    return "central-crossing";
   }
   return null;
 }
 
-// fareRange[0] = 12-seater price, fareRange[1] = 14/15-seater price.
-// For 18+ seaters we extrapolate upward from the 14/15-seater using the same
-// per-tier step, rounding to the nearest $50 and flagging as an estimate.
-function getExactFare(fareRange: FareRange, pax: number): number {
-  const [base, mid] = fareRange;
-  const step = mid - base; // the increment from 12-seat → 14/15-seat
-  let fare: number;
-  if (pax <= 12) fare = base;
-  else if (pax <= 15) fare = mid;
-  else if (pax <= 18) fare = mid + Math.round(step * 0.85);
-  else if (pax <= 22) fare = mid + Math.round(step * 1.65);
-  else               fare = mid + Math.round(step * 2.30);
-  // Round to nearest $50
-  return Math.round(fare / 50) * 50;
-}
-function isEstimated(pax: number): boolean {
-  return pax > 15;
+function getFareFromTable(key: string, pax: number, tripType: string): number | null {
+  const t = ROUTE_FARES[key];
+  if (!t) return null;
+  const off = tripType === "round" ? 5 : 0;
+  if (pax <= 12) return t[off];
+  if (pax <= 15) return t[off + 1];
+  if (pax <= 18) return t[off + 2];
+  if (pax <= 22) return t[off + 3];
+  return t[off + 4]; // 25-seater
 }
 
-function fmtFare(amount: number, estimated: boolean): string {
-  return `TTD ${amount.toLocaleString("en-TT")}${estimated ? " (est.)" : ""}`;
+// For step-0 preview: show cheapest→priciest vehicle spread for one-way
+function getRouteDisplayRange(key: string): FareRange | null {
+  const t = ROUTE_FARES[key];
+  if (!t) return null;
+  return [t[0], t[4]]; // 12-seat OW → 25-seat OW
+}
+
+function fmtFare(amount: number): string {
+  return `TTD ${amount.toLocaleString("en-TT")}`;
 }
 function fmtRange([lo, hi]: FareRange): string {
   if (lo === hi) return `TTD ${lo.toLocaleString("en-TT")}`;
@@ -351,7 +358,7 @@ function ConfirmedScreen({
   job,
   onReset,
 }: {
-  job: { id: string; name: string; pickup: string; dropoff: string; fareRange: FareRange; pickupDatetime: string; returnDatetime: string; tripType: string };
+  job: { id: string; name: string; pickup: string; dropoff: string; fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string };
   onReset: () => void;
 }) {
   return (
@@ -427,11 +434,11 @@ function ConfirmedScreen({
         {/* Deposit callout */}
         <div className="mt-4 rounded-2xl bg-amber-400/10 border border-amber-400/30 px-4 py-4">
           <p className="text-amber-300 text-xs font-bold uppercase tracking-widest mb-1">Deposit Due to Confirm</p>
-          {job.fareRange[0] > 0 ? (
+          {job.deposit > 0 ? (
             <>
-              <p className="text-amber-400 text-3xl font-black leading-none">{fmtRange(depositRange(job.fareRange))}</p>
+              <p className="text-amber-400 text-3xl font-black leading-none">TTD {job.deposit.toLocaleString("en-TT")}</p>
               <p className="text-teal-400 text-xs mt-2 leading-relaxed">
-                Estimated total fare: <strong className="text-white">{fmtRange(job.fareRange)}</strong> — balance paid to your driver on the day.
+                Total fare: <strong className="text-white">TTD {job.fare.toLocaleString("en-TT")}</strong> — balance of TTD {(job.fare - job.deposit).toLocaleString("en-TT")} paid to your driver on the day.
               </p>
             </>
           ) : (
@@ -491,10 +498,9 @@ export default function Home() {
   const queryClient = useQueryClient();
   const createJob   = useCreateJob();
 
-  const fareRange  = useMemo<FareRange | null>(() => calculateFareRange(pickup, dropoff, tripType ?? "one-way"), [pickup, dropoff, tripType]);
-  const exactFare  = useMemo<number | null>(() => fareRange && tripType ? getExactFare(fareRange, pax) : null, [fareRange, pax, tripType]);
-  const deposit    = exactFare ? Math.ceil(exactFare * 0.25) : null;
-  const estimated  = isEstimated(pax);
+  const fareKey   = useMemo(() => getFareTableKey(pickup, dropoff), [pickup, dropoff]);
+  const exactFare = useMemo<number | null>(() => fareKey && tripType ? getFareFromTable(fareKey, pax, tripType) : null, [fareKey, pax, tripType]);
+  const deposit   = exactFare ? Math.ceil(exactFare * 0.25) : null;
 
   const validateDatetime = (value: string) => {
     if (!value) { setDatetimeError(""); return; }
@@ -534,7 +540,7 @@ export default function Home() {
     const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
     const passengerDesc = paxLabel(pax);
     const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
-    const fareLabel = exactFare ? fmtFare(exactFare, estimated) : "Quote on request";
+    const fareLabel = exactFare ? fmtFare(exactFare) : "Quote on request";
     const priceNote = `${fareLabel} (${tripLabel}, ${passengerDesc}) — Pickup: ${pickupDatetime}${returnNote}`;
 
     createJob.mutate(
@@ -701,12 +707,13 @@ export default function Home() {
                   {pickup.trim() && dropoff.trim() && (
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-teal-700">
                       {(() => {
-                        const preview = calculateFareRange(pickup, dropoff, "one-way");
-                        return preview ? (
+                        const key = getFareTableKey(pickup, dropoff);
+                        const range = key ? getRouteDisplayRange(key) : null;
+                        return range ? (
                           <>
-                            <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">One-way fare estimate</p>
-                            <p className="text-2xl font-black text-teal-900">{fmtRange(preview)}</p>
-                            <p className="text-xs text-teal-500 mt-1">{fmtFare(preview[0], false)} (12-seat) → {fmtFare(preview[1], false)} (14/15-seat) · larger vehicles scale higher</p>
+                            <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">One-way fare · varies by vehicle size</p>
+                            <p className="text-2xl font-black text-teal-900">{fmtRange(range)}</p>
+                            <p className="text-xs text-teal-500 mt-1">{fmtFare(range[0])} (12-seat) → {fmtFare(range[1])} (25-seat) · select passengers on next step for your exact price</p>
                           </>
                         ) : (
                           <>
@@ -822,20 +829,13 @@ export default function Home() {
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
                       <div className="flex justify-between items-center gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">
-                            {exactFare && estimated ? "Estimated Fare (est.)" : "Fare"}
-                          </p>
+                          <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">Fare</p>
                           <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                         </div>
                         {exactFare
-                          ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtFare(exactFare, estimated)}</p>
-                          : <p className="text-sm font-semibold text-teal-600 shrink-0">Quote on request</p>}
+                          ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtFare(exactFare)}</p>
+                          : <p className="text-sm font-semibold text-teal-600 shrink-0">WhatsApp us for a quote</p>}
                       </div>
-                      {estimated && exactFare && (
-                        <p className="text-xs text-teal-500 mt-2 border-t border-amber-200 pt-2">
-                          18+ seater pricing is estimated — our team will confirm before pickup.
-                        </p>
-                      )}
                     </div>
                   )}
                 </div>
@@ -945,17 +945,17 @@ export default function Home() {
                         <p className="text-sm font-semibold text-teal-800">Estimated Fare</p>
                         <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                       </div>
-                      {fareRange
-                        ? <p className="text-2xl font-black text-teal-900 shrink-0">{fmtRange(fareRange)}</p>
+                      {exactFare
+                        ? <p className="text-2xl font-black text-teal-900 shrink-0">{fmtFare(exactFare)}</p>
                         : <p className="text-sm font-semibold text-teal-500 shrink-0">Quote on request</p>}
                     </div>
                     <div className="bg-white/70 border border-amber-100 rounded-xl px-3 py-2.5 flex gap-3 items-start">
                       <Info className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                       <div>
-                        {depRange
+                        {deposit
                           ? <>
-                              <p className="text-sm font-bold text-teal-900">25% Deposit: {fmtRange(depRange)}</p>
-                              <p className="text-xs text-teal-700/80 mt-0.5">Balance paid to your driver on the day.</p>
+                              <p className="text-sm font-bold text-teal-900">25% Deposit: TTD {deposit.toLocaleString("en-TT")}</p>
+                              <p className="text-xs text-teal-700/80 mt-0.5">Balance of TTD {((exactFare ?? 0) - deposit).toLocaleString("en-TT")} paid to your driver on the day.</p>
                             </>
                           : <p className="text-sm text-teal-700">Our team will confirm your exact fare and deposit by WhatsApp after booking.</p>
                         }
@@ -978,8 +978,8 @@ export default function Home() {
                   >
                     {createJob.isPending
                       ? <><Loader2 className="w-5 h-5 animate-spin" /> Confirming...</>
-                      : depRange
-                      ? <><CheckCircle2 className="w-5 h-5" /> Confirm Booking &mdash; {fmtRange(depRange)} deposit</>
+                      : deposit
+                      ? <><CheckCircle2 className="w-5 h-5" /> Confirm Booking &mdash; TTD {deposit.toLocaleString("en-TT")} deposit</>
                       : <><CheckCircle2 className="w-5 h-5" /> Confirm Booking</>}
                   </button>
                 </div>
