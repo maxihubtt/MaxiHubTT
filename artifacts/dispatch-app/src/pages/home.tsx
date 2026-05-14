@@ -426,11 +426,11 @@ function ConfirmedScreen({
     >
       {/* Logo */}
       <div className="mb-6 flex flex-col items-center gap-3">
-        <div className="relative overflow-hidden rounded-full shadow-xl" style={{ width: 72, height: 72 }}>
+        <div className="rounded-xl shadow-xl overflow-hidden bg-white" style={{ width: 80, height: 80 }}>
           <img
             src="/logo-raw.png"
             alt="Maxi Hub TT"
-            style={{ width: 72, height: 103, objectFit: "cover", objectPosition: "top center" }}
+            style={{ width: 80, height: 80, objectFit: "cover" }}
           />
         </div>
         <p className="text-amber-300 text-xs font-bold uppercase tracking-widest">Maxi Hub TT</p>
@@ -638,12 +638,11 @@ export default function Home() {
         <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #ce1126 0%, #000 40%, #ce1126 100%)" }} />
         <div className="max-w-6xl mx-auto px-6 md:px-12 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {/* Logo image — bottom cropped to remove plate & WhatsApp text */}
-            <div className="relative overflow-hidden rounded-full shadow-lg shrink-0" style={{ width: 52, height: 52 }}>
+            <div className="rounded-lg overflow-hidden shadow-lg shrink-0 bg-white" style={{ width: 52, height: 52 }}>
               <img
                 src="/logo-raw.png"
                 alt="Maxi Hub TT logo"
-                style={{ width: 52, height: 78, objectFit: "cover", objectPosition: "top center" }}
+                style={{ width: 52, height: 52, objectFit: "cover" }}
               />
             </div>
             <div>
@@ -1214,8 +1213,8 @@ export default function Home() {
       {/* ── Footer ── */}
       <footer className="py-8 px-6 text-center border-t border-teal-100 bg-[#FFFBF4]">
         <div className="flex justify-center items-center gap-3 mb-3">
-          <div className="relative overflow-hidden rounded-full" style={{ width: 36, height: 36 }}>
-            <img src="/logo-raw.png" alt="Maxi Hub TT" style={{ width: 36, height: 51, objectFit: "cover", objectPosition: "top center" }} />
+          <div className="rounded overflow-hidden bg-white" style={{ width: 36, height: 36 }}>
+            <img src="/logo-raw.png" alt="Maxi Hub TT" style={{ width: 36, height: 36, objectFit: "cover" }} />
           </div>
           <p className="font-black text-teal-900 text-sm">Maxi Hub TT</p>
         </div>
