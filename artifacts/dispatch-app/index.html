@@ -10,14 +10,87 @@
     <meta name="apple-mobile-web-app-title" content="Maxi Hub TT" />
     <title>Maxi Hub TT — Book Your Ride</title>
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
-    <link rel="apple-touch-icon" href="%BASE_URL%favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%apple-touch-icon.png" />
     <link rel="manifest" href="%BASE_URL%manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" media="print" onload="this.media='all'"
           href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap">
+    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(160deg, #0a2e21 0%, #0f3d2e 55%, #1a5c42 100%);
+        transition: opacity 0.4s ease;
+      }
+      #splash.hidden { opacity: 0; pointer-events: none; }
+      #splash-logo {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        margin-bottom: 20px;
+      }
+      #splash-logo img {
+        width: 100px;
+        height: 138px;
+        object-fit: cover;
+        object-position: top center;
+      }
+      #splash-name {
+        font-family: 'Outfit', Arial, sans-serif;
+        font-weight: 800;
+        font-size: 26px;
+        letter-spacing: 0.04em;
+        color: #ffffff;
+        margin-bottom: 4px;
+      }
+      #splash-tagline {
+        font-family: 'Outfit', Arial, sans-serif;
+        font-weight: 500;
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: #f59e0b;
+        margin-bottom: 40px;
+      }
+      #splash-dots {
+        display: flex;
+        gap: 8px;
+      }
+      #splash-dots span {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #f59e0b;
+        opacity: 0.3;
+        animation: pulse 1.2s ease-in-out infinite;
+      }
+      #splash-dots span:nth-child(2) { animation-delay: 0.2s; }
+      #splash-dots span:nth-child(3) { animation-delay: 0.4s; }
+      @keyframes pulse {
+        0%, 80%, 100% { opacity: 0.3; transform: scale(0.85); }
+        40% { opacity: 1; transform: scale(1); }
+      }
+    </style>
   </head>
-  <body>
+  <body style="margin:0;background:#0f3d2e;">
+    <div id="splash">
+      <div id="splash-logo">
+        <img src="%BASE_URL%logo-raw.png" alt="Maxi Hub TT" />
+      </div>
+      <div id="splash-name">Maxi Hub TT</div>
+      <div id="splash-tagline">Premium Shuttle Service</div>
+      <div id="splash-dots">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
@@ -27,6 +100,13 @@
             .catch(function() {});
         });
       }
+      window.__hideSplash = function() {
+        var s = document.getElementById('splash');
+        if (s) {
+          s.classList.add('hidden');
+          setTimeout(function() { s.remove(); }, 450);
+        }
+      };
     </script>
   </body>
 </html>
