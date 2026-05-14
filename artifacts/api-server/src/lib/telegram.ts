@@ -38,7 +38,7 @@ export async function sendJobToGroup(job: {
 }): Promise<boolean> {
   if (!GROUP_ID) return false;
 
-  const appDomain = process.env["REPLIT_DOMAINS"]?.split(",")[0];
+  const appDomain = process.env["APP_DOMAIN"] ?? process.env["REPLIT_DOMAINS"]?.split(",")[0];
   const portalLink = appDomain
     ? `https://${appDomain}/driver/jobs`
     : null;
