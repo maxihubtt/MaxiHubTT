@@ -119,26 +119,40 @@ function identifyRegion(loc: string): RegionKey {
   return "west";
 }
 
+// Scale a base Hi (14/15-seat) beach price to a larger vehicle tier.
+// Multipliers match the proportional step used in ROUTE_FARES: ×1.25 / ×1.50 / ×1.75
+const round50 = (n: number) => Math.round(n / 50) * 50;
+
 // Returns [lo, hi] fare for a beach route — used for the step-0 preview before pax is known.
-// BEACH_RATES entries: [owLo, owHi, rtLo, rtHi] (Lo = 12-seat, Hi = 14/15+ seat)
+// BEACH_RATES entries: [owLo, owHi, rtLo, rtHi] (Lo = 12-seat, Hi = 14/15-seat)
+// The range spans 12-seat (cheapest) → estimated 25-seat (priciest).
 function getBeachFareRange(pickup: string, dropoff: string, tripType: string): FareRange | null {
   const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
   if (!beach) return null;
   const origin = identifyBeach(dropoff) !== null ? pickup : dropoff;
   const r = BEACH_RATES[beach][identifyRegion(origin)];
   const rt = tripType === "round";
-  return rt ? [r[2], r[3]] : [r[0], r[1]];
+  const lo = rt ? r[2] : r[0];
+  const hi = rt ? r[3] : r[1];
+  return [lo, round50(hi * 1.75)]; // 12-seat → 25-seat estimate
 }
+
 // Returns an exact fare for a beach route once pax is known.
-// ≤12 passengers → 12-seat price (Lo); >12 → 14/15+-seat price (Hi).
+// Tiers mirror ROUTE_FARES: ≤12 → 12-seat, ≤15 → 14/15-seat,
+// ≤18 → ×1.25 of Hi, ≤22 → ×1.50 of Hi, 23+ → ×1.75 of Hi (25-seat).
 function getBeachExactFare(pickup: string, dropoff: string, pax: number, tripType: string): number | null {
   const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
   if (!beach) return null;
   const origin = identifyBeach(dropoff) !== null ? pickup : dropoff;
   const r = BEACH_RATES[beach][identifyRegion(origin)];
   const rt = tripType === "round";
-  if (rt) return pax <= 12 ? r[2] : r[3];
-  return pax <= 12 ? r[0] : r[1];
+  const lo = rt ? r[2] : r[0];
+  const hi = rt ? r[3] : r[1];
+  if (pax <= 12) return lo;
+  if (pax <= 15) return hi;
+  if (pax <= 18) return round50(hi * 1.25);
+  if (pax <= 22) return round50(hi * 1.50);
+  return round50(hi * 1.75); // 23-25 passengers
 }
 
 // ── Route fare tables ─────────────────────────────────────────────────────────
