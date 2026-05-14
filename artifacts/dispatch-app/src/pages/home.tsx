@@ -117,12 +117,31 @@ function calculateFareRange(pickup: string, dropoff: string, tripType: string): 
   return null;
 }
 
+// fareRange[0] = 12-seater price, fareRange[1] = 14/15-seater price.
+// For 18+ seaters we extrapolate upward from the 14/15-seater using the same
+// per-tier step, rounding to the nearest $50 and flagging as an estimate.
+function getExactFare(fareRange: FareRange, pax: number): number {
+  const [base, mid] = fareRange;
+  const step = mid - base; // the increment from 12-seat → 14/15-seat
+  let fare: number;
+  if (pax <= 12) fare = base;
+  else if (pax <= 15) fare = mid;
+  else if (pax <= 18) fare = mid + Math.round(step * 0.85);
+  else if (pax <= 22) fare = mid + Math.round(step * 1.65);
+  else               fare = mid + Math.round(step * 2.30);
+  // Round to nearest $50
+  return Math.round(fare / 50) * 50;
+}
+function isEstimated(pax: number): boolean {
+  return pax > 15;
+}
+
+function fmtFare(amount: number, estimated: boolean): string {
+  return `TTD ${amount.toLocaleString("en-TT")}${estimated ? " (est.)" : ""}`;
+}
 function fmtRange([lo, hi]: FareRange): string {
   if (lo === hi) return `TTD ${lo.toLocaleString("en-TT")}`;
   return `TTD ${lo.toLocaleString("en-TT")} – ${hi.toLocaleString("en-TT")}`;
-}
-function depositRange([lo, hi]: FareRange): FareRange {
-  return [Math.ceil(lo * 0.25), Math.ceil(hi * 0.25)];
 }
 function getMinDatetime(): string {
   const now = new Date();
@@ -133,10 +152,11 @@ function getMinDatetime(): string {
 }
 function vehicleForPax(pax: number): string {
   if (pax <= 12) return "12-Seater Maxi";
+  if (pax <= 14) return "14-Seater Maxi";
   if (pax <= 15) return "15-Seater Maxi";
   if (pax <= 18) return "18-Seater Maxi";
   if (pax <= 22) return "22-Seater Maxi";
-  return "24-Seater Maxi";
+  return "25-Seater Maxi";
 }
 function paxLabel(pax: number): string {
   return `${pax} passenger${pax !== 1 ? "s" : ""} · 1 × ${vehicleForPax(pax)}`;
@@ -463,7 +483,7 @@ export default function Home() {
   // Booking result
   const [bookedJob, setBookedJob] = useState<{
     id: string; name: string; pickup: string; dropoff: string;
-    fareRange: FareRange; pickupDatetime: string; returnDatetime: string; tripType: string;
+    fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string;
   } | null>(null);
 
   const [stepErrors, setStepErrors] = useState(false);
@@ -471,8 +491,10 @@ export default function Home() {
   const queryClient = useQueryClient();
   const createJob   = useCreateJob();
 
-  const fareRange = useMemo<FareRange | null>(() => tripType ? calculateFareRange(pickup, dropoff, tripType) : null, [pickup, dropoff, tripType]);
-  const depRange  = fareRange ? depositRange(fareRange) : null;
+  const fareRange  = useMemo<FareRange | null>(() => calculateFareRange(pickup, dropoff, tripType ?? "one-way"), [pickup, dropoff, tripType]);
+  const exactFare  = useMemo<number | null>(() => fareRange && tripType ? getExactFare(fareRange, pax) : null, [fareRange, pax, tripType]);
+  const deposit    = exactFare ? Math.ceil(exactFare * 0.25) : null;
+  const estimated  = isEstimated(pax);
 
   const validateDatetime = (value: string) => {
     if (!value) { setDatetimeError(""); return; }
@@ -512,7 +534,7 @@ export default function Home() {
     const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
     const passengerDesc = paxLabel(pax);
     const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
-    const fareLabel = fareRange ? fmtRange(fareRange) : "Quote on request";
+    const fareLabel = exactFare ? fmtFare(exactFare, estimated) : "Quote on request";
     const priceNote = `${fareLabel} (${tripLabel}, ${passengerDesc}) — Pickup: ${pickupDatetime}${returnNote}`;
 
     createJob.mutate(
@@ -521,7 +543,7 @@ export default function Home() {
         onSuccess: job => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
-          setBookedJob({ id: job.id, name, pickup, dropoff, fareRange: fareRange ?? [0, 0], pickupDatetime, returnDatetime, tripType });
+          setBookedJob({ id: job.id, name, pickup, dropoff, fare: exactFare ?? 0, deposit: deposit ?? 0, pickupDatetime, returnDatetime, tripType });
         },
       }
     );
@@ -678,12 +700,20 @@ export default function Home() {
                   {/* Live fare preview */}
                   {pickup.trim() && dropoff.trim() && (
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-teal-700">
-                      <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Estimated Fare (one way · select trip type on next step)</p>
                       {(() => {
                         const preview = calculateFareRange(pickup, dropoff, "one-way");
-                        return preview
-                          ? <p className="text-2xl font-black text-teal-900">{fmtRange(preview)}</p>
-                          : <p className="text-sm text-teal-600">We'll calculate your fare once you choose trip type — or <a href={waLink("Hi Maxi Hub TT, I'd like a quote for a ride.")} target="_blank" rel="noopener noreferrer" className="underline text-teal-700 font-semibold">WhatsApp us for a quote</a>.</p>;
+                        return preview ? (
+                          <>
+                            <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">One-way fare estimate</p>
+                            <p className="text-2xl font-black text-teal-900">{fmtRange(preview)}</p>
+                            <p className="text-xs text-teal-500 mt-1">{fmtFare(preview[0], false)} (12-seat) → {fmtFare(preview[1], false)} (14/15-seat) · larger vehicles scale higher</p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Fare estimate</p>
+                            <p className="text-sm text-teal-600">Enter specific areas (e.g. Port of Spain → San Fernando) or <a href={waLink("Hi Maxi Hub TT, I'd like a quote for a ride.")} target="_blank" rel="noopener noreferrer" className="underline text-teal-700 font-semibold">WhatsApp us for a quote</a>.</p>
+                          </>
+                        );
                       })()}
                     </div>
                   )}
@@ -792,13 +822,20 @@ export default function Home() {
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
                       <div className="flex justify-between items-center gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">Estimated Fare</p>
+                          <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">
+                            {exactFare && estimated ? "Estimated Fare (est.)" : "Fare"}
+                          </p>
                           <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                         </div>
-                        {fareRange
-                          ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtRange(fareRange)}</p>
+                        {exactFare
+                          ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtFare(exactFare, estimated)}</p>
                           : <p className="text-sm font-semibold text-teal-600 shrink-0">Quote on request</p>}
                       </div>
+                      {estimated && exactFare && (
+                        <p className="text-xs text-teal-500 mt-2 border-t border-amber-200 pt-2">
+                          18+ seater pricing is estimated — our team will confirm before pickup.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
