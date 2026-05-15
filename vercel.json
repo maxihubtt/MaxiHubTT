@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://maxi-hub-api.onrender.com/api/:path*"
+    }
+  ]
+}
