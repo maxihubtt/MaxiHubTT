@@ -26,10 +26,19 @@ app.use(
     },
   }),
 );
-app.use(cors({ origin: true, credentials: true }));
+// In production with a separate frontend domain, set ALLOWED_ORIGIN to your
+// frontend URL (e.g. https://your-app.vercel.app). Leave unset for same-origin.
+const allowedOrigin = process.env.ALLOWED_ORIGIN;
+app.use(cors({
+  origin: allowedOrigin ?? true,
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// When the frontend and backend are on different domains (ALLOWED_ORIGIN is set),
+// cookies must be sameSite:"none" + secure:true or browsers will silently drop them.
+const crossOrigin = Boolean(allowedOrigin);
 app.use(
   session({
     secret: process.env.SESSION_SECRET ?? "fallback-dev-secret",
@@ -37,8 +46,8 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: crossOrigin || process.env.NODE_ENV === "production",
+      sameSite: crossOrigin ? "none" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   })
