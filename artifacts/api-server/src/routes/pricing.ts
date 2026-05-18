@@ -15,13 +15,18 @@ router.post("/", async (req, res) => {
 
     const apiKey = process.env.OPENROUTE_API_KEY;
 
+    // Force Trinidad search context
+    const pickupSearch = `${pickup}, Trinidad and Tobago`;
+    const dropoffSearch = `${dropoff}, Trinidad and Tobago`;
+
     // Geocode pickup
     const pickupGeo = await axios.get(
       "https://api.openrouteservice.org/geocode/search",
       {
         params: {
           api_key: apiKey,
-          text: pickup,
+          text: pickupSearch,
+          boundary_country: "TT",
         },
       }
     );
@@ -32,10 +37,31 @@ router.post("/", async (req, res) => {
       {
         params: {
           api_key: apiKey,
-          text: dropoff,
+          text: dropoffSearch,
+          boundary_country: "TT",
         },
       }
     );
+
+    // Validate pickup result
+    if (
+      !pickupGeo.data.features ||
+      pickupGeo.data.features.length === 0
+    ) {
+      return res.status(400).json({
+        error: `Pickup location not found: ${pickup}`,
+      });
+    }
+
+    // Validate dropoff result
+    if (
+      !dropoffGeo.data.features ||
+      dropoffGeo.data.features.length === 0
+    ) {
+      return res.status(400).json({
+        error: `Dropoff location not found: ${dropoff}`,
+      });
+    }
 
     const pickupCoords =
       pickupGeo.data.features[0].geometry.coordinates;
@@ -66,13 +92,26 @@ router.post("/", async (req, res) => {
     const baseFare = 25;
     const perKm = 8;
 
-    const total =
-      Math.round(baseFare + km * perKm);
+    // Optional long-distance multiplier
+    let total = baseFare + km * perKm;
+
+    // Late distance protection
+    if (km > 25) {
+      total += 20;
+    }
+
+    if (km > 50) {
+      total += 40;
+    }
+
+    total = Math.round(total);
 
     return res.json({
+      success: true,
       distance_km: km.toFixed(1),
       price: total,
     });
+
   } catch (err) {
     console.error(err);
 
