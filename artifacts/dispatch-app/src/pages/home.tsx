@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCreateJob, useGetJob, getGetJobQueryKey, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle, AlertTriangle } from "lucide-react";
@@ -586,14 +586,54 @@ export default function Home() {
     return () => clearTimeout(timer);
   }, [pickup, dropoff]);
 
-  const fareKey         = useMemo(() => getFareTableKey(pickup, dropoff), [pickup, dropoff]);
-  const exactFare       = useMemo<number | null>(() => fareKey && tripType ? getFareFromTable(fareKey, pax, tripType) : null, [fareKey, pax, tripType]);
-  const beachRange      = useMemo<FareRange | null>(() => tripType ? getBeachFareRange(pickup, dropoff, tripType) : null, [pickup, dropoff, tripType]);
-  const beachExactFare  = useMemo<number | null>(() => tripType ? getBeachExactFare(pickup, dropoff, pax, tripType) : null, [pickup, dropoff, pax, tripType]);
-  
-  // displayFare prioritizing the API fare, and safely falling back to local logic if the API fails or is null
-  const displayFare     = apiFare ?? exactFare ?? beachExactFare;
-  const deposit         = displayFare ? Math.ceil(displayFare * 0.25) : null;
+  const [displayFare, setDisplayFare] = useState<number | null>(null);
+const [loadingFare, setLoadingFare] = useState(false);
+
+const deposit = displayFare
+  ? Math.ceil(displayFare * 0.25)
+  : null;
+
+useEffect(() => {
+  async function fetchFare() {
+    if (!pickup.trim() || !dropoff.trim()) {
+      setDisplayFare(null);
+      return;
+    }
+
+    try {
+      setLoadingFare(true);
+
+      const response = await fetch(
+        "https://maxihubtt-api-9pav.onrender.com/pricing",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pickup,
+            dropoff,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.price) {
+        setDisplayFare(data.price);
+      } else {
+        setDisplayFare(null);
+      }
+    } catch (err) {
+      console.error(err);
+      setDisplayFare(null);
+    } finally {
+      setLoadingFare(false);
+    }
+  }
+
+  fetchFare();
+}, [pickup, dropoff]);
 
   const validateDatetime = (value: string) => {
     if (!value) { setDatetimeError(""); return; }
