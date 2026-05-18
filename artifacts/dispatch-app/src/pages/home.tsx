@@ -6,6 +6,29 @@ import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Ca
 const WA_BASE = "https://wa.me/18684818039?text=";
 const waLink = (msg: string) => WA_BASE + encodeURIComponent(msg);
 
+// ── Render API Pricing Helper ────────────────────────────────────────────────
+async function fetchPrice(pickup: string, dropoff: string) {
+  try {
+    const res = await fetch("https://maxihubtt-api-9pav.onrender.com/pricing", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pickup, dropoff }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error(data.error);
+      return null;
+    }
+
+    return data.price;
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
+
 // ── Fare calculation helpers ─────────────────────────────────────────────────
 
 type FareRange = [number, number];
@@ -119,13 +142,8 @@ function identifyRegion(loc: string): RegionKey {
   return "west";
 }
 
-// Scale a base Hi (14/15-seat) beach price to a larger vehicle tier.
-// Multipliers match the proportional step used in ROUTE_FARES: ×1.25 / ×1.50 / ×1.75
 const round50 = (n: number) => Math.round(n / 50) * 50;
 
-// Returns [lo, hi] fare for a beach route — used for the step-0 preview before pax is known.
-// BEACH_RATES entries: [owLo, owHi, rtLo, rtHi] (Lo = 12-seat, Hi = 14/15-seat)
-// The range spans 12-seat (cheapest) → estimated 25-seat (priciest).
 function getBeachFareRange(pickup: string, dropoff: string, tripType: string): FareRange | null {
   const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
   if (!beach) return null;
@@ -134,12 +152,9 @@ function getBeachFareRange(pickup: string, dropoff: string, tripType: string): F
   const rt = tripType === "round";
   const lo = rt ? r[2] : r[0];
   const hi = rt ? r[3] : r[1];
-  return [lo, round50(hi * 1.75)]; // 12-seat → 25-seat estimate
+  return [lo, round50(hi * 1.75)]; 
 }
 
-// Returns an exact fare for a beach route once pax is known.
-// Tiers mirror ROUTE_FARES: ≤12 → 12-seat, ≤15 → 14/15-seat,
-// ≤18 → ×1.25 of Hi, ≤22 → ×1.50 of Hi, 23+ → ×1.75 of Hi (25-seat).
 function getBeachExactFare(pickup: string, dropoff: string, pax: number, tripType: string): number | null {
   const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
   if (!beach) return null;
@@ -152,17 +167,10 @@ function getBeachExactFare(pickup: string, dropoff: string, pax: number, tripTyp
   if (pax <= 15) return hi;
   if (pax <= 18) return round50(hi * 1.25);
   if (pax <= 22) return round50(hi * 1.50);
-  return round50(hi * 1.75); // 23-25 passengers
+  return round50(hi * 1.75); 
 }
 
-// ── Route fare tables ─────────────────────────────────────────────────────────
-// Each table: [ow12, ow14_15, ow18, ow22, ow25, rt12, rt14_15, rt18, rt22, rt25]
-// ow = one-way, rt = round-trip. Prices in TTD.
-// 12-seat and 14/15-seat prices are the operator's confirmed rates.
-// 18, 22, 25-seat prices are derived from the same per-route scaling pattern.
 const ROUTE_FARES: Record<string, [number,number,number,number,number, number,number,number,number,number]> = {
-  //                              ──── one way ────────────────  ──── round trip ──────────────
-  //                              12    14/15  18    22    25     12    14/15  18    22    25
   "west-central":      [         480,  650,  800,  950, 1100,   800, 1000, 1250, 1500, 1750],
   "west-east-near":    [         350,  400,  500,  600,  700,   600,  700,  850, 1000, 1150],
   "west-east-mid":     [         480,  520,  650,  800,  950,   800,  900, 1100, 1300, 1500],
@@ -180,7 +188,7 @@ function getFareTableKey(pickup: string, dropoff: string): string | null {
   const d = dropoff.toLowerCase();
 
   const beach = identifyBeach(d) ?? identifyBeach(p);
-  if (beach !== null) return null; // beach routes handled separately
+  if (beach !== null) return null; 
 
   const pZone = getZone(p);
   const dZone = getZone(d);
@@ -216,14 +224,13 @@ function getFareFromTable(key: string, pax: number, tripType: string): number | 
   if (pax <= 15) return t[off + 1];
   if (pax <= 18) return t[off + 2];
   if (pax <= 22) return t[off + 3];
-  return t[off + 4]; // 25-seater
+  return t[off + 4]; 
 }
 
-// For step-0 preview: show cheapest→priciest vehicle spread for one-way
 function getRouteDisplayRange(key: string): FareRange | null {
   const t = ROUTE_FARES[key];
   if (!t) return null;
-  return [t[0], t[4]]; // 12-seat OW → 25-seat OW
+  return [t[0], t[4]]; 
 }
 
 function fmtFare(amount: number): string {
@@ -257,12 +264,11 @@ function fmtDt(dt: string) {
   });
 }
 
-// ── Copy-to-clipboard booking reference ─────────────────────────────────────
+// ── Components ──────────────────────────────────────────────────────────────
 
 function CopyableRef({ bookingId }: { bookingId: string }) {
   const [copied, setCopied] = useState(false);
 
-  // Auto-copy on mount so the ref is already in clipboard when they arrive
   useEffect(() => {
     navigator.clipboard.writeText(bookingId).then(() => {
       setCopied(true);
@@ -276,7 +282,6 @@ function CopyableRef({ bookingId }: { bookingId: string }) {
 
   return (
     <div className="space-y-2">
-      {/* Urgent save warning */}
       <div className="flex items-start gap-2 rounded-xl border-2 border-amber-400 bg-amber-400/15 px-3 py-2.5">
         <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
         <p className="text-xs font-bold text-amber-300 leading-snug">
@@ -284,7 +289,6 @@ function CopyableRef({ bookingId }: { bookingId: string }) {
         </p>
       </div>
 
-      {/* Tappable ref block */}
       <button
         onClick={copy}
         className="w-full rounded-2xl border-2 border-dashed border-amber-400/60 bg-amber-400/10 px-4 py-5 flex flex-col items-center gap-1 active:scale-[0.97] transition-transform"
@@ -303,8 +307,6 @@ function CopyableRef({ bookingId }: { bookingId: string }) {
     </div>
   );
 }
-
-// ── Live status badge on confirmation ────────────────────────────────────────
 
 function LiveStatusBadge({ jobId }: { jobId: string }) {
   const { data: job } = useGetJob(jobId, {
@@ -325,8 +327,6 @@ function LiveStatusBadge({ jobId }: { jobId: string }) {
     </span>
   );
 }
-
-// ── Booking tracker lookup ───────────────────────────────────────────────────
 
 function BookingLookup() {
   const [refInput, setRefInput] = useState("");
@@ -412,8 +412,6 @@ function BookingLookup() {
   );
 }
 
-// ── Progress bar ─────────────────────────────────────────────────────────────
-
 const STEP_LABELS = ["Route", "Details", "You", "Confirm"];
 
 function ProgressBar({ step }: { step: number }) {
@@ -435,8 +433,6 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
-// ── Confirmed screen ─────────────────────────────────────────────────────────
-
 function ConfirmedScreen({
   job,
   onReset,
@@ -449,20 +445,14 @@ function ConfirmedScreen({
       className="min-h-screen flex flex-col items-center justify-start pt-8 pb-16 px-4"
       style={{ fontFamily: "'Outfit', sans-serif", background: "linear-gradient(160deg, #0a2e21 0%, #0f3d2e 50%, #1a5c42 100%)" }}
     >
-      {/* Logo */}
       <div className="mb-6 flex flex-col items-center gap-3">
         <div className="rounded-xl shadow-xl overflow-hidden bg-white" style={{ width: 80, height: 80 }}>
-          <img
-            src="/logo-raw.png"
-            alt="Maxi Hub TT"
-            style={{ width: 80, height: 80, objectFit: "cover" }}
-          />
+          <img src="/logo-raw.png" alt="Maxi Hub TT" style={{ width: 80, height: 80, objectFit: "cover" }} />
         </div>
         <p className="text-amber-300 text-xs font-bold uppercase tracking-widest">Maxi Hub TT</p>
       </div>
 
       <div className="w-full max-w-sm">
-        {/* Success checkmark */}
         <div className="flex flex-col items-center mb-6">
           <div className="w-16 h-16 rounded-full bg-green-400/20 border-2 border-green-400/40 flex items-center justify-center mb-4">
             <CheckCircle2 className="w-8 h-8 text-green-400" />
@@ -473,15 +463,12 @@ function ConfirmedScreen({
           </p>
         </div>
 
-        {/* Live status */}
         <div className="flex justify-center mb-5">
           <LiveStatusBadge jobId={job.id} />
         </div>
 
-        {/* BOOKING REFERENCE — tap to copy */}
         <CopyableRef bookingId={job.id} />
 
-        {/* Trip summary */}
         <div className="mt-4 rounded-2xl bg-white/10 border border-white/15 p-4 space-y-3">
           <div className="flex gap-3 items-start">
             <MapPin className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
@@ -514,7 +501,6 @@ function ConfirmedScreen({
           </div>
         </div>
 
-        {/* Deposit callout */}
         <div className="mt-4 rounded-2xl bg-amber-400/10 border border-amber-400/30 px-4 py-4">
           <p className="text-amber-300 text-xs font-bold uppercase tracking-widest mb-1">Deposit Due to Confirm</p>
           {job.deposit > 0 ? (
@@ -529,7 +515,6 @@ function ConfirmedScreen({
           )}
         </div>
 
-        {/* Contact note */}
         <div className="mt-4 flex gap-3 items-start bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
           <Info className="w-4 h-4 text-teal-400 mt-0.5 shrink-0" />
           <p className="text-teal-300 text-xs leading-relaxed">
@@ -557,6 +542,8 @@ export default function Home() {
   // Step 0 — Route
   const [pickup, setPickup]   = useState("");
   const [dropoff, setDropoff] = useState("");
+  const [apiFare, setApiFare] = useState<number | null>(null);
+  const [isFetchingApiFare, setIsFetchingApiFare] = useState(false);
 
   // Step 1 — Details
   const [tripType, setTripType]               = useState<"one-way" | "round" | null>(null);
@@ -581,11 +568,31 @@ export default function Home() {
   const queryClient = useQueryClient();
   const createJob   = useCreateJob();
 
+  // ── LIVE API FETCH EFFECT ──
+  useEffect(() => {
+    // Only fetch if they have typed somewhat meaningful locations
+    if (pickup.trim().length < 3 || dropoff.trim().length < 3) {
+      setApiFare(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsFetchingApiFare(true);
+      const price = await fetchPrice(pickup, dropoff);
+      setApiFare(price);
+      setIsFetchingApiFare(false);
+    }, 800); // 800ms debounce to avoid spamming the Render API
+
+    return () => clearTimeout(timer);
+  }, [pickup, dropoff]);
+
   const fareKey         = useMemo(() => getFareTableKey(pickup, dropoff), [pickup, dropoff]);
   const exactFare       = useMemo<number | null>(() => fareKey && tripType ? getFareFromTable(fareKey, pax, tripType) : null, [fareKey, pax, tripType]);
   const beachRange      = useMemo<FareRange | null>(() => tripType ? getBeachFareRange(pickup, dropoff, tripType) : null, [pickup, dropoff, tripType]);
   const beachExactFare  = useMemo<number | null>(() => tripType ? getBeachExactFare(pickup, dropoff, pax, tripType) : null, [pickup, dropoff, pax, tripType]);
-  const displayFare     = exactFare ?? beachExactFare;
+  
+  // displayFare prioritizing the API fare, and safely falling back to local logic if the API fails or is null
+  const displayFare     = apiFare ?? exactFare ?? beachExactFare;
   const deposit         = displayFare ? Math.ceil(displayFare * 0.25) : null;
 
   const validateDatetime = (value: string) => {
@@ -602,7 +609,6 @@ export default function Home() {
     setReturnDatetimeError(new Date(ret) <= new Date(pickup) ? "Return must be after pickup." : "");
   };
 
-  // Step-by-step validation
   const canAdvanceStep0 = pickup.trim() !== "" && dropoff.trim() !== "";
   const canAdvanceStep1 =
     tripType !== null &&
@@ -626,7 +632,9 @@ export default function Home() {
     const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
     const passengerDesc = paxLabel(pax);
     const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
-    const fareLabel = beachRange ? fmtRange(beachRange) : displayFare ? fmtFare(displayFare) : "Quote on request";
+    
+    // Safely handles both our API fallback and local logic
+    const fareLabel = apiFare ? fmtFare(apiFare) : beachRange ? fmtRange(beachRange) : displayFare ? fmtFare(displayFare) : "Quote on request";
     const priceNote = `${fareLabel} (${tripLabel}, ${passengerDesc}) — Pickup: ${pickupDatetime}${returnNote}`;
 
     createJob.mutate(
@@ -643,7 +651,7 @@ export default function Home() {
 
   function resetAll() {
     setStep(0);
-    setPickup(""); setDropoff("");
+    setPickup(""); setDropoff(""); setApiFare(null);
     setTripType(null); setPax(8);
     setPickupDatetime(""); setReturnDatetime(""); setDatetimeError(""); setReturnDatetimeError("");
     setName(""); setPhone("");
@@ -658,17 +666,12 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#FFFBF4] text-teal-950" style={{ fontFamily: "'Outfit', sans-serif" }}>
 
-      {/* ── HEADER ── */}
       <header style={{ background: "linear-gradient(90deg, #0f3d2e 0%, #1a5c42 60%, #0f3d2e 100%)" }} className="text-amber-50 shadow-lg">
         <div className="h-1 w-full" style={{ background: "linear-gradient(90deg, #ce1126 0%, #000 40%, #ce1126 100%)" }} />
         <div className="max-w-6xl mx-auto px-6 md:px-12 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="rounded-lg overflow-hidden shadow-lg shrink-0 bg-white" style={{ width: 52, height: 52 }}>
-              <img
-                src="/logo-raw.png"
-                alt="Maxi Hub TT logo"
-                style={{ width: 52, height: 52, objectFit: "cover" }}
-              />
+              <img src="/logo-raw.png" alt="Maxi Hub TT logo" style={{ width: 52, height: 52, objectFit: "cover" }} />
             </div>
             <div>
               <h1 className="text-xl font-black tracking-tight leading-none">Maxi Hub TT</h1>
@@ -699,21 +702,14 @@ export default function Home() {
       </header>
 
       <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-0 lg:gap-12 pb-20">
-
-        {/* Left Column: Hero */}
         <div className="relative">
           <div className="h-[30vh] lg:h-full w-full overflow-hidden relative">
-            <img
-              src="/maxi-hero.png"
-              alt="Maxi taxi in Trinidad"
-              className="w-full h-full object-cover object-center absolute inset-0"
-            />
+            <img src="/maxi-hero.png" alt="Maxi taxi in Trinidad" className="w-full h-full object-cover object-center absolute inset-0" />
             <div className="absolute inset-0 bg-gradient-to-t from-[#FFFBF4] via-transparent to-transparent lg:bg-gradient-to-r lg:from-transparent lg:via-transparent lg:to-[#FFFBF4]" />
           </div>
 
           <div className="absolute bottom-0 lg:bottom-auto lg:top-1/4 left-0 w-full lg:w-11/12 p-6 lg:p-12 z-10">
             <div className="bg-[#FFFBF4]/85 backdrop-blur-md p-6 lg:p-8 rounded-2xl shadow-2xl border border-white/50 inline-block">
-              {/* T&T flag accent */}
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-1 w-8 rounded-full" style={{ background: "#ce1126" }} />
                 <div className="h-1 w-8 rounded-full bg-black" />
@@ -735,7 +731,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Right Column: Step-by-step booking */}
         <div className="p-6 md:p-12 lg:py-10 flex items-start justify-center z-10 relative">
           <div className="w-full max-w-lg bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl shadow-amber-900/5 border border-amber-100 overflow-hidden">
             <div className="h-2 w-full" style={{ background: "linear-gradient(90deg, #ce1126, #000, #ce1126, #f59e0b, #0f3d2e)" }} />
@@ -743,8 +738,6 @@ export default function Home() {
             <ProgressBar step={step} />
 
             <div className="px-6 pb-6">
-
-              {/* ── STEP 0: Route ── */}
               {step === 0 && (
                 <div className="space-y-5">
                   <div>
@@ -753,7 +746,6 @@ export default function Home() {
                   </div>
 
                   <div className="space-y-3">
-                    {/* Pickup */}
                     <div className="space-y-1.5">
                       <label className="text-teal-900 font-semibold flex items-center gap-2 text-sm">
                         <div className="bg-amber-100 p-1 rounded-full"><MapPin className="w-3.5 h-3.5 text-amber-600" /></div>
@@ -770,7 +762,6 @@ export default function Home() {
                       {stepErrors && !pickup.trim() && <p className="text-xs text-red-600 font-medium">Please enter a pickup location.</p>}
                     </div>
 
-                    {/* Dropoff */}
                     <div className="space-y-1.5">
                       <label className="text-teal-900 font-semibold flex items-center gap-2 text-sm">
                         <div className="bg-teal-100 p-1 rounded-full"><Navigation className="w-3.5 h-3.5 text-teal-600" /></div>
@@ -788,42 +779,53 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Live fare preview */}
                   {pickup.trim() && dropoff.trim() && (
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-teal-700">
-                      {(() => {
-                        const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
-                        if (beach) {
-                          const br = getBeachFareRange(pickup, dropoff, "one-way");
-                          return br ? (
+                      {isFetchingApiFare ? (
+                        <div className="flex items-center gap-2 text-teal-600 font-semibold py-1">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Checking live prices...
+                        </div>
+                      ) : apiFare ? (
+                        <>
+                          <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Live API Fare Estimate</p>
+                          <p className="text-2xl font-black text-teal-900">{fmtFare(apiFare)}</p>
+                          <p className="text-xs text-teal-500 mt-1">Select trip type & passengers on next step for your exact price</p>
+                        </>
+                      ) : (
+                        (() => {
+                          const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
+                          if (beach) {
+                            const br = getBeachFareRange(pickup, dropoff, "one-way");
+                            return br ? (
+                              <>
+                                <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Beach trip · one-way estimate</p>
+                                <p className="text-2xl font-black text-teal-900">{fmtRange(br)}</p>
+                                <p className="text-xs text-teal-500 mt-1">Varies by vehicle size · select trip type &amp; passengers for your exact price</p>
+                              </>
+                            ) : null;
+                          }
+                          const key = getFareTableKey(pickup, dropoff);
+                          const range = key ? getRouteDisplayRange(key) : null;
+                          return range ? (
                             <>
-                              <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Beach trip · one-way estimate</p>
-                              <p className="text-2xl font-black text-teal-900">{fmtRange(br)}</p>
-                              <p className="text-xs text-teal-500 mt-1">Varies by vehicle size · select trip type &amp; passengers for your exact price</p>
+                              <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">One-way fare · varies by vehicle size</p>
+                              <p className="text-2xl font-black text-teal-900">{fmtRange(range)}</p>
+                              <p className="text-xs text-teal-500 mt-1">{fmtFare(range[0])} (12-seat) → {fmtFare(range[1])} (25-seat) · select passengers on next step for your exact price</p>
                             </>
-                          ) : null;
-                        }
-                        const key = getFareTableKey(pickup, dropoff);
-                        const range = key ? getRouteDisplayRange(key) : null;
-                        return range ? (
-                          <>
-                            <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">One-way fare · varies by vehicle size</p>
-                            <p className="text-2xl font-black text-teal-900">{fmtRange(range)}</p>
-                            <p className="text-xs text-teal-500 mt-1">{fmtFare(range[0])} (12-seat) → {fmtFare(range[1])} (25-seat) · select passengers on next step for your exact price</p>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Fare estimate</p>
-                            <p className="text-sm text-teal-600">Enter specific areas (e.g. Port of Spain → San Fernando) or <a href={waLink("Hi Maxi Hub TT, I'd like a quote for a ride.")} target="_blank" rel="noopener noreferrer" className="underline text-teal-700 font-semibold">WhatsApp us for a quote</a>.</p>
-                          </>
-                        );
-                      })()}
+                          ) : (
+                            <>
+                              <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Fare estimate</p>
+                              <p className="text-sm text-teal-600">Enter specific areas (e.g. Port of Spain → San Fernando) or <a href={waLink("Hi Maxi Hub TT, I'd like a quote for a ride.")} target="_blank" rel="noopener noreferrer" className="underline text-teal-700 font-semibold">WhatsApp us for a quote</a>.</p>
+                            </>
+                          );
+                        })()
+                      )}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* ── STEP 1: Trip Details ── */}
               {step === 1 && (
                 <div className="space-y-5">
                   <div>
@@ -831,7 +833,6 @@ export default function Home() {
                     <p className="text-teal-700/70 text-sm mt-1">Tell us about your journey so we can match the right vehicle.</p>
                   </div>
 
-                  {/* Trip type */}
                   <div className="space-y-2">
                     <label className="text-teal-900 font-semibold flex items-center gap-2 text-sm">
                       <ArrowLeftRight className="w-3.5 h-3.5 text-teal-600" />
@@ -856,7 +857,6 @@ export default function Home() {
                     {stepErrors && !tripType && <p className="text-xs text-red-600 font-medium">Please select a trip type.</p>}
                   </div>
 
-                  {/* Passengers */}
                   <div className="space-y-2">
                     <label className="text-teal-900 font-semibold flex items-center gap-2 text-sm">
                       <Users className="w-3.5 h-3.5 text-teal-600" />
@@ -872,7 +872,6 @@ export default function Home() {
                     <p className="text-xs text-teal-600/80 font-medium px-1">1 × {vehicleForPax(pax)}</p>
                   </div>
 
-                  {/* Pickup datetime */}
                   <div className="space-y-1.5">
                     <label className="text-teal-900 font-semibold flex items-center gap-2 text-sm">
                       <Calendar className="w-3.5 h-3.5 text-teal-600" />
@@ -895,7 +894,6 @@ export default function Home() {
                     {stepErrors && !pickupDatetime && !datetimeError && <p className="text-xs text-red-600 font-medium">Please set a pickup date and time.</p>}
                   </div>
 
-                  {/* Return datetime */}
                   {tripType === "round" && (
                     <div className="space-y-1.5">
                       <label className="text-teal-900 font-semibold flex items-center gap-2 text-sm">
@@ -920,19 +918,18 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* Running fare */}
                   {tripType && (
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
                       <div className="flex justify-between items-center gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">Fare</p>
+                          <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">{apiFare ? "API Fare" : "Local Fare"}</p>
                           <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                         </div>
                         {displayFare
                           ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtFare(displayFare)}</p>
                           : <p className="text-sm font-semibold text-teal-600 shrink-0">WhatsApp us for a quote</p>}
                       </div>
-                      {beachExactFare && (
+                      {beachExactFare && !apiFare && (
                         <p className="text-xs text-teal-500 mt-2 border-t border-amber-200 pt-2">
                           Beach trip · exact quote confirmed by WhatsApp after booking.
                         </p>
@@ -942,7 +939,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* ── STEP 2: Contact ── */}
               {step === 2 && (
                 <div className="space-y-5">
                   <div>
@@ -993,7 +989,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* ── STEP 3: Review & Confirm ── */}
               {step === 3 && (
                 <div className="space-y-4">
                   <div>
@@ -1001,7 +996,6 @@ export default function Home() {
                     <p className="text-teal-700/70 text-sm mt-1">Everything look right? Hit confirm to lock in your ride.</p>
                   </div>
 
-                  {/* Summary */}
                   <div className="rounded-2xl border border-teal-100 bg-teal-50/50 divide-y divide-teal-100 text-sm overflow-hidden">
                     <div className="px-4 py-3 flex gap-3 items-start">
                       <MapPin className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
@@ -1039,11 +1033,10 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Fare */}
                   <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 space-y-3">
                     <div className="flex justify-between items-center gap-3">
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-teal-800">{beachExactFare ? "Estimated Fare (beach trip)" : "Fare"}</p>
+                        <p className="text-sm font-semibold text-teal-800">Final Fare</p>
                         <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                       </div>
                       {displayFare
@@ -1093,7 +1086,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* ── Navigation buttons ── */}
               <div className={`flex gap-3 mt-6 ${step === 0 ? "justify-end" : "justify-between"}`}>
                 {step > 0 && (
                   <button
@@ -1121,7 +1113,6 @@ export default function Home() {
         </div>
       </main>
 
-      {/* ── How it works ── */}
       <section className="py-14 px-6 md:px-12" style={{ background: "linear-gradient(135deg, #0f3d2e 0%, #0a2e21 100%)" }}>
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
@@ -1129,7 +1120,6 @@ export default function Home() {
             <h2 className="text-3xl font-black text-white">Book in under 2 minutes</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-            {/* connector line desktop */}
             <div className="hidden md:block absolute top-8 left-[calc(16.66%+1rem)] right-[calc(16.66%+1rem)] h-0.5 bg-amber-400/30" />
             {[
               { num: "1", title: "Enter your route", desc: "Type your pickup and dropoff — we'll calculate an instant fare for your journey.", icon: <MapPin className="w-5 h-5" /> },
@@ -1163,7 +1153,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Services section ── */}
       <section className="py-16 px-6 md:px-12 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
@@ -1199,7 +1188,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Fleet / events banner ── */}
       <section className="py-10 px-6 md:px-12 bg-teal-900">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
@@ -1222,10 +1210,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Booking tracker lookup ── */}
       <BookingLookup />
 
-      {/* ── Floating WhatsApp button ── */}
       <a
         href={waLink("Hi Maxi Hub TT, I'd like to enquire about booking a ride.")}
         target="_blank"
@@ -1238,7 +1224,6 @@ export default function Home() {
         <span>Chat with us</span>
       </a>
 
-      {/* ── Footer ── */}
       <footer className="py-8 px-6 text-center border-t border-teal-100 bg-[#FFFBF4]">
         <div className="flex justify-center items-center gap-3 mb-3">
           <div className="rounded overflow-hidden bg-white" style={{ width: 36, height: 36 }}>
