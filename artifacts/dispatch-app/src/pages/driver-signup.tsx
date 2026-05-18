@@ -10,47 +10,74 @@ export default function DriverSignup() {
     taxi_badge_number: "",
   });
 
-  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const res = await fetch("/api/drivers/signup", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(form),
-    });
+    setLoading(true);
+    setMessage("");
 
-    if (res.ok) {
-      setSuccess(true);
+    try {
+      const res = await fetch(
+        "https://maxihubtt-api-9pav.onrender.com/drivers/signup",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(form),
+        }
+      );
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(data.error || "Signup failed");
+        setLoading(false);
+        return;
+      }
+
+      setMessage("Application submitted successfully!");
+
+      setForm({
+        full_name: "",
+        phone: "",
+        password: "",
+        number_plate: "",
+        dp_number: "",
+        taxi_badge_number: "",
+      });
+    } catch (err) {
+      console.error(err);
+      setMessage("Server connection failed");
     }
-  }
 
-  if (success) {
-    return (
-      <div className="p-6 text-center">
-        Application submitted for approval.
-      </div>
-    );
+    setLoading(false);
   }
 
   return (
     <div className="max-w-md mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-6 text-center">
+        Driver Signup
+      </h1>
+
       <form onSubmit={handleSubmit} className="space-y-4">
 
         <input
           placeholder="Full Name"
           className="w-full border p-3 rounded"
+          value={form.full_name}
           onChange={(e) =>
             setForm({ ...form, full_name: e.target.value })
           }
         />
 
         <input
-          placeholder="Phone"
+          placeholder="Phone Number"
           className="w-full border p-3 rounded"
+          value={form.phone}
           onChange={(e) =>
             setForm({ ...form, phone: e.target.value })
           }
@@ -60,14 +87,16 @@ export default function DriverSignup() {
           type="password"
           placeholder="Password"
           className="w-full border p-3 rounded"
+          value={form.password}
           onChange={(e) =>
             setForm({ ...form, password: e.target.value })
           }
         />
 
         <input
-          placeholder="Number Plate"
+          placeholder="Vehicle Number Plate"
           className="w-full border p-3 rounded"
+          value={form.number_plate}
           onChange={(e) =>
             setForm({ ...form, number_plate: e.target.value })
           }
@@ -76,6 +105,7 @@ export default function DriverSignup() {
         <input
           placeholder="DP Number"
           className="w-full border p-3 rounded"
+          value={form.dp_number}
           onChange={(e) =>
             setForm({ ...form, dp_number: e.target.value })
           }
@@ -84,6 +114,7 @@ export default function DriverSignup() {
         <input
           placeholder="Taxi Badge Number"
           className="w-full border p-3 rounded"
+          value={form.taxi_badge_number}
           onChange={(e) =>
             setForm({ ...form, taxi_badge_number: e.target.value })
           }
@@ -91,10 +122,17 @@ export default function DriverSignup() {
 
         <button
           type="submit"
+          disabled={loading}
           className="w-full bg-black text-white p-3 rounded"
         >
-          Submit Application
+          {loading ? "Submitting..." : "Submit Application"}
         </button>
+
+        {message && (
+          <div className="text-center text-sm mt-4">
+            {message}
+          </div>
+        )}
 
       </form>
     </div>
