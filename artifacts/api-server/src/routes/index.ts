@@ -4,6 +4,7 @@ import jobsRouter from "./jobs";
 import authRouter from "./auth";
 import adminDriversRouter from "./admin-drivers";
 import drivers from "./drivers";
+import pricing from "./pricing";
 
 const router: IRouter = Router();
 
