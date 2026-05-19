@@ -1,6 +1,7 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import { supabase } from "../lib/supabase";
+import { notifyDriverSignup } from "../lib/telegram";
 
 const router = express.Router();
 
@@ -52,6 +53,9 @@ router.post("/signup", async (req, res) => {
         error: error.message,
       });
     }
+
+    // Fire-and-forget: notify Telegram group — never blocks the response
+    notifyDriverSignup({ full_name, phone, number_plate, dp_number, taxi_badge_number }).catch(() => {});
 
     return res.json({
       success: true,
