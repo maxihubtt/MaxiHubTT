@@ -13,5 +13,6 @@ router.use(healthRouter);
 router.use(jobsRouter);
 router.use(adminDriversRouter);
 router.use("/drivers", drivers);
+router.use("/pricing", pricing);
 
 export default router;
