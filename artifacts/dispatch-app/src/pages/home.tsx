@@ -833,34 +833,41 @@ useEffect(() => {
                           <p className="text-xs text-teal-500 mt-1">Select trip type & passengers on next step for your exact price</p>
                         </>
                       ) : (
-                        (() => {
-                          const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
-                          if (beach) {
-                            const br = getBeachFareRange(pickup, dropoff, "one-way");
-                            return br ? (
-                              <>
-                                <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Beach trip · one-way estimate</p>
-                                <p className="text-2xl font-black text-teal-900">{fmtRange(br)}</p>
-                                <p className="text-xs text-teal-500 mt-1">Varies by vehicle size · select trip type &amp; passengers for your exact price</p>
-                              </>
-                            ) : null;
-                          }
-                          const key = getFareTableKey(pickup, dropoff);
-                          const range = key ? getRouteDisplayRange(key) : null;
-                          return range ? (
-                            <>
-                              <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">One-way fare · varies by vehicle size</p>
-                              <p className="text-2xl font-black text-teal-900">{fmtRange(range)}</p>
-                              <p className="text-xs text-teal-500 mt-1">{fmtFare(range[0])} (12-seat) → {fmtFare(range[1])} (25-seat) · select passengers on next step for your exact price</p>
-                            </>
-                          ) : (
-                            <>
-                              <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Fare estimate</p>
-                              <p className="text-sm text-teal-600">Enter specific areas (e.g. Port of Spain → San Fernando) or <a href={waLink("Hi Maxi Hub TT, I'd like a quote for a ride.")} target="_blank" rel="noopener noreferrer" className="underline text-teal-700 font-semibold">WhatsApp us for a quote</a>.</p>
-                            </>
-                          );
-                        })()
-                      )}
+                        {loadingFare ? (
+  <>
+    <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">
+      Calculating fare
+    </p>
+
+    <p className="text-2xl font-black text-teal-900">
+      Please wait...
+    </p>
+  </>
+) : displayFare ? (
+  <>
+    <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">
+      Estimated Fare
+    </p>
+
+    <p className="text-2xl font-black text-teal-900">
+      TTD ${displayFare.toLocaleString("en-TT")}
+    </p>
+
+    <p className="text-xs text-teal-500 mt-1">
+      Live distance-based pricing
+    </p>
+  </>
+) : (
+  <>
+    <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">
+      Fare estimate
+    </p>
+
+    <p className="text-sm text-teal-600">
+      Enter valid Trinidad & Tobago locations
+    </p>
+  </>
+)}
                     </div>
                   )}
                 </div>
