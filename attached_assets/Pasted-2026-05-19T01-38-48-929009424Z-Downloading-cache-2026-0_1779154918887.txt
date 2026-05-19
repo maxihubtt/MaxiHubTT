@@ -1,0 +1,39 @@
+2026-05-19T01:38:48.929009424Z ==> Downloading cache...
+2026-05-19T01:38:48.968985412Z ==> Cloning from https://github.com/maxihubtt/MaxiHubTT
+2026-05-19T01:38:49.547451876Z ==> Checking out commit 3f3dbf757e97d55932fe6c0b2fa65139a7339963 in branch main
+2026-05-19T01:38:56.995000101Z ==> Downloaded 271MB in 2s. Extraction took 6s.
+2026-05-19T01:39:07.271913836Z ==> Using Node.js version 24.14.1 (default)
+2026-05-19T01:39:07.271931596Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-05-19T01:39:07.331082705Z ==> Running build command 'npx --yes pnpm@9 install --no-frozen-lockfile --ignore-scripts && npx pnpm@9 rebuild esbuild && npx pnpm@9 --filter @workspace/api-server run build'...
+2026-05-19T01:39:08.651325886Z (node:141) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-05-19T01:39:08.651344197Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-05-19T01:39:12.429521772Z (node:191) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-05-19T01:39:12.429545163Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-05-19T01:39:13.698607626Z 
+2026-05-19T01:39:13.698635846Z > @workspace/api-server@0.0.0 build /opt/render/project/src/artifacts/api-server
+2026-05-19T01:39:13.698641577Z > node ./build.mjs
+2026-05-19T01:39:13.698644837Z 
+2026-05-19T01:39:13.729361507Z node:internal/modules/package_json_reader:301
+2026-05-19T01:39:13.729390568Z   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+2026-05-19T01:39:13.729398038Z         ^
+2026-05-19T01:39:13.729402898Z 
+2026-05-19T01:39:13.729407518Z Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'esbuild' imported from /opt/render/project/src/artifacts/api-server/build.mjs
+2026-05-19T01:39:13.729412108Z     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+2026-05-19T01:39:13.729416738Z     at packageResolve (node:internal/modules/esm/resolve:768:81)
+2026-05-19T01:39:13.729420628Z     at moduleResolve (node:internal/modules/esm/resolve:859:18)
+2026-05-19T01:39:13.729424758Z     at defaultResolve (node:internal/modules/esm/resolve:991:11)
+2026-05-19T01:39:13.729428778Z     at #cachedDefaultResolve (node:internal/modules/esm/loader:719:20)
+2026-05-19T01:39:13.729432618Z     at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:736:38)
+2026-05-19T01:39:13.729436429Z     at ModuleLoader.resolveSync (node:internal/modules/esm/loader:765:52)
+2026-05-19T01:39:13.729440369Z     at #resolve (node:internal/modules/esm/loader:701:17)
+2026-05-19T01:39:13.729444189Z     at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:621:35)
+2026-05-19T01:39:13.729451039Z     at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33) {
+2026-05-19T01:39:13.729456139Z   code: 'ERR_MODULE_NOT_FOUND'
+2026-05-19T01:39:13.729460469Z }
+2026-05-19T01:39:13.729464239Z 
+2026-05-19T01:39:13.729468089Z Node.js v24.14.1
+2026-05-19T01:39:13.733886089Z /opt/render/project/src/artifacts/api-server:
+2026-05-19T01:39:13.733902489Z  ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 build: `node ./build.mjs`
+2026-05-19T01:39:13.733924959Z Exit status 1
+2026-05-19T01:39:13.797971278Z ==> Build failed 😞
+2026-05-19T01:39:13.797989639Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys​
