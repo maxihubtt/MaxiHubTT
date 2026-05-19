@@ -674,7 +674,9 @@ useEffect(() => {
     const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
     
     // Safely handles both our API fallback and local logic
-    const fareLabel = apiFare ? fmtFare(apiFare) : beachRange ? fmtRange(beachRange) : displayFare ? fmtFare(displayFare) : "Quote on request";
+    const fareLabel = displayFare
+  ? fmtFare(displayFare)
+  : "Quote on request";
     const priceNote = `${fareLabel} (${tripLabel}, ${passengerDesc}) — Pickup: ${pickupDatetime}${returnNote}`;
 
     createJob.mutate(
