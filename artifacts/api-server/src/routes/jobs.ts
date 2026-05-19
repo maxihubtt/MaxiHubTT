@@ -10,7 +10,12 @@ import { requireDriver } from "../middleware/requireDriver";
 const router = Router();
 
 function generateId(): string {
-  return "M" + Math.floor(Math.random() * 9999).toString().padStart(4, "0");
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let id = "M";
+  for (let i = 0; i < 7; i++) {
+    id += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return id;
 }
 
 router.get("/driver/jobs", requireDriver, async (req, res) => {
@@ -135,11 +140,26 @@ router.get("/jobs/:id", async (req, res) => {
     res.status(404).json({ error: "Job not found" });
     return;
   }
-  res.json({
-    ...job,
+
+  const base = {
+    id: job.id,
+    pickup: job.pickup,
+    dropoff: job.dropoff,
+    status: job.status,
+    price: job.price,
+    passengers: job.passengers,
+    vehicleType: job.vehicleType,
+    numberPlate: job.numberPlate,
+    claimedBy: job.claimedBy,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
-  });
+  };
+
+  if (req.session?.admin) {
+    res.json({ ...base, name: job.name, phone: job.phone });
+  } else {
+    res.json(base);
+  }
 });
 
 router.post("/jobs", async (req, res) => {
