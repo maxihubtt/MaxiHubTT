@@ -1,4 +1,8 @@
 {
+  "buildCommand": "npx pnpm@9 install --no-frozen-lockfile && npx pnpm@9 --filter @workspace/dispatch-app run build",
+  "outputDirectory": "artifacts/dispatch-app/dist/public",
+  "installCommand": "echo skip",
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/api/:path*",
