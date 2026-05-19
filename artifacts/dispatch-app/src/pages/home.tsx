@@ -9,7 +9,7 @@ const waLink = (msg: string) => WA_BASE + encodeURIComponent(msg);
 // ── Render API Pricing Helper ────────────────────────────────────────────────
 async function fetchPrice(pickup: string, dropoff: string) {
   try {
-    const res = await fetch("https://maxihubtt-api-9pav.onrender.com/api/pricing", {
+    const res = await fetch("/api/pricing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pickup, dropoff }),
@@ -674,7 +674,7 @@ useEffect(() => {
       let response: Response;
       try {
         response = await fetch(
-          "https://maxihubtt-api-9pav.onrender.com/api/pricing",
+          "/api/pricing",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },

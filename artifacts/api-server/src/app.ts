@@ -45,9 +45,15 @@ app.use(express.urlencoded({ extended: true }));
 
 const crossOrigin = Boolean(allowedOrigin);
 
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret && process.env.NODE_ENV === "production") {
+  logger.error("SESSION_SECRET env var is required in production — refusing to start");
+  process.exit(1);
+}
+
 app.use(
   session({
-    secret: process.env.SESSION_SECRET ?? "fallback-dev-secret",
+    secret: sessionSecret ?? "dev-only-secret-not-for-production",
     resave: false,
     saveUninitialized: false,
     proxy: true,
