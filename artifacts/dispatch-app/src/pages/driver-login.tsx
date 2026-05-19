@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2, Wifi, WifiOff, Loader } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+
+type ServerStatus = "checking" | "online" | "offline";
 
 export default function DriverLogin() {
   const [username, setUsername] = useState("");
@@ -9,8 +11,25 @@ export default function DriverLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [serverStatus, setServerStatus] = useState<ServerStatus>("checking");
   const [, navigate] = useLocation();
   const qc = useQueryClient();
+
+  const checkServer = useCallback(async () => {
+    setServerStatus("checking");
+    try {
+      const res = await fetch("/api/healthz", { signal: AbortSignal.timeout(8000) });
+      setServerStatus(res.ok ? "online" : "offline");
+    } catch {
+      setServerStatus("offline");
+    }
+  }, []);
+
+  useEffect(() => {
+    checkServer();
+    const interval = setInterval(checkServer, 30000);
+    return () => clearInterval(interval);
+  }, [checkServer]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,16 +45,42 @@ export default function DriverLogin() {
       if (res.ok) {
         await qc.invalidateQueries({ queryKey: ["driver-auth"] });
         navigate("/driver/jobs");
+      } else if (res.status === 401) {
+        setError("Invalid username or password. Please try again.");
+      } else if (res.status >= 500) {
+        setError("Server error. Please try again shortly.");
       } else {
         const data = await res.json().catch(() => ({}));
         setError((data as { error?: string }).error ?? "Login failed");
       }
     } catch {
-      setError("Could not reach server. Please try again.");
+      setServerStatus("offline");
+      setError("Cannot reach the server — it may be starting up. Wait 30 seconds and try again.");
     } finally {
       setLoading(false);
     }
   }
+
+  const statusConfig = {
+    checking: {
+      icon: <Loader className="w-3 h-3 animate-spin" />,
+      label: "Checking server…",
+      className: "text-teal-500",
+      dot: "bg-yellow-400 animate-pulse",
+    },
+    online: {
+      icon: <Wifi className="w-3 h-3" />,
+      label: "Server online",
+      className: "text-green-400",
+      dot: "bg-green-400",
+    },
+    offline: {
+      icon: <WifiOff className="w-3 h-3" />,
+      label: "Server waking up",
+      className: "text-yellow-400",
+      dot: "bg-yellow-400 animate-pulse",
+    },
+  }[serverStatus];
 
   return (
     <div
@@ -58,7 +103,27 @@ export default function DriverLogin() {
 
       {/* Card */}
       <div className="w-full max-w-sm bg-white/8 border border-white/10 rounded-2xl p-6 backdrop-blur-sm">
-        <h2 className="text-white font-bold text-base mb-5">Sign in to view jobs</h2>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-white font-bold text-base">Sign in to view jobs</h2>
+
+          {/* Server status */}
+          <button
+            type="button"
+            onClick={checkServer}
+            title="Click to recheck server status"
+            className={`flex items-center gap-1.5 text-xs font-medium transition-opacity hover:opacity-70 ${statusConfig.className}`}
+          >
+            <span className={`inline-block h-1.5 w-1.5 rounded-full ${statusConfig.dot}`} />
+            {statusConfig.icon}
+            <span>{statusConfig.label}</span>
+          </button>
+        </div>
+
+        {serverStatus === "offline" && (
+          <div className="mb-4 bg-yellow-400/10 border border-yellow-400/30 rounded-xl px-3 py-2.5 text-xs text-yellow-300 leading-relaxed">
+            The server is waking up from sleep. Wait ~30 seconds then try signing in, or tap the status above to recheck.
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
