@@ -37,14 +37,21 @@ export default function DriverSignup() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = await res.json() as { error?: string; success?: boolean };
-      if (!res.ok) {
-        setError(data.error ?? "Signup failed. Please try again.");
-      } else {
+      if (res.ok) {
         setSuccess(true);
+      } else if (res.status === 400) {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        setError(data.error ?? "Please check your details and try again.");
+      } else if (res.status === 503) {
+        setError("Service temporarily unavailable. Please try again in a moment.");
+      } else if (res.status >= 500) {
+        setError("Server error. Please try again shortly or contact support.");
+      } else {
+        const data = await res.json().catch(() => ({})) as { error?: string };
+        setError(data.error ?? "Submission failed. Please try again.");
       }
     } catch {
-      setError("Could not connect to server. Please try again.");
+      setError("Cannot reach the server — it may be starting up. Wait 30 seconds and try again.");
     } finally {
       setLoading(false);
     }

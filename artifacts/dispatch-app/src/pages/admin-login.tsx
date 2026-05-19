@@ -33,15 +33,18 @@ export default function AdminLogin() {
         });
 
         navigate("/admin");
+      } else if (res.status === 401) {
+        setError("Incorrect password. Please try again.");
+      } else if (res.status === 500) {
+        setError("Server configuration error. Contact support.");
+      } else if (res.status === 0 || !res.status) {
+        setError("Cannot reach the server. Check your connection and try again.");
       } else {
         const data = await res.json().catch(() => ({}));
-
-        setError(
-          (data as { error?: string }).error ?? "Incorrect password"
-        );
+        setError((data as { error?: string }).error ?? "Login failed. Please try again.");
       }
     } catch {
-      setError("Could not reach server. Please try again.");
+      setError("Cannot reach the server — it may be starting up. Wait 30 seconds and try again.");
     } finally {
       setLoading(false);
     }
