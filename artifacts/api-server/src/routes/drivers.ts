@@ -1,7 +1,7 @@
 import express from "express";
-import bcrypt from "bcryptjs";
 import { supabase } from "../lib/supabase";
 import { notifyDriverSignup } from "../lib/telegram";
+import { hashPassword } from "../lib/password";
 
 const router = express.Router();
 
@@ -29,7 +29,7 @@ router.post("/signup", async (req, res) => {
       });
     }
 
-    const password_hash = await bcrypt.hash(password, 10);
+    const password_hash = await hashPassword(password);
 
     if (!supabase) {
       return res.status(503).json({ error: "Database not configured" });

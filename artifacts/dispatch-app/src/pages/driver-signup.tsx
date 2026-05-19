@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { Loader2, CheckCircle2, Car, User, Phone, Hash, ShieldCheck, ArrowLeft } from "lucide-react";
 
-const API = "https://maxihubtt-api-9pav.onrender.com/api";
 
 export default function DriverSignup() {
   const [form, setForm] = useState({
@@ -33,7 +32,7 @@ export default function DriverSignup() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${API}/drivers/signup`, {
+      const res = await fetch(`/api/drivers/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

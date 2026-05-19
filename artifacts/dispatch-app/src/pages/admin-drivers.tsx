@@ -6,7 +6,6 @@ import {
   CheckCircle2, XCircle, Clock, Car, Phone, Hash, ShieldAlert,
 } from "lucide-react";
 
-const RENDER = "https://maxihubtt-api-9pav.onrender.com";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface DriverAccount {
@@ -35,13 +34,13 @@ async function fetchDrivers(): Promise<DriverAccount[]> {
 }
 
 async function fetchPending(): Promise<PendingSignup[]> {
-  const res = await fetch(`${RENDER}/api/admin/driver-signups`, { credentials: "include" });
+  const res = await fetch(`/api/admin/driver-signups`, { credentials: "include" });
   if (!res.ok) throw new Error("Failed to load pending signups");
   return res.json() as Promise<PendingSignup[]>;
 }
 
 async function approveSignup(id: string | number): Promise<{ username: string }> {
-  const res = await fetch(`${RENDER}/api/admin/driver-signups/${id}/approve`, {
+  const res = await fetch(`/api/admin/driver-signups/${id}/approve`, {
     method: "POST",
     credentials: "include",
   });
@@ -51,7 +50,7 @@ async function approveSignup(id: string | number): Promise<{ username: string }>
 }
 
 async function rejectSignup(id: string | number): Promise<void> {
-  const res = await fetch(`${RENDER}/api/admin/driver-signups/${id}/reject`, {
+  const res = await fetch(`/api/admin/driver-signups/${id}/reject`, {
     method: "POST",
     credentials: "include",
   });
