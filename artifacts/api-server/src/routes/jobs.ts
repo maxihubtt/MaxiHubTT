@@ -24,11 +24,26 @@ router.get("/driver/jobs", requireDriver, async (req, res) => {
   res.json(
     jobs
       .filter(j => j.status === "pending" || j.claimedBy === driverName)
-      .map(j => ({
-        ...j,
-        createdAt: j.createdAt.toISOString(),
-        updatedAt: j.updatedAt.toISOString(),
-      }))
+      .map(j => {
+        const base = {
+          id: j.id,
+          pickup: j.pickup,
+          dropoff: j.dropoff,
+          status: j.status,
+          price: j.price,
+          passengers: j.passengers,
+          vehicleType: j.vehicleType,
+          numberPlate: j.numberPlate,
+          claimedBy: j.claimedBy,
+          createdAt: j.createdAt.toISOString(),
+          updatedAt: j.updatedAt.toISOString(),
+        };
+        // Only expose customer contact details for jobs this driver has claimed
+        if (j.claimedBy === driverName) {
+          return { ...base, name: j.name, phone: j.phone };
+        }
+        return base;
+      })
   );
 });
 
