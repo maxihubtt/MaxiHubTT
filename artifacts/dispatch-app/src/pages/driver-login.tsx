@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { Eye, EyeOff, Loader2, Wifi, WifiOff, Loader } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -200,7 +200,14 @@ export default function DriverLogin() {
         </form>
       </div>
 
-      <p className="text-teal-700 text-xs mt-8">Maxi Hub TT · Driver Access</p>
+      <p className="text-teal-500 text-sm mt-6">
+        New driver?{" "}
+        <Link href="/driver/signup" className="text-amber-400 font-semibold hover:text-amber-300 transition-colors">
+          Apply here
+        </Link>
+      </p>
+
+      <p className="text-teal-700 text-xs mt-3">Maxi Hub TT · Driver Access</p>
     </div>
   );
 }
