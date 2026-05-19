@@ -1,56 +1,45 @@
-# Workspace
+# [Project name]
 
-## Overview
+_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
 
-pnpm workspace monorepo using TypeScript. MxiHub Dispatch — a transport job dispatch system that sends new bookings to a Telegram group and lets drivers claim jobs via a Telegram bot.
+## Run & Operate
+
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm run typecheck` — full typecheck across all packages
+- `pnpm run build` — typecheck + build all packages
+- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
+- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+- Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5
-- **Database**: PostgreSQL + Drizzle ORM
-- **Validation**: Zod (`zod/v4`), `drizzle-zod`
-- **API codegen**: Orval (from OpenAPI spec)
-- **Build**: esbuild (CJS bundle)
-- **Frontend**: React + Vite (Tailwind, shadcn/ui, wouter, react-query)
-- **Telegram**: Bot polling via REST API (getUpdates loop)
+- pnpm workspaces, Node.js 24, TypeScript 5.9
+- API: Express 5
+- DB: PostgreSQL + Drizzle ORM
+- Validation: Zod (`zod/v4`), `drizzle-zod`
+- API codegen: Orval (from OpenAPI spec)
+- Build: esbuild (CJS bundle)
 
-## Architecture
+## Where things live
 
-- `artifacts/dispatch-app` — React/Vite frontend (served at `/`)
-- `artifacts/api-server` — Express backend (served at `/api`)
-- `lib/db` — Drizzle ORM schema (PostgreSQL)
-- `lib/api-spec` — OpenAPI spec (source of truth)
-- `lib/api-client-react` — Generated React Query hooks
-- `lib/api-zod` — Generated Zod validation schemas
+_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
 
-## Routes
+## Architecture decisions
 
-| Path | Description |
-|------|-------------|
-| `/` | Consumer booking page — Maxi Hub TT, warm island design, fare calculator, 25% deposit |
-| `/admin` | Internal dispatcher dashboard — job stats and live feed |
-| `/admin/new-job` | Manual job dispatch form (internal) |
-| `/jobs/:id` | Job detail view (internal) |
+_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
 
-## Key Features
+## Product
 
-- **Consumer booking**: Fare calculator for T&T routes (Port of Spain, San Fernando, etc.), 25% deposit notice, submits job to Telegram group
-- **Driver claiming**: Telegram bot polls every 3 seconds; when a driver sends `/start <jobId>`, they get the customer's contact details and the group is notified
-- **Live dashboard**: Real-time stats (total/pending/claimed/completed) and job feed at `/admin`
+_Describe the high-level user-facing capabilities of this app once they exist._
 
-## Environment Variables / Secrets
+## User preferences
 
-- `TELEGRAM_BOT_TOKEN` — Telegram bot token (secret)
-- `TELEGRAM_GROUP_ID` — Telegram group chat ID (env var, shared)
-- `DATABASE_URL` / `PG*` — PostgreSQL connection (managed)
+_Populate as you build — explicit user instructions worth remembering across sessions._
 
-## Key Commands
+## Gotchas
 
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
+_Populate as you build — sharp edges, "always run X before Y" rules._
+
+## Pointers
+
+- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details

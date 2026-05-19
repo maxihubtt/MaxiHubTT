@@ -1,0 +1,332 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Job dispatch API for transport booking and driver claims
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: jobs
+    description: Job dispatch operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /jobs:
+    get:
+      operationId: listJobs
+      tags: [jobs]
+      summary: List all active jobs
+      description: Returns all unclaimed jobs
+      responses:
+        "200":
+          description: List of active jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Job"
+    post:
+      operationId: createJob
+      tags: [jobs]
+      summary: Create and dispatch a new job
+      description: Posts a new job to the Telegram group for drivers to claim
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateJobBody"
+      responses:
+        "201":
+          description: Job created and dispatched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to send to Telegram
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/stats:
+    get:
+      operationId: getJobStats
+      tags: [jobs]
+      summary: Get job statistics
+      description: Returns summary counts of jobs by status
+      responses:
+        "200":
+          description: Job statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobStats"
+
+  /jobs/{id}/driver-info:
+    patch:
+      operationId: updateDriverInfo
+      tags: [jobs]
+      summary: Set vehicle type and number plate for a claimed job
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDriverInfoBody"
+      responses:
+        "200":
+          description: Driver info updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/{id}/claim:
+    post:
+      operationId: claimJob
+      tags: [jobs]
+      summary: Claim a job as a driver
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimJobBody"
+      responses:
+        "200":
+          description: Job claimed successfully — returns full job including customer details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Job already claimed or completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/{id}/complete:
+    patch:
+      operationId: completeJob
+      tags: [jobs]
+      summary: Mark a job as completed
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job marked as completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Job already completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/{id}:
+    get:
+      operationId: getJob
+      tags: [jobs]
+      summary: Get a job by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+        pickup:
+          type: string
+        dropoff:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        price:
+          type: string
+        passengers:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, claimed, completed]
+        claimedBy:
+          type: string
+          nullable: true
+        vehicleType:
+          type: string
+          nullable: true
+        numberPlate:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - pickup
+        - dropoff
+        - name
+        - phone
+        - price
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateJobBody:
+      type: object
+      properties:
+        pickup:
+          type: string
+        dropoff:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        price:
+          type: string
+        passengers:
+          type: string
+      required:
+        - pickup
+        - dropoff
+        - name
+        - phone
+        - price
+
+    JobStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        pending:
+          type: integer
+        claimed:
+          type: integer
+        completed:
+          type: integer
+      required:
+        - total
+        - pending
+        - claimed
+        - completed
+
+    ClaimJobBody:
+      type: object
+      properties:
+        driverName:
+          type: string
+      required:
+        - driverName
+
+    UpdateDriverInfoBody:
+      type: object
+      properties:
+        vehicleType:
+          type: string
+        numberPlate:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
