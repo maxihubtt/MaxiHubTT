@@ -312,8 +312,7 @@ components:
       properties:
         driverName:
           type: string
-      required:
-        - driverName
+          description: Deprecated — driver identity is resolved from session. Field ignored if provided.
 
     UpdateDriverInfoBody:
       type: object

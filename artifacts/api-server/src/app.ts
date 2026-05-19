@@ -33,9 +33,12 @@ app.use(
 // Frontend URL from Render environment variables
 const allowedOrigin = process.env.ALLOWED_ORIGIN;
 
+const corsOrigin = allowedOrigin
+  ?? (process.env.NODE_ENV === "production" ? false : true);
+
 app.use(
   cors({
-    origin: allowedOrigin ?? true,
+    origin: corsOrigin,
     credentials: true,
   }),
 );
