@@ -14,6 +14,9 @@ router.post("/", async (req, res) => {
     }
 
     const apiKey = process.env.OPENROUTE_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ error: "Pricing service not configured (missing OPENROUTE_API_KEY)" });
+    }
 
     // Force Trinidad search context
     const pickupSearch = `${pickup}, Trinidad and Tobago`;
