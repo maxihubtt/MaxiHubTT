@@ -1,16 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
-import { Zap, Lock, Eye, EyeOff } from "lucide-react";
+import { Zap, Lock, Eye, EyeOff, Wifi, WifiOff, Loader } from "lucide-react";
+
+type ServerStatus = "checking" | "online" | "offline";
 
 export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [serverStatus, setServerStatus] = useState<ServerStatus>("checking");
 
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
+
+  const checkServer = useCallback(async () => {
+    setServerStatus("checking");
+    try {
+      const res = await fetch("/api/healthz", { signal: AbortSignal.timeout(8000) });
+      setServerStatus(res.ok ? "online" : "offline");
+    } catch {
+      setServerStatus("offline");
+    }
+  }, []);
+
+  useEffect(() => {
+    checkServer();
+    const interval = setInterval(checkServer, 30000);
+    return () => clearInterval(interval);
+  }, [checkServer]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,28 +46,44 @@ export default function AdminLogin() {
       });
 
       if (res.ok) {
-        // Clear cached auth state
-        await queryClient.invalidateQueries({
-          queryKey: ["admin-auth"],
-        });
-
+        await queryClient.invalidateQueries({ queryKey: ["admin-auth"] });
         navigate("/admin");
       } else if (res.status === 401) {
         setError("Incorrect password. Please try again.");
       } else if (res.status === 500) {
         setError("Server configuration error. Contact support.");
-      } else if (res.status === 0 || !res.status) {
-        setError("Cannot reach the server. Check your connection and try again.");
       } else {
         const data = await res.json().catch(() => ({}));
         setError((data as { error?: string }).error ?? "Login failed. Please try again.");
       }
     } catch {
+      setServerStatus("offline");
       setError("Cannot reach the server — it may be starting up. Wait 30 seconds and try again.");
     } finally {
       setLoading(false);
     }
   };
+
+  const statusConfig = {
+    checking: {
+      icon: <Loader className="h-3 w-3 animate-spin" />,
+      label: "Checking server…",
+      className: "text-muted-foreground",
+      dot: "bg-yellow-500 animate-pulse",
+    },
+    online: {
+      icon: <Wifi className="h-3 w-3" />,
+      label: "Server online",
+      className: "text-green-500",
+      dot: "bg-green-500",
+    },
+    offline: {
+      icon: <WifiOff className="h-3 w-3" />,
+      label: "Server waking up — may take ~30s",
+      className: "text-yellow-500",
+      dot: "bg-yellow-500 animate-pulse",
+    },
+  }[serverStatus];
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background dark p-4">
@@ -70,13 +105,32 @@ export default function AdminLogin() {
 
         {/* Card */}
         <div className="bg-muted/20 border border-border rounded-xl p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <Lock className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                Dispatcher Login
+              </h2>
+            </div>
 
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Dispatcher Login
-            </h2>
+            {/* Server status indicator */}
+            <button
+              type="button"
+              onClick={checkServer}
+              title="Click to recheck server status"
+              className={`flex items-center gap-1.5 text-xs font-medium transition-opacity hover:opacity-70 ${statusConfig.className}`}
+            >
+              <span className={`inline-block h-1.5 w-1.5 rounded-full ${statusConfig.dot}`} />
+              {statusConfig.icon}
+              <span>{statusConfig.label}</span>
+            </button>
           </div>
+
+          {serverStatus === "offline" && (
+            <div className="mb-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2.5 text-xs text-yellow-400 leading-relaxed">
+              The server is waking up from sleep (Render free tier). Wait ~30 seconds then try logging in — or click the status above to recheck.
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
