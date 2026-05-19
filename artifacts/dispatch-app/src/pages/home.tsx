@@ -54,7 +54,11 @@ function isWest(loc: string): boolean {
     "cascade", "mucurapo", "newtown", "beetham", "barataria", "aranguez",
     "el socorro", "mount hope", "mount lambert west", "upper laventille",
     "success village", "d martin", "santa cruz", "signal hill", "the saddle",
-    "santa cruz",
+    "federation park", "belmont", "gonzales", "east dry river", "west dry river",
+    "richplain", "four roads", "long circular", "glencoe", "morne coco",
+    "boissiere", "ellerslie park", "andalusia", "starlite", "carapo",
+    "blue range", "warren", "patna", "sea lots", "gulf city mall",
+    "trou macaque", "patna village", "fairways", "long circular mall",
   ].some(k => loc.includes(k));
 }
 function isCentral(loc: string): boolean {
@@ -64,7 +68,11 @@ function isCentral(loc: string): boolean {
     "springvale", "chase village", "edinburgh", "kelly village", "caroni",
     "warrenville", "claxton bay", "gasparillo central", "pointe a pierre",
     "pointe-a-pierre", "preysal", "mon repos", "mc bean", "mcbean", "skinner park",
-    "naparima bowl",
+    "naparima bowl", "todd street", "centre pointe mall", "highway plaza",
+    "ramsaran street", "cross crossing", "endeavour road", "interchange",
+    "montrose", "munroe road", "southern main road central", "st mary",
+    "ste madeleine", "brechin", "buen intento", "hermitage", "palmiste",
+    "california", "waterloo", "chandernagore", "carapichaima", "chandernagore",
   ].some(k => loc.includes(k));
 }
 function isEast(loc: string): boolean {
@@ -76,6 +84,12 @@ function isEast(loc: string): boolean {
     "santa rosa", "cumana", "guaico", "tumpuna", "saint augustine", "st augustine",
     "five rivers", "el dorado", "golden grove", "bejucal", "heights of guanapo",
     "airport", "piarco airport", "international airport",
+    "east west corridor", "ewc", "d abadie", "bon air", "eden gardens",
+    "gordon street", "o'meara", "omeara", "hollis avenue", "eastern main road",
+    "university of the west indies", "uwi", "st augustine campus",
+    "zero",  "zero street", "clocktower", "must drive", "beetham highway east",
+    "mount d or", "mount dor", "the arena", "cleaver road", "waller field",
+    "blanchette", "peter hill", "santa flora east", "new grant",
   ].some(k => loc.includes(k));
 }
 function isSouth(loc: string): boolean {
@@ -85,7 +99,48 @@ function isSouth(loc: string): boolean {
     "barrackpore", "rio claro", "la brea", "debe", "naparima", "williamsville",
     "tableland", "pointe-a-pierre", "preysal", "mon repos", "paradise pasture",
     "gulf view", "south park", "pleasantville", "fernando",
+    "harris promenade", "coffee street", "high street sf", "gulf city",
+    "mon chagrin", "la resource", "sobo", "southern main road south",
+    "cross crossing south", "st julien", "les efforts", "rushworth street",
+    "paradise hill", "vistabella", "upper coora", "lower coora",
+    "princess town", "st mary village", "harmony hall", "lengua",
+    "la fortune", "bamboo", "ste madeleine south", "enterprise",
+    "corinth", "navet", "corosal", "morne diablo", "rancho quemado",
+    "vessigny village", "cap de ville", "bonasse", "irois bay",
   ].some(k => loc.includes(k));
+}
+
+// Approximate zone center coordinates [lat, lon]
+const ZONE_COORDS: Record<ZoneKey, [number, number]> = {
+  west:    [10.657, -61.502],
+  central: [10.520, -61.414],
+  east:    [10.638, -61.284],
+  south:   [10.280, -61.468],
+};
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const toRad = (d: number) => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Estimate a maxi fare for any two detected zones using road-distance approximation
+function estimateFareFromZones(pickup: string, dropoff: string): number | null {
+  const pZone = getZone(pickup);
+  const dZone = getZone(dropoff);
+  if (!pZone || !dZone || pZone === dZone) return null;
+  const [pLat, pLon] = ZONE_COORDS[pZone];
+  const [dLat, dLon] = ZONE_COORDS[dZone];
+  const straightKm = haversineKm(pLat, pLon, dLat, dLon);
+  const roadKm = straightKm * 1.4; // road vs straight-line factor for TT
+  let fare = 25 + roadKm * 8;
+  if (roadKm > 25) fare += 20;
+  if (roadKm > 50) fare += 40;
+  return Math.round(fare / 50) * 50;
 }
 function eastSubzone(loc: string): "near" | "mid" | "far" | "toco" {
   const n = normalizeLoc(loc);
@@ -601,9 +656,13 @@ useEffect(() => {
     }
 
     const tryLocalFallback = () => {
+      // 1. Try the exact fare table first
       const key = getFareTableKey(pickup, dropoff);
       const range = key ? getRouteDisplayRange(key) : null;
-      setDisplayFare(range ? range[0] : null);
+      if (range) { setDisplayFare(range[0]); return; }
+      // 2. Fall back to zone-distance estimate for any recognised zone pair
+      const zoneEstimate = estimateFareFromZones(pickup, dropoff);
+      setDisplayFare(zoneEstimate ?? null);
     };
 
     try {
