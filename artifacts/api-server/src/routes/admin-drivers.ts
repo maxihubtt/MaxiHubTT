@@ -12,7 +12,7 @@ function generateDriverId(): string {
 
 router.get("/admin/drivers", requireAdmin, async (req, res) => {
   const drivers = await db
-    .select({ id: driversTable.id, name: driversTable.name, username: driversTable.username, createdAt: driversTable.createdAt })
+    .select({ id: driversTable.id, name: driversTable.name, username: driversTable.username, availability: driversTable.availability, createdAt: driversTable.createdAt })
     .from(driversTable)
     .orderBy(driversTable.createdAt);
   res.json(drivers.map(d => ({ ...d, createdAt: d.createdAt.toISOString() })));

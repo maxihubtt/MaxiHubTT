@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { eq } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { db, jobsTable } from "@workspace/db";
 import { CreateJobBody } from "@workspace/api-zod";
 import { sendJobToGroup, notifyGroupClaimed, sendJobDetailsToDriver } from "../lib/telegram";
 import { logger } from "../lib/logger";
 import { requireAdmin } from "../middleware/requireAdmin";
 import { requireDriver } from "../middleware/requireDriver";
+import { sendPushToAllDrivers } from "../lib/push";
 
 const router = Router();
 
@@ -38,12 +39,32 @@ router.get("/driver/jobs", requireDriver, async (req, res) => {
           createdAt: j.createdAt.toISOString(),
           updatedAt: j.updatedAt.toISOString(),
         };
-        // Only expose customer contact details for jobs this driver has claimed
         if (j.claimedBy === driverName) {
           return { ...base, name: j.name, phone: j.phone };
         }
         return base;
       })
+  );
+});
+
+router.get("/driver/jobs/history", requireDriver, async (req, res) => {
+  const driverName = req.session.driverName ?? "";
+  const history = await db
+    .select()
+    .from(jobsTable)
+    .where(eq(jobsTable.claimedBy, driverName))
+    .orderBy(desc(jobsTable.updatedAt));
+  res.json(
+    history.map(j => ({
+      id: j.id,
+      pickup: j.pickup,
+      dropoff: j.dropoff,
+      status: j.status,
+      price: j.price,
+      passengers: j.passengers,
+      createdAt: j.createdAt.toISOString(),
+      updatedAt: j.updatedAt.toISOString(),
+    }))
   );
 });
 
@@ -65,6 +86,43 @@ router.get("/jobs/stats", requireAdmin, async (req, res) => {
     completed: all.filter(j => j.status === "completed").length,
   };
   res.json(stats);
+});
+
+router.get("/jobs/analytics", requireAdmin, async (req, res) => {
+  const all = await db.select().from(jobsTable).orderBy(desc(jobsTable.createdAt));
+
+  const now = new Date();
+  const days: { date: string; count: number; revenue: number }[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const dayJobs = all.filter(j => j.createdAt.toISOString().slice(0, 10) === dateStr);
+    const revenue = dayJobs.reduce((sum, j) => {
+      const n = parseFloat(j.price.replace(/[^0-9.]/g, ""));
+      return sum + (isNaN(n) ? 0 : n);
+    }, 0);
+    days.push({ date: dateStr, count: dayJobs.length, revenue: Math.round(revenue * 100) / 100 });
+  }
+
+  const totalRevenue = all
+    .filter(j => j.status === "completed")
+    .reduce((sum, j) => {
+      const n = parseFloat(j.price.replace(/[^0-9.]/g, ""));
+      return sum + (isNaN(n) ? 0 : n);
+    }, 0);
+
+  const driverActivity: Record<string, number> = {};
+  for (const j of all.filter(j => j.claimedBy)) {
+    const name = j.claimedBy as string;
+    driverActivity[name] = (driverActivity[name] ?? 0) + 1;
+  }
+  const topDrivers = Object.entries(driverActivity)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, jobs]) => ({ name, jobs }));
+
+  res.json({ days, totalRevenue: Math.round(totalRevenue * 100) / 100, topDrivers });
 });
 
 router.post("/jobs/:id/claim", requireDriver, async (req, res) => {
@@ -213,11 +271,18 @@ router.post("/jobs", async (req, res) => {
     updatedAt: job.updatedAt.toISOString(),
   });
 
-  // Fire-and-forget: notify Telegram after responding so it never blocks the client
   sendJobToGroup({ id: job.id, pickup, dropoff, price, passengers }).then(sent => {
     if (!sent) req.log.warn({ jobId: job.id }, "Failed to send job to Telegram group");
   }).catch(err => {
     req.log.error({ err, jobId: job.id }, "Unexpected error sending job to Telegram");
+  });
+
+  sendPushToAllDrivers({
+    title: "New Job Available",
+    body: `${pickup} → ${dropoff} · TT$${price}`,
+    tag: "new-job",
+  }).catch(err => {
+    req.log.error({ err, jobId: job.id }, "Failed to send push notifications");
   });
 });
 

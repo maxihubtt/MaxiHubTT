@@ -1,4 +1,4 @@
-const CACHE = "mxihub-v1";
+const CACHE = "mxihub-v2";
 const PRECACHE = ["/", "/driver/login", "/driver/jobs"];
 
 self.addEventListener("install", (e) => {
@@ -29,5 +29,32 @@ self.addEventListener("fetch", (e) => {
         return res;
       })
       .catch(() => caches.match(e.request))
+  );
+});
+
+self.addEventListener("push", (e) => {
+  let data = { title: "Maxi Hub TT", body: "New update available." };
+  try { if (e.data) data = e.data.json(); } catch {}
+  e.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      tag: data.tag ?? "maxihub",
+      renotify: true,
+      vibrate: [200, 100, 200],
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(
+    clients.matchAll({ type: "window" }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes("/driver/jobs") && "focus" in client) return client.focus();
+      }
+      if (clients.openWindow) return clients.openWindow("/driver/jobs");
+    })
   );
 });
