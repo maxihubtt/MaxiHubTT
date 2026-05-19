@@ -9,6 +9,7 @@ export default function DriverLogin() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState<ServerStatus>("checking");
@@ -40,7 +41,7 @@ export default function DriverLogin() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ username: username.trim(), password }),
+        body: JSON.stringify({ username: username.trim(), password, rememberMe }),
       });
       if (res.ok) {
         await qc.invalidateQueries({ queryKey: ["driver-auth"] });
@@ -164,6 +165,27 @@ export default function DriverLogin() {
             </div>
             {error && <p className="text-red-400 text-xs font-medium">{error}</p>}
           </div>
+
+          {/* Remember me */}
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <div
+              onClick={() => setRememberMe(v => !v)}
+              className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors flex-shrink-0 ${
+                rememberMe
+                  ? "border-amber-400 bg-amber-400"
+                  : "border-white/25 bg-white/5"
+              }`}
+            >
+              {rememberMe && (
+                <svg className="w-3 h-3 text-teal-900" viewBox="0 0 12 12" fill="none">
+                  <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+            <span className="text-sm text-teal-300">
+              Remember me <span className="text-teal-600 text-xs">(stay signed in for 30 days)</span>
+            </span>
+          </label>
 
           <button
             type="submit"
