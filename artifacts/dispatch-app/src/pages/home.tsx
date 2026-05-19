@@ -600,33 +600,46 @@ useEffect(() => {
       return;
     }
 
+    const tryLocalFallback = () => {
+      const key = getFareTableKey(pickup, dropoff);
+      const range = key ? getRouteDisplayRange(key) : null;
+      setDisplayFare(range ? range[0] : null);
+    };
+
     try {
       setLoadingFare(true);
 
-      const response = await fetch(
-        "https://maxihubtt-api-9pav.onrender.com/api/pricing",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            pickup,
-            dropoff,
-          }),
-        }
-      );
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+
+      let response: Response;
+      try {
+        response = await fetch(
+          "https://maxihubtt-api-9pav.onrender.com/api/pricing",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pickup, dropoff }),
+            signal: controller.signal,
+          }
+        );
+        clearTimeout(timeout);
+      } catch {
+        clearTimeout(timeout);
+        tryLocalFallback();
+        return;
+      }
 
       const data = await response.json();
 
       if (response.ok && data.price) {
         setDisplayFare(data.price);
       } else {
-        setDisplayFare(null);
+        tryLocalFallback();
       }
     } catch (err) {
       console.error(err);
-      setDisplayFare(null);
+      tryLocalFallback();
     } finally {
       setLoadingFare(false);
     }
@@ -842,13 +855,13 @@ useEffect(() => {
                       ) : displayFare ? (
                         <>
                           <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Estimated Fare</p>
-                          <p className="text-2xl font-black text-teal-900">TTD {"$"}{displayFare.toLocaleString("en-TT")}</p>
-                          <p className="text-xs text-teal-500 mt-1">Live distance-based pricing</p>
+                          <p className="text-2xl font-black text-teal-900">from TTD {displayFare.toLocaleString("en-TT")}</p>
+                          <p className="text-xs text-teal-500 mt-1">Exact price confirmed after trip details</p>
                         </>
                       ) : (
                         <>
                           <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Fare estimate</p>
-                          <p className="text-sm text-teal-600">Enter valid Trinidad &amp; Tobago locations</p>
+                          <p className="text-sm text-teal-600">Your fare will be confirmed via WhatsApp after booking.</p>
                         </>
                       )}
                     </div>
@@ -959,7 +972,7 @@ useEffect(() => {
                           ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtFare(displayFare)}</p>
                           : <p className="text-sm font-semibold text-teal-600 shrink-0">WhatsApp us for a quote</p>}
                       </div>
-                      {beachExactFare && !apiFare && (
+                      {getBeachExactFare(pickup, dropoff, pax, tripType ?? "one-way") && !apiFare && (
                         <p className="text-xs text-teal-500 mt-2 border-t border-amber-200 pt-2">
                           Beach trip · exact quote confirmed by WhatsApp after booking.
                         </p>
