@@ -1,5 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { pollTelegramUpdates } from "./lib/telegram";
+import { handleDriverClaim } from "./routes/jobs";
 
 const rawPort = process.env["PORT"];
 
@@ -22,4 +24,10 @@ app.listen(port, (err) => {
   }
 
   logger.info({ port }, "Server listening");
+
+  setInterval(async () => {
+    await pollTelegramUpdates(handleDriverClaim);
+  }, 3000);
+
+  logger.info("Telegram polling started");
 });
