@@ -5,8 +5,8 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://maxihubtt-api-9pav.onrender.com/api/:path*"
+      "source": "/api/(.*)",
+      "destination": "https://maxihubtt-api-9pav.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
