@@ -1,0 +1,50 @@
+2026-05-20T10:47:27.791889514Z ==> Your service is live 🎉
+2026-05-20T10:47:27.890519382Z {"level":30,"time":1779274047890,"pid":70,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-6d57c96486-nn75h","req":{"id":2,"method":"GET","url":"/"},"res":{"statusCode":404},"responseTime":2,"msg":"request completed"}
+2026-05-20T10:47:27.964677564Z ==> 
+2026-05-20T10:47:27.967082797Z ==> ///////////////////////////////////////////////////////////
+2026-05-20T10:47:27.968892977Z ==> 
+2026-05-20T10:47:27.970496642Z ==> Available at your primary URL https://maxihubtt-api-9pav.onrender.com
+2026-05-20T10:47:27.97223622Z ==> 
+2026-05-20T10:47:27.973780594Z ==> ///////////////////////////////////////////////////////////
+2026-05-20T10:47:39.409455202Z _DrizzleQueryError: Failed query: insert into "driver_signups" ("id", "full_name", "phone", "password_hash", "number_plate", "dp_number", "taxi_badge_number", "status", "created_at", "updated_at") values ($1, $2, $3, $4, $5, $6, $7, $8, default, default)
+2026-05-20T10:47:39.409490543Z params: DS4JBEYTAW,Brandon John,4818039,2b15a53002fc9873785c42a6b0560b9e:0d6b110e8086ec5bddda1bd13b8395950622c55575b6c23fee82050e3286f2887ca6dbba36a4b8a9d8b860d7d6062473c39e832082f836c890ee5dfb0ebc7cb5,HEJ3445,1069849,141848,pending
+2026-05-20T10:47:39.409497173Z     at NodePgPreparedQuery.queryWithCache (/opt/render/project/src/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:73:11)
+2026-05-20T10:47:39.409518773Z     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-05-20T10:47:39.409525363Z     at async <anonymous> (/opt/render/project/src/artifacts/api-server/src/routes/drivers.ts:22:5) {
+2026-05-20T10:47:39.409530433Z   query: 'insert into "driver_signups" ("id", "full_name", "phone", "password_hash", "number_plate", "dp_number", "taxi_badge_number", "status", "created_at", "updated_at") values ($1, $2, $3, $4, $5, $6, $7, $8, default, default)',
+2026-05-20T10:47:39.409535284Z   params: [
+2026-05-20T10:47:39.409540784Z     'DS4JBEYTAW',
+2026-05-20T10:47:39.409545444Z     'Brandon John',
+2026-05-20T10:47:39.409550264Z     '4818039',
+2026-05-20T10:47:39.409555364Z     '2b15a53002fc9873785c42a6b0560b9e:0d6b110e8086ec5bddda1bd13b8395950622c55575b6c23fee82050e3286f2887ca6dbba36a4b8a9d8b860d7d6062473c39e832082f836c890ee5dfb0ebc7cb5',
+2026-05-20T10:47:39.409560294Z     'HEJ3445',
+2026-05-20T10:47:39.409565324Z     '1069849',
+2026-05-20T10:47:39.409570474Z     '141848',
+2026-05-20T10:47:39.409574994Z     'pending'
+2026-05-20T10:47:39.409579674Z   ],
+2026-05-20T10:47:39.409585235Z   cause: error: relation "driver_signups" does not exist
+2026-05-20T10:47:39.409590955Z       at <anonymous> (/opt/render/project/src/node_modules/.pnpm/pg-pool@3.13.0_pg@8.20.0/node_modules/pg-pool/index.js:45:11)
+2026-05-20T10:47:39.409595905Z       at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+2026-05-20T10:47:39.409600425Z       at async <anonymous> (/opt/render/project/src/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/node-postgres/session.ts:149:14)
+2026-05-20T10:47:39.409620615Z       at async NodePgPreparedQuery.queryWithCache (/opt/render/project/src/node_modules/.pnpm/drizzle-orm@0.45.2_@types+pg@8.20.0_pg@8.20.0/node_modules/src/pg-core/session.ts:71:12)
+2026-05-20T10:47:39.409623975Z       at async <anonymous> (/opt/render/project/src/artifacts/api-server/src/routes/drivers.ts:22:5) {
+2026-05-20T10:47:39.409662496Z     length: 113,
+2026-05-20T10:47:39.409666256Z     severity: 'ERROR',
+2026-05-20T10:47:39.409669267Z     code: '42P01',
+2026-05-20T10:47:39.409672577Z     detail: undefined,
+2026-05-20T10:47:39.409675867Z     hint: undefined,
+2026-05-20T10:47:39.409679247Z     position: '13',
+2026-05-20T10:47:39.409682927Z     internalPosition: undefined,
+2026-05-20T10:47:39.409685867Z     internalQuery: undefined,
+2026-05-20T10:47:39.409688957Z     where: undefined,
+2026-05-20T10:47:39.409691967Z     schema: undefined,
+2026-05-20T10:47:39.409694807Z     table: undefined,
+2026-05-20T10:47:39.409697877Z     column: undefined,
+2026-05-20T10:47:39.409701207Z     dataType: undefined,
+2026-05-20T10:47:39.409704507Z     constraint: undefined,
+2026-05-20T10:47:39.409707728Z     file: 'parse_relation.c',
+2026-05-20T10:47:39.409710948Z     line: '1449',
+2026-05-20T10:47:39.409713817Z     routine: 'parserOpenTable'
+2026-05-20T10:47:39.409716888Z   }
+2026-05-20T10:47:39.409720068Z }
+2026-05-20T10:47:39.413169577Z {"level":30,"time":1779274059412,"pid":70,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-6d57c96486-nn75h","req":{"id":3,"method":"POST","url":"/api/drivers/signup"},"res":{"statusCode":500},"err":{"type":"Error","message":"failed with status code 500","stack":"Error: failed with status code 500\n    at onResFinished (/opt/render/project/src/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:115:39)\n    at ServerResponse.onResponseComplete (/opt/render/project/src/node_modules/.pnpm/pino-http@10.5.0/node_modules/pino-http/logger.js:178:14)\n    at ServerResponse.emit (node:events:520:35)\n    at onFinish (node:_http_outgoing:1026:10)\n    at callback (node:internal/streams/writable:764:21)\n    at afterWrite (node:internal/streams/writable:708:5)\n    at afterWriteTick (node:internal/streams/writable:694:10)\n    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)"},"responseTime":2028,"msg":"request errored"}
