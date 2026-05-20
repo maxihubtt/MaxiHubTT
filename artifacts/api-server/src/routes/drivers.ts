@@ -29,7 +29,13 @@ router.post("/signup", async (req, res) => {
     });
 
     if (error) {
-      return res.status(400).json({ error: error.message });
+      console.error("Supabase insert error:", JSON.stringify(error, null, 2));
+      return res.status(400).json({
+        error: error.message,
+        code: (error as { code?: string }).code,
+        details: (error as { details?: string }).details,
+        hint: (error as { hint?: string }).hint,
+      });
     }
 
     notifyDriverSignup({ full_name, phone, number_plate, dp_number, taxi_badge_number }).catch(() => {});
@@ -39,6 +45,16 @@ router.post("/signup", async (req, res) => {
     console.error(err);
     return res.status(500).json({ error: "Server error" });
   }
+});
+
+router.get("/signup-diag", async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
+  const { data, error } = await supabase.from("drivers").select("id").limit(1);
+  if (error) {
+    return res.json({ select_ok: false, error: error.message, code: (error as {code?:string}).code, details: (error as {details?:string}).details });
+  }
+  const ins = await supabase.from("drivers").insert({ _diag_test: true } as unknown as Record<string, unknown>).select();
+  return res.json({ select_ok: true, row_count: data?.length, insert_error: ins.error ? { message: ins.error.message, code: (ins.error as {code?:string}).code, details: (ins.error as {details?:string}).details, hint: (ins.error as {hint?:string}).hint } : null });
 });
 
 router.patch("/availability", requireDriver, async (req, res) => {

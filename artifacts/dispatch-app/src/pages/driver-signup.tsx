@@ -40,8 +40,9 @@ export default function DriverSignup() {
       if (res.ok) {
         setSuccess(true);
       } else if (res.status === 400) {
-        const data = await res.json().catch(() => ({})) as { error?: string };
-        setError(data.error ?? "Please check your details and try again.");
+        const data = await res.json().catch(() => ({})) as { error?: string; code?: string; details?: string; hint?: string };
+        const parts = [data.error, data.code && `code: ${data.code}`, data.details, data.hint].filter(Boolean);
+        setError(parts.join(" | ") || "Please check your details and try again.");
       } else if (res.status === 503) {
         setError("Service temporarily unavailable. Please try again in a moment.");
       } else if (res.status >= 500) {
