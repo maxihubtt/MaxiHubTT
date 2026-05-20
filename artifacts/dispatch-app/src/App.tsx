@@ -1,4 +1,5 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -80,11 +81,28 @@ function Router() {
   );
 }
 
+function ManifestSwitcher() {
+  const [location] = useLocation();
+  useEffect(() => {
+    const link = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
+    if (!link) return;
+    if (location.startsWith("/driver/")) {
+      link.href = `${import.meta.env.BASE_URL}driver-manifest.json`;
+    } else if (location.startsWith("/admin")) {
+      link.href = `${import.meta.env.BASE_URL}admin-manifest.json`;
+    } else {
+      link.href = `${import.meta.env.BASE_URL}manifest.json`;
+    }
+  }, [location]);
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <ManifestSwitcher />
           <Router />
         </WouterRouter>
 

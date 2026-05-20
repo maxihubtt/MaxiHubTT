@@ -131,13 +131,14 @@ export default function DriverLogin() {
             <label className="text-teal-400 text-xs font-semibold uppercase tracking-wider">Username</label>
             <input
               type="text"
-              placeholder="e.g. marcus"
+              placeholder="e.g. marcus.w"
               value={username}
               onChange={e => { setUsername(e.target.value); setError(""); }}
-              className="w-full h-12 px-4 rounded-xl bg-white/10 border border-white/15 text-white placeholder:text-teal-600 focus:outline-none focus:border-amber-400 text-sm lowercase"
+              className="w-full h-12 px-4 rounded-xl bg-white/10 border border-white/15 text-white placeholder:text-teal-600 focus:outline-none focus:border-amber-400 text-sm lowercase font-mono"
               autoComplete="username"
               required
             />
+            <p className="text-teal-700 text-xs">The username you chose when you applied</p>
           </div>
 
           <div className="space-y-1.5">
