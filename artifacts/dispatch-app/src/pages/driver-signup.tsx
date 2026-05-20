@@ -6,7 +6,6 @@ import { Loader2, CheckCircle2, Car, User, Phone, Hash, ShieldCheck, ArrowLeft }
 export default function DriverSignup() {
   const [form, setForm] = useState({
     full_name: "",
-    username: "",
     phone: "",
     password: "",
     number_plate: "",
@@ -66,13 +65,15 @@ export default function DriverSignup() {
             <CheckCircle2 className="w-8 h-8 text-teal-600" />
           </div>
           <h1 className="text-2xl font-black text-teal-900 mb-2">Application Submitted</h1>
-          <p className="text-teal-700 text-sm leading-relaxed mb-2">
+          <p className="text-teal-700 text-sm leading-relaxed mb-4">
             Your driver application is under review. We'll contact you on <strong>{form.phone}</strong> once it has been approved.
           </p>
           <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 mb-6 text-left">
             <p className="text-xs text-teal-500 font-semibold uppercase tracking-wider mb-1">Your login username</p>
-            <p className="text-teal-900 font-black text-lg font-mono">{form.username.toLowerCase()}</p>
-            <p className="text-teal-500 text-xs mt-1">Remember this — you'll need it to sign in once approved.</p>
+            <p className="text-teal-600 text-sm">
+              Your username will be based on your first name (e.g. <span className="font-mono font-bold text-teal-800">{form.full_name.trim().split(/\s+/)[0].toLowerCase() || "marcus"}123</span>).
+              The admin will confirm it when your application is approved.
+            </p>
           </div>
           <Link href="/driver/login">
             <button className="w-full bg-teal-700 text-white font-bold py-3 rounded-xl hover:bg-teal-800 transition-colors">
@@ -111,25 +112,6 @@ export default function DriverSignup() {
                 className="w-full border border-teal-200 bg-teal-50/30 rounded-xl px-4 py-3 text-teal-900 placeholder:text-teal-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
               />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-teal-700 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
-                <User className="w-3.5 h-3.5" /> Choose a Username
-              </label>
-              <input
-                placeholder="e.g. marcus.w"
-                value={form.username}
-                onChange={e => {
-                  const val = e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, "");
-                  setForm(f => ({ ...f, username: val }));
-                  setError("");
-                }}
-                className="w-full border border-teal-200 bg-teal-50/30 rounded-xl px-4 py-3 text-teal-900 placeholder:text-teal-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono"
-                autoComplete="username"
-                required
-              />
-              <p className="text-teal-400 text-xs mt-1">Letters, numbers, dots only. You'll use this to log in.</p>
             </div>
 
             <div>

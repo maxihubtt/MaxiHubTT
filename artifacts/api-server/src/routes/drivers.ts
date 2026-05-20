@@ -11,15 +11,10 @@ const router = express.Router();
 
 router.post("/signup", async (req, res) => {
   try {
-    const { full_name, phone, password, number_plate, dp_number, taxi_badge_number, username } = req.body;
+    const { full_name, phone, password, number_plate, dp_number, taxi_badge_number } = req.body;
 
-    if (!full_name || !phone || !password || !number_plate || !dp_number || !taxi_badge_number || !username) {
+    if (!full_name || !phone || !password || !number_plate || !dp_number || !taxi_badge_number) {
       return res.status(400).json({ error: "All fields are required" });
-    }
-
-    const cleanUsername = String(username).toLowerCase().trim().replace(/[^a-z0-9._]/g, "");
-    if (cleanUsername.length < 3) {
-      return res.status(400).json({ error: "Username must be at least 3 characters (letters, numbers, dots)" });
     }
 
     const password_hash = await hashPassword(password);
@@ -30,7 +25,7 @@ router.post("/signup", async (req, res) => {
 
     const { error } = await supabase.from("drivers").insert({
       full_name, phone, password_hash, number_plate, dp_number, taxi_badge_number,
-      username: cleanUsername, status: "pending", availability: "offline",
+      status: "pending", availability: "offline",
     });
 
     if (error) {
