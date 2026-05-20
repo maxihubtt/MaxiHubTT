@@ -12,6 +12,7 @@ interface DriverAccount {
   id: string;
   name: string;
   username: string;
+  availability: string;
   createdAt: string;
 }
 
@@ -329,6 +330,13 @@ export default function AdminDrivers() {
                   <p className="text-teal-400 text-xs hidden sm:block shrink-0">
                     {new Date(driver.createdAt).toLocaleDateString("en-TT", { day: "numeric", month: "short" })}
                   </p>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                    driver.availability === "available"
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-gray-100 text-gray-500"
+                  }`}>
+                    {driver.availability === "available" ? "● Online" : "○ Offline"}
+                  </span>
                   <button
                     onClick={() => setResetTarget(driver)}
                     className="text-xs text-teal-500 hover:text-teal-700 border border-teal-200 px-2.5 py-1 rounded-lg transition-colors shrink-0"
