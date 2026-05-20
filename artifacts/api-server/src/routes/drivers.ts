@@ -1,7 +1,6 @@
 import express from "express";
 import { eq } from "drizzle-orm";
-import { db, driversTable, pushSubscriptionsTable } from "@workspace/db";
-import { supabase } from "../lib/supabase";
+import { db, driversTable, pushSubscriptionsTable, driverSignupsTable } from "@workspace/db";
 import { notifyDriverSignup } from "../lib/telegram";
 import { hashPassword } from "../lib/password";
 import { getVapidPublicKey } from "../lib/push";
@@ -17,26 +16,19 @@ router.post("/signup", async (req, res) => {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    const password_hash = await hashPassword(password);
+    const passwordHash = await hashPassword(password);
+    const id = "DS" + Math.random().toString(36).slice(2, 10).toUpperCase();
 
-    if (!supabase) {
-      return res.status(503).json({ error: "Database not configured" });
-    }
-
-    const { error } = await supabase.from("drivers").insert({
-      full_name, phone, password_hash, number_plate, dp_number, taxi_badge_number,
+    await db.insert(driverSignupsTable).values({
+      id,
+      fullName: full_name,
+      phone,
+      passwordHash,
+      numberPlate: number_plate,
+      dpNumber: dp_number,
+      taxiBadgeNumber: taxi_badge_number,
       status: "pending",
     });
-
-    if (error) {
-      console.error("Supabase insert error:", JSON.stringify(error, null, 2));
-      return res.status(400).json({
-        error: error.message,
-        code: (error as { code?: string }).code,
-        details: (error as { details?: string }).details,
-        hint: (error as { hint?: string }).hint,
-      });
-    }
 
     notifyDriverSignup({ full_name, phone, number_plate, dp_number, taxi_badge_number }).catch(() => {});
 
@@ -45,16 +37,6 @@ router.post("/signup", async (req, res) => {
     console.error(err);
     return res.status(500).json({ error: "Server error" });
   }
-});
-
-router.get("/signup-diag", async (req, res) => {
-  if (!supabase) return res.status(503).json({ error: "Supabase not configured" });
-  const { data, error } = await supabase.from("drivers").select("id").limit(1);
-  if (error) {
-    return res.json({ select_ok: false, error: error.message, code: (error as {code?:string}).code, details: (error as {details?:string}).details });
-  }
-  const ins = await supabase.from("drivers").insert({ _diag_test: true } as unknown as Record<string, unknown>).select();
-  return res.json({ select_ok: true, row_count: data?.length, insert_error: ins.error ? { message: ins.error.message, code: (ins.error as {code?:string}).code, details: (ins.error as {details?:string}).details, hint: (ins.error as {hint?:string}).hint } : null });
 });
 
 router.patch("/availability", requireDriver, async (req, res) => {

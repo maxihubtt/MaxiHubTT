@@ -1,8 +1,7 @@
 import { Router } from "express";
 import { eq } from "drizzle-orm";
-import { db, driversTable } from "@workspace/db";
+import { db, driversTable, driverSignupsTable } from "@workspace/db";
 import { requireAdmin } from "../middleware/requireAdmin";
-import { supabase } from "../lib/supabase";
 
 const router = Router();
 
@@ -18,87 +17,81 @@ function generateUsername(fullName: string): string {
 }
 
 router.get("/admin/driver-signups", requireAdmin, async (req, res) => {
-  if (!supabase) {
-    res.status(503).json({ error: "Supabase not configured" });
-    return;
-  }
+  const signups = await db
+    .select()
+    .from(driverSignupsTable)
+    .where(eq(driverSignupsTable.status, "pending"));
 
-  const { data, error } = await supabase
-    .from("drivers")
-    .select("id, full_name, phone, number_plate, dp_number, taxi_badge_number, status, created_at")
-    .eq("status", "pending")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    res.status(500).json({ error: error.message });
-    return;
-  }
-
-  res.json(data ?? []);
+  res.json(
+    signups.map(s => ({
+      id: s.id,
+      full_name: s.fullName,
+      phone: s.phone,
+      number_plate: s.numberPlate,
+      dp_number: s.dpNumber,
+      taxi_badge_number: s.taxiBadgeNumber,
+      status: s.status,
+      created_at: s.createdAt.toISOString(),
+    }))
+  );
 });
 
 router.post("/admin/driver-signups/:id/approve", requireAdmin, async (req, res) => {
-  if (!supabase) {
-    res.status(503).json({ error: "Supabase not configured" });
-    return;
-  }
-
   const { id } = req.params;
 
-  const { data: rows, error: fetchErr } = await supabase
-    .from("drivers")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const [signup] = await db
+    .select()
+    .from(driverSignupsTable)
+    .where(eq(driverSignupsTable.id, id));
 
-  if (fetchErr || !rows) {
+  if (!signup) {
     res.status(404).json({ error: "Signup not found" });
     return;
   }
 
-  let username = generateUsername(rows.full_name);
+  let username = generateUsername(signup.fullName);
   const existing = await db.select().from(driversTable).where(eq(driversTable.username, username));
   if (existing.length > 0) {
-    username = generateUsername(rows.full_name);
+    username = generateUsername(signup.fullName);
   }
 
   const driverId = generateDriverId();
 
   await db.insert(driversTable).values({
     id: driverId,
-    name: rows.full_name,
+    name: signup.fullName,
     username,
-    passwordHash: rows.password_hash,
+    passwordHash: signup.passwordHash,
   });
 
-  await supabase
-    .from("drivers")
-    .update({ status: "approved" })
-    .eq("id", id);
+  await db
+    .update(driverSignupsTable)
+    .set({ status: "approved", updatedAt: new Date() })
+    .where(eq(driverSignupsTable.id, id));
 
-  req.log.info({ driverId, username, supabaseId: id }, "Driver signup approved");
+  req.log.info({ driverId, username, signupId: id }, "Driver signup approved");
   res.json({ ok: true, username, driverId });
 });
 
 router.post("/admin/driver-signups/:id/reject", requireAdmin, async (req, res) => {
-  if (!supabase) {
-    res.status(503).json({ error: "Supabase not configured" });
-    return;
-  }
-
   const { id } = req.params;
 
-  const { error } = await supabase
-    .from("drivers")
-    .update({ status: "rejected" })
-    .eq("id", id);
+  const [signup] = await db
+    .select()
+    .from(driverSignupsTable)
+    .where(eq(driverSignupsTable.id, id));
 
-  if (error) {
-    res.status(500).json({ error: error.message });
+  if (!signup) {
+    res.status(404).json({ error: "Signup not found" });
     return;
   }
 
-  req.log.info({ supabaseId: id }, "Driver signup rejected");
+  await db
+    .update(driverSignupsTable)
+    .set({ status: "rejected", updatedAt: new Date() })
+    .where(eq(driverSignupsTable.id, id));
+
+  req.log.info({ signupId: id }, "Driver signup rejected");
   res.json({ ok: true });
 });
 
