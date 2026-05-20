@@ -25,7 +25,7 @@ router.post("/signup", async (req, res) => {
 
     const { error } = await supabase.from("drivers").insert({
       full_name, phone, password_hash, number_plate, dp_number, taxi_badge_number,
-      status: "pending", availability: "offline",
+      status: "pending",
     });
 
     if (error) {
