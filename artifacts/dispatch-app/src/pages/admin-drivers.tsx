@@ -19,6 +19,7 @@ interface DriverAccount {
 interface PendingSignup {
   id: string | number;
   full_name: string;
+  username: string;
   phone: string;
   number_plate: string;
   dp_number: string;
@@ -176,13 +177,20 @@ export default function AdminDrivers() {
     onError: (e: Error) => setFormError(e.message),
   });
 
+  const [approveError, setApproveError] = useState("");
+
   const approveMutation = useMutation({
     mutationFn: approveSignup,
     onSuccess: (data) => {
       setApprovedMsg(`Driver approved! Their login username is: @${data.username}`);
+      setApproveError("");
       qc.invalidateQueries({ queryKey: ["pending-signups"] });
       qc.invalidateQueries({ queryKey: ["admin-drivers"] });
-      setTimeout(() => setApprovedMsg(""), 6000);
+      setTimeout(() => setApprovedMsg(""), 8000);
+    },
+    onError: (e: Error) => {
+      setApproveError(e.message);
+      setTimeout(() => setApproveError(""), 8000);
     },
   });
 
@@ -220,6 +228,14 @@ export default function AdminDrivers() {
           </div>
         )}
 
+        {/* Approve error */}
+        {approveError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-2">
+            <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+            <p className="text-red-700 text-sm font-medium">{approveError}</p>
+          </div>
+        )}
+
         {/* Pending Applications */}
         <div className="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-amber-100 bg-amber-50">
@@ -251,7 +267,10 @@ export default function AdminDrivers() {
                       <span className="text-amber-700 text-sm font-black">{s.full_name[0]}</span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-teal-900 font-bold text-sm">{s.full_name}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-teal-900 font-bold text-sm">{s.full_name}</p>
+                        {s.username && <span className="font-mono text-xs text-teal-500 bg-teal-50 border border-teal-200 px-1.5 py-0.5 rounded">@{s.username}</span>}
+                      </div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5">
                         <span className="flex items-center gap-1 text-xs text-teal-600">
                           <Phone className="w-3 h-3" /> {s.phone}

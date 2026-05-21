@@ -9,13 +9,6 @@ function generateDriverId(): string {
   return "D" + Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-function generateUsername(fullName: string): string {
-  const parts = fullName.trim().toLowerCase().split(/\s+/);
-  const base = parts[0].replace(/[^a-z0-9]/g, "");
-  const suffix = Math.floor(Math.random() * 900 + 100);
-  return `${base}${suffix}`;
-}
-
 router.get("/admin/driver-signups", requireAdmin, async (req, res) => {
   const signups = await db
     .select()
@@ -26,6 +19,7 @@ router.get("/admin/driver-signups", requireAdmin, async (req, res) => {
     signups.map(s => ({
       id: s.id,
       full_name: s.fullName,
+      username: s.username,
       phone: s.phone,
       number_plate: s.numberPlate,
       dp_number: s.dpNumber,
@@ -49,10 +43,12 @@ router.post("/admin/driver-signups/:id/approve", requireAdmin, async (req, res) 
     return;
   }
 
-  let username = generateUsername(signup.fullName);
+  const username = signup.username || signup.fullName.trim().toLowerCase().split(/\s+/)[0].replace(/[^a-z0-9]/g, "") + Math.floor(Math.random() * 900 + 100);
+
   const existing = await db.select().from(driversTable).where(eq(driversTable.username, username));
   if (existing.length > 0) {
-    username = generateUsername(signup.fullName);
+    res.status(409).json({ error: `Username "@${username}" is already taken. Ask the driver to reapply with a different username.` });
+    return;
   }
 
   const driverId = generateDriverId();

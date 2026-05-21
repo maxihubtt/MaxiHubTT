@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { Loader2, CheckCircle2, Car, User, Phone, Hash, ShieldCheck, ArrowLeft } from "lucide-react";
+import { Loader2, CheckCircle2, Car, User, Phone, Hash, ShieldCheck, ArrowLeft, AtSign } from "lucide-react";
 
 
 export default function DriverSignup() {
   const [form, setForm] = useState({
     full_name: "",
+    username: "",
     phone: "",
     password: "",
     number_plate: "",
@@ -72,8 +73,9 @@ export default function DriverSignup() {
           <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 mb-6 text-left">
             <p className="text-xs text-teal-500 font-semibold uppercase tracking-wider mb-1">Your login username</p>
             <p className="text-teal-600 text-sm">
-              Your username will be based on your first name (e.g. <span className="font-mono font-bold text-teal-800">{form.full_name.trim().split(/\s+/)[0].toLowerCase() || "marcus"}123</span>).
-              The admin will confirm it when your application is approved.
+              Once approved, you can log in with username{" "}
+              <span className="font-mono font-bold text-teal-800">@{form.username}</span>{" "}
+              and the password you chose.
             </p>
           </div>
           <Link href="/driver/login">
@@ -113,6 +115,21 @@ export default function DriverSignup() {
                 className="w-full border border-teal-200 bg-teal-50/30 rounded-xl px-4 py-3 text-teal-900 placeholder:text-teal-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 required
               />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-teal-700 uppercase tracking-wider flex items-center gap-1.5 mb-1.5">
+                <AtSign className="w-3.5 h-3.5" /> Username
+              </label>
+              <input
+                placeholder="e.g. marcus123"
+                value={form.username}
+                onChange={e => { setForm(f => ({ ...f, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") })); setError(""); }}
+                className="w-full border border-teal-200 bg-teal-50/30 rounded-xl px-4 py-3 text-teal-900 placeholder:text-teal-400 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 lowercase"
+                required
+                autoComplete="username"
+              />
+              <p className="text-xs text-teal-400 mt-1">This is what you'll use to log in. Letters and numbers only.</p>
             </div>
 
             <div>

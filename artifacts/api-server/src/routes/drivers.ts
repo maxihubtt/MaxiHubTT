@@ -10,10 +10,20 @@ const router = express.Router();
 
 router.post("/signup", async (req, res) => {
   try {
-    const { full_name, phone, password, number_plate, dp_number, taxi_badge_number } = req.body;
+    const { full_name, username, phone, password, number_plate, dp_number, taxi_badge_number } = req.body;
 
-    if (!full_name || !phone || !password || !number_plate || !dp_number || !taxi_badge_number) {
+    if (!full_name || !username || !phone || !password || !number_plate || !dp_number || !taxi_badge_number) {
       return res.status(400).json({ error: "All fields are required" });
+    }
+
+    const cleanUsername = String(username).trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (cleanUsername.length < 3) {
+      return res.status(400).json({ error: "Username must be at least 3 characters (letters and numbers only)." });
+    }
+
+    const existing = await db.select().from(driverSignupsTable).where(eq(driverSignupsTable.username, cleanUsername));
+    if (existing.length > 0) {
+      return res.status(400).json({ error: "That username is already taken. Please choose another." });
     }
 
     const passwordHash = await hashPassword(password);
@@ -22,6 +32,7 @@ router.post("/signup", async (req, res) => {
     await db.insert(driverSignupsTable).values({
       id,
       fullName: full_name,
+      username: cleanUsername,
       phone,
       passwordHash,
       numberPlate: number_plate,

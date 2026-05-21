@@ -3,6 +3,7 @@ import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 export const driverSignupsTable = pgTable("driver_signups", {
   id: text("id").primaryKey(),
   fullName: text("full_name").notNull(),
+  username: text("username").notNull().default(""),
   phone: text("phone").notNull(),
   passwordHash: text("password_hash").notNull(),
   numberPlate: text("number_plate").notNull(),
