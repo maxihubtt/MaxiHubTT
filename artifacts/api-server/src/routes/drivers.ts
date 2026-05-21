@@ -1,5 +1,5 @@
 import express from "express";
-import { eq } from "drizzle-orm";
+import { eq, and, or } from "drizzle-orm";
 import { db, driversTable, pushSubscriptionsTable, driverSignupsTable } from "@workspace/db";
 import { notifyDriverSignup } from "../lib/telegram";
 import { hashPassword } from "../lib/password";
@@ -21,8 +21,20 @@ router.post("/signup", async (req, res) => {
       return res.status(400).json({ error: "Username must be at least 3 characters (letters and numbers only)." });
     }
 
-    const existing = await db.select().from(driverSignupsTable).where(eq(driverSignupsTable.username, cleanUsername));
-    if (existing.length > 0) {
+    const [takenInSignups] = await db
+      .select({ id: driverSignupsTable.id })
+      .from(driverSignupsTable)
+      .where(and(
+        eq(driverSignupsTable.username, cleanUsername),
+        or(eq(driverSignupsTable.status, "pending"), eq(driverSignupsTable.status, "approved")),
+      ))
+      .limit(1);
+    const [takenInDrivers] = await db
+      .select({ id: driversTable.id })
+      .from(driversTable)
+      .where(eq(driversTable.username, cleanUsername))
+      .limit(1);
+    if (takenInSignups || takenInDrivers) {
       return res.status(400).json({ error: "That username is already taken. Please choose another." });
     }
 
