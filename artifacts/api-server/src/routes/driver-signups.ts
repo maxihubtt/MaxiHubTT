@@ -33,40 +33,46 @@ router.get("/admin/driver-signups", requireAdmin, async (req, res) => {
 router.post("/admin/driver-signups/:id/approve", requireAdmin, async (req, res) => {
   const { id } = req.params;
 
-  const [signup] = await db
-    .select()
-    .from(driverSignupsTable)
-    .where(eq(driverSignupsTable.id, id));
+  try {
+    const [signup] = await db
+      .select()
+      .from(driverSignupsTable)
+      .where(eq(driverSignupsTable.id, id));
 
-  if (!signup) {
-    res.status(404).json({ error: "Signup not found" });
-    return;
+    if (!signup) {
+      res.status(404).json({ error: "Signup not found" });
+      return;
+    }
+
+    const username = signup.username || signup.fullName.trim().toLowerCase().split(/\s+/)[0].replace(/[^a-z0-9]/g, "") + Math.floor(Math.random() * 900 + 100);
+
+    const existing = await db.select().from(driversTable).where(eq(driversTable.username, username));
+    if (existing.length > 0) {
+      res.status(409).json({ error: `Username "@${username}" is already taken. Ask the driver to reapply with a different username.` });
+      return;
+    }
+
+    const driverId = generateDriverId();
+
+    await db.insert(driversTable).values({
+      id: driverId,
+      name: signup.fullName,
+      username,
+      passwordHash: signup.passwordHash,
+    });
+
+    await db
+      .update(driverSignupsTable)
+      .set({ status: "approved", updatedAt: new Date() })
+      .where(eq(driverSignupsTable.id, id));
+
+    req.log.info({ driverId, username, signupId: id }, "Driver signup approved");
+    res.json({ ok: true, username, driverId });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    req.log.error({ err, signupId: id }, "Failed to approve driver signup");
+    res.status(500).json({ error: `Database error: ${msg}` });
   }
-
-  const username = signup.username || signup.fullName.trim().toLowerCase().split(/\s+/)[0].replace(/[^a-z0-9]/g, "") + Math.floor(Math.random() * 900 + 100);
-
-  const existing = await db.select().from(driversTable).where(eq(driversTable.username, username));
-  if (existing.length > 0) {
-    res.status(409).json({ error: `Username "@${username}" is already taken. Ask the driver to reapply with a different username.` });
-    return;
-  }
-
-  const driverId = generateDriverId();
-
-  await db.insert(driversTable).values({
-    id: driverId,
-    name: signup.fullName,
-    username,
-    passwordHash: signup.passwordHash,
-  });
-
-  await db
-    .update(driverSignupsTable)
-    .set({ status: "approved", updatedAt: new Date() })
-    .where(eq(driverSignupsTable.id, id));
-
-  req.log.info({ driverId, username, signupId: id }, "Driver signup approved");
-  res.json({ ok: true, username, driverId });
 });
 
 router.post("/admin/driver-signups/:id/reject", requireAdmin, async (req, res) => {
