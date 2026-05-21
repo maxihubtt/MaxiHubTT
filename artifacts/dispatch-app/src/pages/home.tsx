@@ -59,6 +59,24 @@ function isWest(loc: string): boolean {
     "boissiere", "ellerslie park", "andalusia", "starlite", "carapo",
     "blue range", "warren", "patna", "sea lots", "gulf city mall",
     "trou macaque", "patna village", "fairways", "long circular mall",
+    // additional west areas
+    "st francois valley", "saint francois valley", "paramin", "bayshore",
+    "goodwood park", "haleland park", "glenroyal", "covigne", "bel air",
+    "ben lomond", "reform", "nook avenue", "upper maraval", "lower maraval",
+    "marli street", "duke street", "park street", "charlotte street",
+    "henry street", "independence square", "queens park savannah",
+    "queen park savannah", "the savannah", "botanic gardens", "the oval",
+    "movie towne", "invaders bay", "the falls at west mall", "west mall",
+    "c3 centre", "gulf city las alturas", "el dorado west", "bournes road",
+    "observatory street", "tranquillity", "st vincent street", "brian lara promenade",
+    "victoria square", "chacon street", "abercromby street", "frederick street",
+    "sackville street", "nelson street", "george street", "broadway",
+    "wrightson road", "audrey jeffers highway", "lady young road",
+    "fort george", "morne coco road", "river estate", "macqueripe",
+    "chaguaramas bay", "teteron", "carenage bay", "gasparee",
+    "champs fleurs", "calvary hill", "lower barataria", "upper barataria",
+    "croisee de barataria", "mt hope", "noel street", "tarouba",
+    "cocorite village", "western main road", "mucurapo road",
   ].some(k => loc.includes(k));
 }
 function isCentral(loc: string): boolean {
@@ -72,7 +90,21 @@ function isCentral(loc: string): boolean {
     "ramsaran street", "cross crossing", "endeavour road", "interchange",
     "montrose", "munroe road", "southern main road central", "st mary",
     "ste madeleine", "brechin", "buen intento", "hermitage", "palmiste",
-    "california", "waterloo", "chandernagore", "carapichaima", "chandernagore",
+    "california", "waterloo", "chandernagore", "carapichaima",
+    // additional central areas
+    "orange field", "st helena", "saint helena", "brickfield",
+    "pierre road", "orange valley", "caparo valley", "brasso",
+    "brasso caparo", "la paille", "bon aventure", "d'abadie south",
+    "felicite", "enterprise central", "todds road", "southern main road",
+    "mill street", "race course", "central market", "chaguanas main road",
+    "high street chaguanas", "writers avenue", "endeavour road",
+    "mc bean village", "forest reserve", "perot", "st madeline",
+    "la romaine", "navet road", "plum mitan", "buen intento road",
+    "caparo", "coolie trace", "hindustan", "cedros junction",
+    "san isidore", "el carmen", "palmyra", "retrench", "gran couva",
+    "hindustan road", "carli bay", "chaguanas bypass", "uriah butler highway",
+    "sir solomon hochoy highway", "ssolomon hochoy", "midcenter mall",
+    "price plaza", "excellent city centre", "trincity central",
   ].some(k => loc.includes(k));
 }
 function isEast(loc: string): boolean {
@@ -87,9 +119,21 @@ function isEast(loc: string): boolean {
     "east west corridor", "ewc", "d abadie", "bon air", "eden gardens",
     "gordon street", "o'meara", "omeara", "hollis avenue", "eastern main road",
     "university of the west indies", "uwi", "st augustine campus",
-    "zero",  "zero street", "clocktower", "must drive", "beetham highway east",
+    "zero", "zero street", "clocktower", "beetham highway east",
     "mount d or", "mount dor", "the arena", "cleaver road", "waller field",
     "blanchette", "peter hill", "santa flora east", "new grant",
+    // additional east areas
+    "macoya", "pasea estate", "matura", "fishing pond", "tamana",
+    "coalmine", "galera", "salybia", "rampanalgas", "toco main road",
+    "heights of aripo", "aripo", "el socorro east", "south quay east",
+    "beetham gardens", "morvant extension", "la horquetta", "lahorquetta",
+    "o meara road", "trincity mall", "d abadie village",
+    "guaico tamana", "biche", "biche road", "platanal", "sangre chiquito",
+    "turure", "poole", "vega de oropouche", "wallerfield",
+    "cumuto", "mount aripo", "brasso seco", "paria main road",
+    "toco bay", "grandes riviere", "matelot village",
+    "san rafael", "la fillette", "petit valley east",
+    "hillsborough dam", "verdant vale", "mt pleasant east",
   ].some(k => loc.includes(k));
 }
 function isSouth(loc: string): boolean {
@@ -107,6 +151,24 @@ function isSouth(loc: string): boolean {
     "la fortune", "bamboo", "ste madeleine south", "enterprise",
     "corinth", "navet", "corosal", "morne diablo", "rancho quemado",
     "vessigny village", "cap de ville", "bonasse", "irois bay",
+    // additional south areas
+    "santa flora", "oropouche", "penal rock road", "monkey town",
+    "convert", "california south", "st mary", "la lune",
+    "icacos village", "granville", "guayaguayare", "radix",
+    "basse terre", "st george", "parrylands", "paradise village",
+    "siparia main road", "penal main road", "barrackpore main road",
+    "navet dam", "world's end", "worlds end", "spring trace",
+    "corosal village", "rancho quemado road", "bronte", "rambert",
+    "palo seco", "inniss", "junction", "thick village",
+    "la lune road", "laborie", "rochard road", "les efforts east",
+    "les efforts west", "cunjal", "gasparillo south", "ste madeleine village",
+    "pond road", "princess town main road", "naparima mayaro road",
+    "naparima prionces road", "high street princes town",
+    "rushworth street sf", "cipero street", "st james street sf",
+    "st paul's road", "lady hailes avenue", "coffee street sf",
+    "penitence hill", "oropouche road", "south trunk road",
+    "cocoyea village", "rousillac", "cap de ville road",
+    "pitch lake", "brighton", "california village",
   ].some(k => loc.includes(k));
 }
 
