@@ -82,3 +82,6 @@ externalPort = 80
 VAPID_PUBLIC_KEY = "BGmc5ftxoM6jT7QVXDouPP6jJ5mVBKt11g2Ba_HWH1BWxNpTUQoEocrNfZ4P8Ex_K8u_xZeqAJ5yIkhlaWAGD2c"
 VAPID_PRIVATE_KEY = "ZLfAZ3j1Lhc5F817WwelAX4H5f-s74ftoGgsvru4P28"
 VAPID_SUBJECT = "mailto:admin@maxihubtt.com"
+
+[nix]
+channel = "stable-25_05"
