@@ -1,16 +1,25 @@
 import { defineConfig } from "drizzle-kit";
 import path from "path";
 
-const connectionString = process.env.SUPABASE_DB_URL ?? process.env.DIRECT_URL ?? process.env.DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error("SUPABASE_DB_URL or DATABASE_URL must be set — ensure the database is provisioned");
+function getConnectionString(): string {
+  const password = process.env.SUPABASE_DB_PASSWORD;
+  if (password) {
+    const host = process.env.SUPABASE_DB_HOST ?? "aws-1-us-east-2.pooler.supabase.com";
+    const user = process.env.SUPABASE_DB_USER ?? "postgres.bfufjqlofylnjamfoorb";
+    return `postgresql://${user}:${encodeURIComponent(password)}@${host}:5432/postgres`;
+  }
+  const url = process.env.SUPABASE_DB_URL ?? process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error("No database credentials found.");
+  }
+  return url;
 }
 
 export default defineConfig({
   schema: path.join(__dirname, "./src/schema/index.ts"),
   dialect: "postgresql",
   dbCredentials: {
-    url: connectionString,
+    url: getConnectionString(),
+    ssl: { rejectUnauthorized: false },
   },
 });
