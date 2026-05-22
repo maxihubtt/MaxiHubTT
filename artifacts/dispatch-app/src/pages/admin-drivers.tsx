@@ -4,15 +4,17 @@ import { Layout } from "@/components/layout";
 import {
   Eye, EyeOff, Loader2, Trash2, UserPlus, Users,
   CheckCircle2, XCircle, Clock, Car, Phone, Hash, ShieldAlert,
+  AlertTriangle, FileWarning, CalendarClock,
 } from "lucide-react";
 
-
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 interface DriverAccount {
   id: string;
   name: string;
   username: string;
   availability: string;
+  dpExpiry: string | null;
+  insuranceExpiry: string | null;
   createdAt: string;
 }
 
@@ -28,7 +30,60 @@ interface PendingSignup {
   created_at: string;
 }
 
-// ── API helpers ──────────────────────────────────────────────────────────────
+// ── Expiry helpers ─────────────────────────────────────────────────────────────
+type ExpiryStatus = "expired" | "soon" | "ok" | "unset";
+
+function expiryStatus(dateStr: string | null | undefined): ExpiryStatus {
+  if (!dateStr) return "unset";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expiry = new Date(dateStr + "T00:00:00");
+  if (expiry < today) return "expired";
+  const threshold = new Date(today);
+  threshold.setDate(threshold.getDate() + 30);
+  if (expiry <= threshold) return "soon";
+  return "ok";
+}
+
+function daysUntil(dateStr: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expiry = new Date(dateStr + "T00:00:00");
+  return Math.ceil((expiry.getTime() - today.getTime()) / 86_400_000);
+}
+
+function fmtDate(dateStr: string): string {
+  return new Date(dateStr + "T00:00:00").toLocaleDateString("en-TT", { day: "numeric", month: "short", year: "numeric" });
+}
+
+const STATUS_STYLES: Record<ExpiryStatus, string> = {
+  expired: "bg-red-100 text-red-700 border-red-200",
+  soon:    "bg-amber-100 text-amber-700 border-amber-200",
+  ok:      "bg-emerald-100 text-emerald-700 border-emerald-200",
+  unset:   "bg-gray-100 text-gray-400 border-gray-200",
+};
+
+function ExpiryBadge({ label, dateStr }: { label: string; dateStr: string | null }) {
+  const status = expiryStatus(dateStr);
+  const days = dateStr ? daysUntil(dateStr) : null;
+
+  let text = "Not set";
+  if (dateStr) {
+    if (status === "expired") text = `Expired ${fmtDate(dateStr)}`;
+    else if (status === "soon") text = `Expires in ${days}d`;
+    else text = fmtDate(dateStr);
+  }
+
+  return (
+    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[status]}`}>
+      {status === "expired" && <AlertTriangle className="w-2.5 h-2.5" />}
+      {status === "soon" && <Clock className="w-2.5 h-2.5" />}
+      {label}: {text}
+    </span>
+  );
+}
+
+// ── API helpers ────────────────────────────────────────────────────────────────
 async function fetchDrivers(): Promise<DriverAccount[]> {
   const res = await fetch("/api/admin/drivers", { credentials: "include" });
   if (!res.ok) throw new Error("Failed to load drivers");
@@ -95,7 +150,20 @@ async function resetPassword(id: string, password: string): Promise<void> {
   }
 }
 
-// ── Reset Password Modal ─────────────────────────────────────────────────────
+async function updateDocuments(id: string, dpExpiry: string | null, insuranceExpiry: string | null): Promise<void> {
+  const res = await fetch(`/api/admin/drivers/${id}/documents`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ dpExpiry, insuranceExpiry }),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({})) as { error?: string };
+    throw new Error(json.error ?? "Failed to update documents");
+  }
+}
+
+// ── Reset Password Modal ───────────────────────────────────────────────────────
 function ResetPasswordModal({ driver, onClose }: { driver: DriverAccount; onClose: () => void }) {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
@@ -144,7 +212,144 @@ function ResetPasswordModal({ driver, onClose }: { driver: DriverAccount; onClos
   );
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
+// ── Document Expiry Modal ──────────────────────────────────────────────────────
+function DocExpiryModal({ driver, onClose }: { driver: DriverAccount; onClose: () => void }) {
+  const [dpExpiry, setDpExpiry] = useState(driver.dpExpiry ?? "");
+  const [insuranceExpiry, setInsuranceExpiry] = useState(driver.insuranceExpiry ?? "");
+  const [error, setError] = useState("");
+  const qc = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: () => updateDocuments(driver.id, dpExpiry || null, insuranceExpiry || null),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["admin-drivers"] }); onClose(); },
+    onError: (e: Error) => setError(e.message),
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center gap-2 mb-1">
+          <CalendarClock className="w-4 h-4 text-teal-600" />
+          <h3 className="font-bold text-teal-900">Document Expiry Dates</h3>
+        </div>
+        <p className="text-teal-600 text-sm mb-5">{driver.name} · @{driver.username}</p>
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-semibold text-teal-600 uppercase tracking-wider mb-1.5 block">
+              DP Taxi Badge Expiry
+            </label>
+            <input
+              type="date"
+              value={dpExpiry}
+              onChange={e => { setDpExpiry(e.target.value); setError(""); }}
+              className="w-full h-10 px-3 rounded-lg border border-teal-200 bg-teal-50/30 text-teal-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+            {dpExpiry && (
+              <p className={`text-xs mt-1 font-medium ${expiryStatus(dpExpiry) === "expired" ? "text-red-500" : expiryStatus(dpExpiry) === "soon" ? "text-amber-600" : "text-emerald-600"}`}>
+                {expiryStatus(dpExpiry) === "expired" ? `Expired ${daysUntil(dpExpiry) * -1} day(s) ago` :
+                 expiryStatus(dpExpiry) === "soon" ? `Expires in ${daysUntil(dpExpiry)} day(s)` :
+                 `Valid — ${daysUntil(dpExpiry)} days remaining`}
+              </p>
+            )}
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-teal-600 uppercase tracking-wider mb-1.5 block">
+              Insurance Expiry
+            </label>
+            <input
+              type="date"
+              value={insuranceExpiry}
+              onChange={e => { setInsuranceExpiry(e.target.value); setError(""); }}
+              className="w-full h-10 px-3 rounded-lg border border-teal-200 bg-teal-50/30 text-teal-900 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+            {insuranceExpiry && (
+              <p className={`text-xs mt-1 font-medium ${expiryStatus(insuranceExpiry) === "expired" ? "text-red-500" : expiryStatus(insuranceExpiry) === "soon" ? "text-amber-600" : "text-emerald-600"}`}>
+                {expiryStatus(insuranceExpiry) === "expired" ? `Expired ${daysUntil(insuranceExpiry) * -1} day(s) ago` :
+                 expiryStatus(insuranceExpiry) === "soon" ? `Expires in ${daysUntil(insuranceExpiry)} day(s)` :
+                 `Valid — ${daysUntil(insuranceExpiry)} days remaining`}
+              </p>
+            )}
+          </div>
+          {error && <p className="text-red-500 text-xs">{error}</p>}
+          <div className="flex gap-2 pt-1">
+            <button onClick={onClose} className="flex-1 h-9 rounded-lg border border-teal-200 text-teal-600 text-sm hover:bg-teal-50 transition-colors">Cancel</button>
+            <button
+              onClick={() => mutation.mutate()}
+              disabled={mutation.isPending}
+              className="flex-1 h-9 rounded-lg bg-teal-700 text-white text-sm font-semibold disabled:opacity-50 hover:bg-teal-800 transition-colors"
+            >
+              {mutation.isPending ? "Saving…" : "Save Dates"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Expiry Alerts Banner ───────────────────────────────────────────────────────
+function ExpiryAlertsBanner({ drivers }: { drivers: DriverAccount[] }) {
+  const alerts: { driver: DriverAccount; doc: string; status: ExpiryStatus; dateStr: string }[] = [];
+
+  for (const d of drivers) {
+    const dpS = expiryStatus(d.dpExpiry);
+    const insS = expiryStatus(d.insuranceExpiry);
+    if ((dpS === "expired" || dpS === "soon") && d.dpExpiry)
+      alerts.push({ driver: d, doc: "DP Badge", status: dpS, dateStr: d.dpExpiry });
+    if ((insS === "expired" || insS === "soon") && d.insuranceExpiry)
+      alerts.push({ driver: d, doc: "Insurance", status: insS, dateStr: d.insuranceExpiry });
+  }
+
+  const hasUnset = drivers.some(d => !d.dpExpiry || !d.insuranceExpiry);
+
+  if (alerts.length === 0 && !hasUnset) return null;
+
+  const expiredCount = alerts.filter(a => a.status === "expired").length;
+  const soonCount    = alerts.filter(a => a.status === "soon").length;
+
+  return (
+    <div className="space-y-2">
+      {alerts.length > 0 && (
+        <div className={`rounded-2xl border p-4 ${expiredCount > 0 ? "bg-red-50 border-red-200" : "bg-amber-50 border-amber-200"}`}>
+          <div className="flex items-center gap-2 mb-3">
+            <FileWarning className={`w-4 h-4 shrink-0 ${expiredCount > 0 ? "text-red-600" : "text-amber-600"}`} />
+            <p className={`text-sm font-bold ${expiredCount > 0 ? "text-red-800" : "text-amber-800"}`}>
+              {expiredCount > 0
+                ? `${expiredCount} document${expiredCount > 1 ? "s" : ""} expired${soonCount > 0 ? `, ${soonCount} expiring soon` : ""}`
+                : `${soonCount} document${soonCount > 1 ? "s" : ""} expiring within 30 days`}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            {alerts.map((a, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${a.status === "expired" ? "bg-red-500" : "bg-amber-500"}`} />
+                <span className={`font-semibold ${a.status === "expired" ? "text-red-800" : "text-amber-800"}`}>
+                  {a.driver.name}
+                </span>
+                <span className={a.status === "expired" ? "text-red-600" : "text-amber-600"}>
+                  — {a.doc}
+                  {a.status === "expired"
+                    ? ` expired ${fmtDate(a.dateStr)}`
+                    : ` expires in ${daysUntil(a.dateStr)} day${daysUntil(a.dateStr) !== 1 ? "s" : ""} (${fmtDate(a.dateStr)})`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      {hasUnset && (
+        <div className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-2.5 flex items-center gap-2">
+          <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+          <p className="text-xs text-gray-500">
+            {drivers.filter(d => !d.dpExpiry || !d.insuranceExpiry).map(d => d.name).join(", ")} — expiry dates not yet recorded. Click <strong>Docs</strong> on each driver to add them.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 export default function AdminDrivers() {
   const qc = useQueryClient();
   const [name, setName] = useState("");
@@ -153,12 +358,14 @@ export default function AdminDrivers() {
   const [showPw, setShowPw] = useState(false);
   const [formError, setFormError] = useState("");
   const [resetTarget, setResetTarget] = useState<DriverAccount | null>(null);
+  const [docTarget, setDocTarget] = useState<DriverAccount | null>(null);
   const [approvedMsg, setApprovedMsg] = useState("");
 
   const { data: drivers = [], isLoading: driversLoading } = useQuery({
     queryKey: ["admin-drivers"],
     queryFn: fetchDrivers,
     retry: false,
+    refetchInterval: 60_000,
   });
 
   const { data: pending = [], isLoading: pendingLoading } = useQuery({
@@ -217,8 +424,11 @@ export default function AdminDrivers() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-black text-teal-900">Driver Management</h1>
-          <p className="text-teal-600 text-sm mt-1">Review applications and manage driver logins.</p>
+          <p className="text-teal-600 text-sm mt-1">Review applications, manage driver logins and track document expiry.</p>
         </div>
+
+        {/* Expiry Alerts */}
+        {!driversLoading && drivers.length > 0 && <ExpiryAlertsBanner drivers={drivers} />}
 
         {/* Approved message */}
         {approvedMsg && (
@@ -321,9 +531,7 @@ export default function AdminDrivers() {
         <div className="bg-white rounded-2xl border border-teal-100 shadow-sm overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-4 border-b border-teal-100">
             <Users className="w-4 h-4 text-teal-600" />
-            <h2 className="text-sm font-bold text-teal-800 uppercase tracking-wider">
-              Active Drivers
-            </h2>
+            <h2 className="text-sm font-bold text-teal-800 uppercase tracking-wider">Active Drivers</h2>
             <span className="ml-auto text-xs text-teal-400 font-medium">{drivers.length} total</span>
           </div>
 
@@ -332,47 +540,64 @@ export default function AdminDrivers() {
               <Loader2 className="w-5 h-5 text-teal-400 animate-spin" />
             </div>
           ) : drivers.length === 0 ? (
-            <div className="text-center py-8 text-teal-400 text-sm">
-              No active drivers yet.
-            </div>
+            <div className="text-center py-8 text-teal-400 text-sm">No active drivers yet.</div>
           ) : (
             <div className="divide-y divide-teal-50">
-              {drivers.map(driver => (
-                <div key={driver.id} className="flex items-center gap-3 px-5 py-3.5">
-                  <div className="w-8 h-8 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
-                    <span className="text-teal-700 text-xs font-black">{driver.name[0]}</span>
+              {drivers.map(driver => {
+                const dpS = expiryStatus(driver.dpExpiry);
+                const insS = expiryStatus(driver.insuranceExpiry);
+                const hasAlert = dpS === "expired" || dpS === "soon" || insS === "expired" || insS === "soon";
+
+                return (
+                  <div key={driver.id} className={`px-5 py-3.5 ${hasAlert ? "bg-red-50/30" : ""}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${hasAlert ? "bg-red-100" : "bg-teal-100"}`}>
+                        <span className={`text-xs font-black ${hasAlert ? "text-red-700" : "text-teal-700"}`}>{driver.name[0]}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-teal-900 font-semibold text-sm">{driver.name}</p>
+                          <p className="text-teal-500 text-xs font-mono">@{driver.username}</p>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            driver.availability === "available"
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-gray-100 text-gray-500"
+                          }`}>
+                            {driver.availability === "available" ? "● Online" : "○ Offline"}
+                          </span>
+                        </div>
+                        <div className="flex gap-1.5 flex-wrap mt-1.5">
+                          <ExpiryBadge label="DP Badge" dateStr={driver.dpExpiry} />
+                          <ExpiryBadge label="Insurance" dateStr={driver.insuranceExpiry} />
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 shrink-0 flex-wrap justify-end">
+                        <button
+                          onClick={() => setDocTarget(driver)}
+                          className="text-xs text-teal-500 hover:text-teal-700 border border-teal-200 px-2.5 py-1 rounded-lg transition-colors"
+                        >
+                          Docs
+                        </button>
+                        <button
+                          onClick={() => setResetTarget(driver)}
+                          className="text-xs text-teal-500 hover:text-teal-700 border border-teal-200 px-2.5 py-1 rounded-lg transition-colors"
+                        >
+                          Reset PW
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (confirm(`Remove ${driver.name}?`)) deleteMutation.mutate(driver.id);
+                          }}
+                          disabled={deleteMutation.isPending}
+                          className="text-teal-300 hover:text-red-500 transition-colors disabled:opacity-40"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-teal-900 font-semibold text-sm truncate">{driver.name}</p>
-                    <p className="text-teal-500 text-xs font-mono">@{driver.username}</p>
-                  </div>
-                  <p className="text-teal-400 text-xs hidden sm:block shrink-0">
-                    {new Date(driver.createdAt).toLocaleDateString("en-TT", { day: "numeric", month: "short" })}
-                  </p>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                    driver.availability === "available"
-                      ? "bg-emerald-100 text-emerald-700"
-                      : "bg-gray-100 text-gray-500"
-                  }`}>
-                    {driver.availability === "available" ? "● Online" : "○ Offline"}
-                  </span>
-                  <button
-                    onClick={() => setResetTarget(driver)}
-                    className="text-xs text-teal-500 hover:text-teal-700 border border-teal-200 px-2.5 py-1 rounded-lg transition-colors shrink-0"
-                  >
-                    Reset PW
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm(`Remove ${driver.name}?`)) deleteMutation.mutate(driver.id);
-                    }}
-                    disabled={deleteMutation.isPending}
-                    className="text-teal-300 hover:text-red-500 transition-colors disabled:opacity-40 shrink-0"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -438,6 +663,7 @@ export default function AdminDrivers() {
       </div>
 
       {resetTarget && <ResetPasswordModal driver={resetTarget} onClose={() => setResetTarget(null)} />}
+      {docTarget   && <DocExpiryModal     driver={docTarget}   onClose={() => setDocTarget(null)}   />}
     </Layout>
   );
 }
