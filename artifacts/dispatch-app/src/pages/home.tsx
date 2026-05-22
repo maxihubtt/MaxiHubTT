@@ -54,6 +54,15 @@ function isWest(loc: string): boolean {
     "champs fleurs", "calvary hill", "lower barataria", "upper barataria",
     "croisee de barataria", "mt hope", "noel street", "tarouba",
     "cocorite village", "western main road", "mucurapo road",
+    // more west / pOS areas
+    "tucker valley", "la seiva", "la joya", "chagville", "river road west",
+    "caroni swamp", "caroni bird sanctuary", "caroni arena",
+    "saint anns", "st anns", "upper cascade", "maracas valley", "barataria east",
+    "starlite park", "les efforts", "marianne", "dundonald hill",
+    "nook", "fondes amandes", "lady young", "upper laventille south",
+    "calvary hill extension", "beetham land", "beetham estate",
+    "belmont valley road", "observatory", "long circular road",
+    "lady young road extension", "penco road", "morne diablo west",
   ].some(k => loc.includes(k));
 }
 function isCentral(loc: string): boolean {
@@ -82,6 +91,14 @@ function isCentral(loc: string): boolean {
     "hindustan road", "carli bay", "chaguanas bypass", "uriah butler highway",
     "sir solomon hochoy highway", "ssolomon hochoy", "midcenter mall",
     "price plaza", "excellent city centre", "trincity central",
+    // more central areas
+    "point lisas", "point lisas industrial", "samaroo village", "tabaquite",
+    "jerningham junction", "golconda", "craignish", "mt pleasant central",
+    "southern main road west", "navet reservoir", "mt pleasant village",
+    "brechin castle estate", "felicity junction", "charlieville extension",
+    "couva junction", "railway road central", "claxton bay extension",
+    "gasparillo junction", "pointe a pierre south", "st mary junction",
+    "chase village junction", "mc bean road", "warrenville junction",
   ].some(k => loc.includes(k));
 }
 function isEast(loc: string): boolean {
@@ -111,6 +128,16 @@ function isEast(loc: string): boolean {
     "toco bay", "grandes riviere", "matelot village",
     "san rafael", "la fillette", "petit valley east",
     "hillsborough dam", "verdant vale", "mt pleasant east",
+    // more east areas
+    "maloney gardens", "o meara industrial", "trincity estate",
+    "tamana industrial", "imperial road", "biche village", "carapo east",
+    "sangre chiquito junction", "heights of el socorro", "mar road",
+    "five rivers extension", "mount aripo trail", "paria springs",
+    "blanchette road", "arena junction", "santa rosa extension",
+    "golden grove estate", "south oropouche", "spring bridge",
+    "demerara road", "cunapo southern", "cunapo northern",
+    "matura junction", "galera point", "saline bay east",
+    "toco beach", "grande riviere", "matelot junction",
   ].some(k => loc.includes(k));
 }
 function isSouth(loc: string): boolean {
@@ -146,6 +173,16 @@ function isSouth(loc: string): boolean {
     "penitence hill", "oropouche road", "south trunk road",
     "cocoyea village", "rousillac", "cap de ville road",
     "pitch lake", "brighton", "california village",
+    // more south areas
+    "guapo", "guapo beach", "fyzabad", "union hall", "siparia market",
+    "dogpatch", "tableland junction", "moruga road", "moruga",
+    "williamsville", "quinam", "quinam road", "harrison trace",
+    "corosal junction", "barrackpore junction", "st mary's village",
+    "debe junction", "debe market", "mcbean junction",
+    "lengua junction", "barrackpore market", "southern main road sf",
+    "sobo junction", "erin", "erin bay", "thick village road",
+    "bonasse village", "irois", "constance trace", "naparima trace",
+    "union road", "pepper village", "hermitage junction",
   ].some(k => loc.includes(k));
 }
 
@@ -219,13 +256,13 @@ const BEACH_RATES: Record<BeachKey, Record<RegionKey, [number, number, number, n
 };
 function identifyBeach(loc: string): BeachKey | null {
   const n = normalizeLoc(loc);
-  if (n.includes("maracas") || n.includes("tyrico")) return "maracas";
-  if (n.includes("las cuevas")) return "las_cuevas";
-  if (n.includes("blanchisseuse") || n.includes("paria")) return "blanchisseuse";
-  if (n.includes("manzanilla")) return "manzanilla";
-  if (n.includes("mayaro")) return "mayaro";
-  if (n.includes("vessigny")) return "vessigny";
-  if (n.includes("icacos") || n.includes("columbus bay")) return "icacos";
+  if (n.includes("maracas") || n.includes("tyrico") || n.includes("coral cove") || n.includes("maqueripe beach")) return "maracas";
+  if (n.includes("las cuevas") || n.includes("richard bay") || n.includes("richards bay") || n.includes("rincon")) return "las_cuevas";
+  if (n.includes("blanchisseuse") || n.includes("paria") || n.includes("marianne river")) return "blanchisseuse";
+  if (n.includes("manzanilla") || n.includes("sans souci") || n.includes("saline bay") || n.includes("toco beach") || n.includes("matura beach") || n.includes("balandra bay") || n.includes("grande riviere beach")) return "manzanilla";
+  if (n.includes("mayaro") || n.includes("guayaguayare beach") || n.includes("cocos bay")) return "mayaro";
+  if (n.includes("vessigny") || n.includes("quinam beach") || n.includes("quinam bay")) return "vessigny";
+  if (n.includes("icacos") || n.includes("columbus bay") || n.includes("soldado")) return "icacos";
   return null;
 }
 function identifyRegion(loc: string): RegionKey {
@@ -672,6 +709,10 @@ export default function Home() {
     if (tripType) {
       const beachFare = getBeachExactFare(pickup, dropoff, pax, tripType);
       if (beachFare) return beachFare;
+    } else {
+      // Step 0 preview: show the 12-seater one-way minimum as a starting price
+      const beachPreview = getBeachExactFare(pickup, dropoff, 12, "one-way");
+      if (beachPreview) return beachPreview;
     }
 
     // 2. Exact fare table (with pax + tripType when available)
