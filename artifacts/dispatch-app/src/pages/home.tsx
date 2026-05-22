@@ -648,6 +648,9 @@ export default function Home() {
   const [name, setName]   = useState("");
   const [phone, setPhone] = useState("");
 
+  // Step 3 — T&C agreement
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
   // Booking result
   const [bookedJob, setBookedJob] = useState<{
     id: string; name: string; pickup: string; dropoff: string;
@@ -726,6 +729,7 @@ export default function Home() {
 
   function handleSubmit() {
     if (!isReadyToSubmit || !tripType) { setStepErrors(true); return; }
+    if (!agreedToTerms) { setStepErrors(true); return; }
     const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
     const passengerDesc = paxLabel(pax);
     const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
@@ -754,6 +758,7 @@ export default function Home() {
     setTripType(null); setPax(8);
     setPickupDatetime(""); setReturnDatetime(""); setDatetimeError(""); setReturnDatetimeError("");
     setName(""); setPhone("");
+    setAgreedToTerms(false);
     setBookedJob(null);
     setStepErrors(false);
   }
@@ -1128,6 +1133,30 @@ export default function Home() {
                       </div>
                     </div>
                   </div>
+
+                  <label className={`flex items-start gap-3 rounded-xl border-2 px-4 py-3 cursor-pointer transition-colors ${agreedToTerms ? "border-teal-400 bg-teal-50/60" : stepErrors && !agreedToTerms ? "border-red-400 bg-red-50/40" : "border-teal-100 bg-white"}`}>
+                    <input
+                      type="checkbox"
+                      checked={agreedToTerms}
+                      onChange={e => { setAgreedToTerms(e.target.checked); setStepErrors(false); }}
+                      className="mt-0.5 w-4 h-4 accent-teal-700 shrink-0"
+                    />
+                    <span className="text-xs text-teal-700 leading-relaxed">
+                      I have read and agree to the{" "}
+                      <a
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-teal-700 font-bold underline underline-offset-2 hover:text-teal-900"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        Passenger Terms &amp; Conditions
+                      </a>
+                    </span>
+                  </label>
+                  {stepErrors && !agreedToTerms && (
+                    <p className="text-xs text-red-600 font-medium -mt-2">You must agree to the Terms &amp; Conditions to confirm your booking.</p>
+                  )}
 
                   {createJob.isError && (
                     <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3 space-y-1">
