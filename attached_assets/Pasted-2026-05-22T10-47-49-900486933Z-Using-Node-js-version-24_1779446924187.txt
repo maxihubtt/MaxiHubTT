@@ -1,0 +1,50 @@
+2026-05-22T10:47:49.900486933Z ==> Using Node.js version 24.14.1 (default)
+2026-05-22T10:47:49.900497403Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-05-22T10:47:50.107829641Z ==> Running build command 'npx --yes pnpm@9 install --no-frozen-lockfile --ignore-scripts && npx pnpm@9 rebuild esbuild && npx pnpm@9 --filter @workspace/db run migrate && npx pnpm@9 --filter @workspace/api-server run build'...
+2026-05-22T10:47:51.776596085Z (node:111) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-05-22T10:47:51.810365544Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-05-22T10:47:58.502554763Z (node:161) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-05-22T10:47:58.502601694Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-05-22T10:47:59.864277582Z 
+2026-05-22T10:47:59.864305883Z > @workspace/db@0.0.0 migrate /opt/render/project/src/lib/db
+2026-05-22T10:47:59.864313193Z > node src/migrate.mjs
+2026-05-22T10:47:59.864317793Z 
+2026-05-22T10:48:00.62171028Z /opt/render/project/src/node_modules/.pnpm/pg-protocol@1.13.0/node_modules/pg-protocol/dist/parser.js:305
+2026-05-22T10:48:00.621729371Z         : new messages_1.DatabaseError(messageValue, LATEINIT_LENGTH, name);
+2026-05-22T10:48:00.621733291Z           ^
+2026-05-22T10:48:00.621736421Z 
+2026-05-22T10:48:00.621740311Z error: password authentication failed for user "postgres"
+2026-05-22T10:48:00.621743831Z     at parseErrorMessage (/opt/render/project/src/node_modules/.pnpm/pg-protocol@1.13.0/node_modules/pg-protocol/dist/parser.js:305:11)
+2026-05-22T10:48:00.621746931Z     at Parser.handlePacket (/opt/render/project/src/node_modules/.pnpm/pg-protocol@1.13.0/node_modules/pg-protocol/dist/parser.js:143:27)
+2026-05-22T10:48:00.621750001Z     at Parser.parse (/opt/render/project/src/node_modules/.pnpm/pg-protocol@1.13.0/node_modules/pg-protocol/dist/parser.js:37:38)
+2026-05-22T10:48:00.621753121Z     at TLSSocket.<anonymous> (/opt/render/project/src/node_modules/.pnpm/pg-protocol@1.13.0/node_modules/pg-protocol/dist/index.js:11:42)
+2026-05-22T10:48:00.621756972Z     at TLSSocket.emit (node:events:508:28)
+2026-05-22T10:48:00.621760072Z     at addChunk (node:internal/streams/readable:563:12)
+2026-05-22T10:48:00.621763512Z     at readableAddChunkPushByteMode (node:internal/streams/readable:514:3)
+2026-05-22T10:48:00.621768702Z     at Readable.push (node:internal/streams/readable:394:5)
+2026-05-22T10:48:00.621773802Z     at TLSWrap.onStreamRead (node:internal/stream_base_commons:189:23) {
+2026-05-22T10:48:00.621778882Z   length: 71,
+2026-05-22T10:48:00.621784442Z   severity: 'FATAL',
+2026-05-22T10:48:00.621788802Z   code: '28P01',
+2026-05-22T10:48:00.621793462Z   detail: undefined,
+2026-05-22T10:48:00.621798613Z   hint: undefined,
+2026-05-22T10:48:00.621813983Z   position: undefined,
+2026-05-22T10:48:00.621817563Z   internalPosition: undefined,
+2026-05-22T10:48:00.621820513Z   internalQuery: undefined,
+2026-05-22T10:48:00.621823413Z   where: undefined,
+2026-05-22T10:48:00.621826513Z   schema: undefined,
+2026-05-22T10:48:00.621829433Z   table: undefined,
+2026-05-22T10:48:00.621832313Z   column: undefined,
+2026-05-22T10:48:00.621835003Z   dataType: undefined,
+2026-05-22T10:48:00.621838203Z   constraint: undefined,
+2026-05-22T10:48:00.621841094Z   file: undefined,
+2026-05-22T10:48:00.621844254Z   line: undefined,
+2026-05-22T10:48:00.621847314Z   routine: undefined
+2026-05-22T10:48:00.621850414Z }
+2026-05-22T10:48:00.621853424Z 
+2026-05-22T10:48:00.621856634Z Node.js v24.14.1
+2026-05-22T10:48:00.628158859Z /opt/render/project/src/lib/db:
+2026-05-22T10:48:00.628178129Z  ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/db@0.0.0 migrate: `node src/migrate.mjs`
+2026-05-22T10:48:00.628182659Z Exit status 1
+2026-05-22T10:48:00.702102883Z ==> Build failed 😞
+2026-05-22T10:48:00.702128534Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
