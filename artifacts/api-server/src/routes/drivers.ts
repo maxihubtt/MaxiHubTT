@@ -26,7 +26,7 @@ router.post("/signup", async (req, res) => {
       .from(driverSignupsTable)
       .where(and(
         eq(driverSignupsTable.username, cleanUsername),
-        or(eq(driverSignupsTable.status, "pending"), eq(driverSignupsTable.status, "approved")),
+        eq(driverSignupsTable.status, "pending"),
       ))
       .limit(1);
     const [takenInDrivers] = await db
