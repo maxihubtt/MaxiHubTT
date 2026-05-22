@@ -16,6 +16,7 @@ export default function DriverSignup() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   function set(field: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,6 +29,10 @@ export default function DriverSignup() {
     e.preventDefault();
     if (Object.values(form).some(v => !v.trim())) {
       setError("Please fill in all fields.");
+      return;
+    }
+    if (!agreedToTerms) {
+      setError("You must agree to the Driver Terms & Conditions to continue.");
       return;
     }
     setLoading(true);
@@ -224,12 +229,25 @@ export default function DriverSignup() {
               </Link>
             </p>
 
-            <p className="text-center text-xs text-teal-400 pt-1">
-              By submitting, you agree to our{" "}
-              <Link href="/driver/terms" className="text-teal-600 font-semibold hover:underline">
-                Driver Terms &amp; Conditions
-              </Link>
-            </p>
+            <label className={`flex items-start gap-3 rounded-xl border-2 px-4 py-3 cursor-pointer transition-colors ${agreedToTerms ? "border-teal-400 bg-teal-50/50" : "border-teal-100 bg-white"}`}>
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={e => { setAgreedToTerms(e.target.checked); setError(""); }}
+                className="mt-0.5 w-4 h-4 accent-teal-700 shrink-0"
+              />
+              <span className="text-xs text-teal-700 leading-relaxed">
+                I have read and agree to the{" "}
+                <Link
+                  href="/driver/terms"
+                  target="_blank"
+                  className="text-teal-700 font-bold underline underline-offset-2 hover:text-teal-900"
+                  onClick={e => e.stopPropagation()}
+                >
+                  Driver Terms &amp; Conditions
+                </Link>
+              </span>
+            </label>
           </div>
 
           <Link href="/" className="flex items-center justify-center gap-1 text-teal-600 text-xs mt-6 hover:text-teal-800">

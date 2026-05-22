@@ -1,33 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useCreateJob, useGetJob, getGetJobQueryKey, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle, AlertTriangle } from "lucide-react";
 
 const WA_BASE = "https://wa.me/18684818039?text=";
 const waLink = (msg: string) => WA_BASE + encodeURIComponent(msg);
-
-// ── Render API Pricing Helper ────────────────────────────────────────────────
-async function fetchPrice(pickup: string, dropoff: string) {
-  try {
-    const res = await fetch("/api/pricing", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pickup, dropoff }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error(data.error);
-      return null;
-    }
-
-    return data.price;
-  } catch (err) {
-    console.error(err);
-    return null;
-  }
-}
 
 // ── Fare calculation helpers ─────────────────────────────────────────────────
 
@@ -659,9 +636,6 @@ export default function Home() {
   // Step 0 — Route
   const [pickup, setPickup]   = useState("");
   const [dropoff, setDropoff] = useState("");
-  const [apiFare, setApiFare] = useState<number | null>(null);
-  const [isFetchingApiFare, setIsFetchingApiFare] = useState(false);
-
   // Step 1 — Details
   const [tripType, setTripType]               = useState<"one-way" | "round" | null>(null);
   const [pax, setPax]                         = useState(8);
@@ -685,89 +659,38 @@ export default function Home() {
   const queryClient = useQueryClient();
   const createJob   = useCreateJob();
 
-  // ── LIVE API FETCH EFFECT ──
-  useEffect(() => {
-    // Only fetch if they have typed somewhat meaningful locations
-    if (pickup.trim().length < 3 || dropoff.trim().length < 3) {
-      setApiFare(null);
-      return;
+  // ── LOCAL FARE CALCULATOR ──
+  // Computes the correct fare from the built-in tables, accounting for
+  // passenger count and trip type. No external API involved.
+  const displayFare = useMemo<number | null>(() => {
+    if (!pickup.trim() || !dropoff.trim()) return null;
+
+    // 1. Beach routes (exact fare with pax + tripType)
+    if (tripType) {
+      const beachFare = getBeachExactFare(pickup, dropoff, pax, tripType);
+      if (beachFare) return beachFare;
     }
 
-    const timer = setTimeout(async () => {
-      setIsFetchingApiFare(true);
-      const price = await fetchPrice(pickup, dropoff);
-      setApiFare(price);
-      setIsFetchingApiFare(false);
-    }, 800); // 800ms debounce to avoid spamming the Render API
-
-    return () => clearTimeout(timer);
-  }, [pickup, dropoff]);
-
-  const [displayFare, setDisplayFare] = useState<number | null>(null);
-const [loadingFare, setLoadingFare] = useState(false);
-
-const deposit = displayFare
-  ? Math.ceil(displayFare * 0.25)
-  : null;
-
-useEffect(() => {
-  async function fetchFare() {
-    if (!pickup.trim() || !dropoff.trim()) {
-      setDisplayFare(null);
-      return;
-    }
-
-    const tryLocalFallback = () => {
-      // 1. Try the exact fare table first
-      const key = getFareTableKey(pickup, dropoff);
-      const range = key ? getRouteDisplayRange(key) : null;
-      if (range) { setDisplayFare(range[0]); return; }
-      // 2. Fall back to zone-distance estimate for any recognised zone pair
-      const zoneEstimate = estimateFareFromZones(pickup, dropoff);
-      setDisplayFare(zoneEstimate ?? null);
-    };
-
-    try {
-      setLoadingFare(true);
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-
-      let response: Response;
-      try {
-        response = await fetch(
-          "/api/pricing",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pickup, dropoff }),
-            signal: controller.signal,
-          }
-        );
-        clearTimeout(timeout);
-      } catch {
-        clearTimeout(timeout);
-        tryLocalFallback();
-        return;
-      }
-
-      const data = await response.json();
-
-      if (response.ok && data.price) {
-        setDisplayFare(data.price);
+    // 2. Exact fare table (with pax + tripType when available)
+    const key = getFareTableKey(pickup, dropoff);
+    if (key) {
+      if (tripType) {
+        const fare = getFareFromTable(key, pax, tripType);
+        if (fare) return fare;
       } else {
-        tryLocalFallback();
+        // Step 0: show the range start (12-seater one-way) as a preview
+        const range = getRouteDisplayRange(key);
+        if (range) return range[0];
       }
-    } catch (err) {
-      console.error(err);
-      tryLocalFallback();
-    } finally {
-      setLoadingFare(false);
     }
-  }
 
-  fetchFare();
-}, [pickup, dropoff]);
+    // 3. Zone-distance estimate fallback
+    return estimateFareFromZones(pickup, dropoff);
+  }, [pickup, dropoff, pax, tripType]);
+
+  const deposit = displayFare
+    ? Math.ceil(displayFare * 0.25)
+    : null;
 
   const validateDatetime = (value: string) => {
     if (!value) { setDatetimeError(""); return; }
@@ -827,13 +750,14 @@ useEffect(() => {
 
   function resetAll() {
     setStep(0);
-    setPickup(""); setDropoff(""); setApiFare(null);
+    setPickup(""); setDropoff("");
     setTripType(null); setPax(8);
     setPickupDatetime(""); setReturnDatetime(""); setDatetimeError(""); setReturnDatetimeError("");
     setName(""); setPhone("");
     setBookedJob(null);
     setStepErrors(false);
   }
+
 
   if (bookedJob) {
     return <ConfirmedScreen job={bookedJob} onReset={resetAll} />;
@@ -957,23 +881,7 @@ useEffect(() => {
 
                   {pickup.trim() && dropoff.trim() && (
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-teal-700">
-                      {isFetchingApiFare ? (
-                        <div className="flex items-center gap-2 text-teal-600 font-semibold py-1">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Checking live prices...
-                        </div>
-                      ) : apiFare ? (
-                        <>
-                          <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Live API Fare Estimate</p>
-                          <p className="text-2xl font-black text-teal-900">{fmtFare(apiFare)}</p>
-                          <p className="text-xs text-teal-500 mt-1">Select trip type &amp; passengers on next step for your exact price</p>
-                        </>
-                      ) : loadingFare ? (
-                        <>
-                          <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Calculating fare</p>
-                          <p className="text-2xl font-black text-teal-900">Please wait...</p>
-                        </>
-                      ) : displayFare ? (
+                      {displayFare ? (
                         <>
                           <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Estimated Fare</p>
                           <p className="text-2xl font-black text-teal-900">from TTD {displayFare.toLocaleString("en-TT")}</p>
@@ -1086,14 +994,14 @@ useEffect(() => {
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
                       <div className="flex justify-between items-center gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">{apiFare ? "API Fare" : "Local Fare"}</p>
+                          <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">Fare</p>
                           <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                         </div>
                         {displayFare
                           ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtFare(displayFare)}</p>
                           : <p className="text-sm font-semibold text-teal-600 shrink-0">WhatsApp us for a quote</p>}
                       </div>
-                      {getBeachExactFare(pickup, dropoff, pax, tripType ?? "one-way") && !apiFare && (
+                      {getBeachExactFare(pickup, dropoff, pax, tripType ?? "one-way") && (
                         <p className="text-xs text-teal-500 mt-2 border-t border-amber-200 pt-2">
                           Beach trip · exact quote confirmed by WhatsApp after booking.
                         </p>
