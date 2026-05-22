@@ -79,6 +79,8 @@ VAPID_PUBLIC_KEY = "BGmc5ftxoM6jT7QVXDouPP6jJ5mVBKt11g2Ba_HWH1BWxNpTUQoEocrNfZ4P
 VAPID_PRIVATE_KEY = "ZLfAZ3j1Lhc5F817WwelAX4H5f-s74ftoGgsvru4P28"
 VAPID_SUBJECT = "mailto:admin@maxihubtt.com"
 PORT = "8080"
+SUPABASE_DB_HOST = "aws-1-us-east-2.pooler.supabase.com"
+SUPABASE_DB_USER = "postgres.bfufjqlofylnjamfoorb"
 
 [nix]
 channel = "stable-25_05"
