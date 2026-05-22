@@ -1396,6 +1396,10 @@ useEffect(() => {
           <p className="font-black text-teal-900 text-sm">Maxi Hub TT</p>
         </div>
         <p className="text-xs text-teal-600/60 mb-1">Comfort. Reliability. Every Ride.</p>
+        <div className="flex justify-center gap-4 mb-2">
+          <a href="/terms" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">Passenger Terms</a>
+          <a href="/driver/terms" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">Driver Terms</a>
+        </div>
         <p className="text-xs text-teal-600/40">© {new Date().getFullYear()} Maxi Hub TT. All rights reserved. Trinidad & Tobago.</p>
       </footer>
 

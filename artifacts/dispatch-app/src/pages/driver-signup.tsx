@@ -223,6 +223,13 @@ export default function DriverSignup() {
                 Log in here
               </Link>
             </p>
+
+            <p className="text-center text-xs text-teal-400 pt-1">
+              By submitting, you agree to our{" "}
+              <Link href="/driver/terms" className="text-teal-600 font-semibold hover:underline">
+                Driver Terms &amp; Conditions
+              </Link>
+            </p>
           </div>
 
           <Link href="/" className="flex items-center justify-center gap-1 text-teal-600 text-xs mt-6 hover:text-teal-800">

@@ -14,6 +14,8 @@ import DriverJobs from "@/pages/driver-jobs";
 import DriverLogin from "@/pages/driver-login";
 import DriverSignup from "@/pages/driver-signup";
 import AdminDrivers from "@/pages/admin-drivers";
+import TermsUsers from "@/pages/terms-users";
+import TermsDrivers from "@/pages/terms-drivers";
 import NotFound from "@/pages/not-found";
 
 import { AdminGuard } from "@/components/admin-guard";
@@ -62,6 +64,9 @@ function Router() {
       <Route path="/driver/login" component={DriverLogin} />
 
       <Route path="/driver/signup" component={DriverSignup} />
+
+      <Route path="/terms" component={TermsUsers} />
+      <Route path="/driver/terms" component={TermsDrivers} />
 
       <Route path="/driver/jobs">
         <DriverGuard>
