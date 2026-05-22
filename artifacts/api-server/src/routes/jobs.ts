@@ -88,6 +88,14 @@ router.get("/jobs/stats", requireAdmin, async (req, res) => {
   res.json(stats);
 });
 
+// Price strings are stored as e.g. "TTD 1,200 (Round Trip, 8 passengers) — Pickup: ..."
+// We extract ONLY the number immediately after "TTD " to avoid picking up dates/times.
+function parseJobPrice(price: string): number {
+  const match = price.match(/^TTD\s+([\d,]+(?:\.\d+)?)/);
+  if (!match) return 0;
+  return parseFloat(match[1].replace(/,/g, "")) || 0;
+}
+
 router.get("/jobs/analytics", requireAdmin, async (req, res) => {
   const all = await db.select().from(jobsTable).orderBy(desc(jobsTable.createdAt));
 
@@ -98,19 +106,13 @@ router.get("/jobs/analytics", requireAdmin, async (req, res) => {
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().slice(0, 10);
     const dayJobs = all.filter(j => j.createdAt.toISOString().slice(0, 10) === dateStr);
-    const revenue = dayJobs.reduce((sum, j) => {
-      const n = parseFloat(j.price.replace(/[^0-9.]/g, ""));
-      return sum + (isNaN(n) ? 0 : n);
-    }, 0);
+    const revenue = dayJobs.reduce((sum, j) => sum + parseJobPrice(j.price), 0);
     days.push({ date: dateStr, count: dayJobs.length, revenue: Math.round(revenue * 100) / 100 });
   }
 
   const totalRevenue = all
     .filter(j => j.status === "completed")
-    .reduce((sum, j) => {
-      const n = parseFloat(j.price.replace(/[^0-9.]/g, ""));
-      return sum + (isNaN(n) ? 0 : n);
-    }, 0);
+    .reduce((sum, j) => sum + parseJobPrice(j.price), 0);
 
   const driverActivity: Record<string, number> = {};
   for (const j of all.filter(j => j.claimedBy)) {
