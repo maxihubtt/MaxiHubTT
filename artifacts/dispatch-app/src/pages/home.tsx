@@ -3,6 +3,32 @@ import { useCreateJob, useGetJob, getGetJobQueryKey, getListJobsQueryKey, getGet
 import { useQueryClient } from "@tanstack/react-query";
 import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle, AlertTriangle } from "lucide-react";
 
+interface BookingConfig {
+  deposit_pct: number;
+  rush_fee: number;
+  min_booking_hours: number;
+  same_day_min_hours: number;
+  urgent_enabled: boolean;
+}
+
+const DEFAULT_BOOKING_CONFIG: BookingConfig = {
+  deposit_pct: 25,
+  rush_fee: 150,
+  min_booking_hours: 6,
+  same_day_min_hours: 2,
+  urgent_enabled: true,
+};
+
+async function fetchBookingConfig(): Promise<BookingConfig> {
+  try {
+    const res = await fetch("/api/config/booking");
+    if (!res.ok) return DEFAULT_BOOKING_CONFIG;
+    return res.json() as Promise<BookingConfig>;
+  } catch {
+    return DEFAULT_BOOKING_CONFIG;
+  }
+}
+
 const WA_BASE = "https://wa.me/18684818039?text=";
 const waLink = (msg: string) => WA_BASE + encodeURIComponent(msg);
 
@@ -743,6 +769,11 @@ function ConfirmedScreen({
 
 export default function Home() {
   const [step, setStep] = useState(0);
+  const [bookingConfig, setBookingConfig] = useState<BookingConfig>(DEFAULT_BOOKING_CONFIG);
+
+  useEffect(() => {
+    fetchBookingConfig().then(setBookingConfig).catch(() => {});
+  }, []);
 
   // Step 0 — Route
   const [pickup, setPickup]   = useState("");
@@ -811,13 +842,13 @@ export default function Home() {
   const urgencyTier = useMemo(() => {
     if (!pickupDatetime) return null;
     const hoursUntil = (new Date(pickupDatetime).getTime() - Date.now()) / (1000 * 60 * 60);
-    if (hoursUntil < 2) return "urgent";
-    if (hoursUntil < 6) return "same_day";
+    if (hoursUntil < bookingConfig.same_day_min_hours) return "urgent";
+    if (hoursUntil < bookingConfig.min_booking_hours) return "same_day";
     return "standard";
-  }, [pickupDatetime]);
+  }, [pickupDatetime, bookingConfig.same_day_min_hours, bookingConfig.min_booking_hours]);
 
   const deposit = displayFare
-    ? Math.ceil(displayFare * 0.25)
+    ? Math.ceil(displayFare * (bookingConfig.deposit_pct / 100))
     : null;
 
   const validateDatetime = (value: string) => {
@@ -1186,7 +1217,7 @@ export default function Home() {
                     <div className="rounded-xl border-2 border-red-400 bg-red-50 px-4 py-3 space-y-1">
                       <p className="text-sm font-black text-red-700">⚡ Urgent Booking — Full Payment Required</p>
                       <p className="text-xs text-red-600 leading-relaxed">
-                        Pickups within 2 hours require full payment plus a rush fee (TTD 150). Our team will contact you immediately after booking.
+                        Pickups within {bookingConfig.same_day_min_hours} hour{bookingConfig.same_day_min_hours !== 1 ? "s" : ""} require full payment{bookingConfig.rush_fee > 0 ? ` plus a rush fee (TTD ${bookingConfig.rush_fee.toLocaleString("en-TT")})` : ""}. Our team will contact you immediately after booking.
                       </p>
                     </div>
                   )}
@@ -1194,7 +1225,7 @@ export default function Home() {
                     <div className="rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 space-y-1">
                       <p className="text-sm font-bold text-amber-800">🕐 Same-Day Booking</p>
                       <p className="text-xs text-amber-700 leading-relaxed">
-                        Pickup within 6 hours. A 25% deposit is required promptly to confirm your driver — please keep your phone nearby.
+                        Pickup within {bookingConfig.min_booking_hours} hours. A {bookingConfig.deposit_pct}% deposit is required promptly to confirm your driver — please keep your phone nearby.
                       </p>
                     </div>
                   )}
@@ -1310,8 +1341,11 @@ export default function Home() {
                       <div>
                         {deposit
                           ? <>
-                              <p className="text-sm font-bold text-teal-900">25% Deposit: TTD {deposit.toLocaleString("en-TT")}</p>
+                              <p className="text-sm font-bold text-teal-900">{bookingConfig.deposit_pct}% Deposit: TTD {deposit.toLocaleString("en-TT")}</p>
                               <p className="text-xs text-teal-700/80 mt-0.5">Balance of TTD {((displayFare ?? 0) - deposit).toLocaleString("en-TT")} paid to your driver on the day.</p>
+                              {urgencyTier === "urgent" && bookingConfig.rush_fee > 0 && (
+                                <p className="text-xs text-red-600 font-semibold mt-1">⚡ Rush fee: TTD {bookingConfig.rush_fee.toLocaleString("en-TT")} (added for urgent bookings)</p>
+                              )}
                             </>
                           : <p className="text-sm text-teal-700">Our team will confirm your exact fare and deposit by WhatsApp after booking.</p>
                         }

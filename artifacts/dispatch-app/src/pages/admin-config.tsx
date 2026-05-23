@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Settings, Save, RotateCcw } from "lucide-react";
+import { Settings, Save, RotateCcw, Bell, BellOff, Copy, Check } from "lucide-react";
 
 interface ConfigData {
   min_booking_hours: string;
@@ -37,6 +37,123 @@ async function saveConfig(data: ConfigData): Promise<ConfigData> {
   });
   if (!res.ok) throw new Error("Failed to save config");
   return res.json() as Promise<ConfigData>;
+}
+
+interface VapidStatus {
+  configured: boolean;
+  publicKey: string;
+  privateKey?: string;
+  instructions?: string;
+}
+
+function VapidSetup() {
+  const [status, setStatus] = useState<VapidStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState<"pub" | "priv" | null>(null);
+
+  async function loadVapid() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/vapid", { credentials: "include" });
+      if (res.ok) setStatus(await res.json() as VapidStatus);
+    } catch {}
+    setLoading(false);
+  }
+
+  function copyToClipboard(text: string, which: "pub" | "priv") {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(which);
+      setTimeout(() => setCopied(null), 2000);
+    }).catch(() => {});
+  }
+
+  return (
+    <Card className="p-6 space-y-4 bg-muted/20">
+      <div className="flex items-center gap-3">
+        {status?.configured ? (
+          <Bell className="h-5 w-5 text-green-600" />
+        ) : (
+          <BellOff className="h-5 w-5 text-muted-foreground" />
+        )}
+        <div>
+          <p className="text-sm font-semibold">Push Notification Keys (VAPID)</p>
+          <p className="text-xs text-muted-foreground">Required for driver push alerts</p>
+        </div>
+        <div className="ml-auto">
+          {status?.configured ? (
+            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-green-100 text-green-700 border border-green-200">Configured</span>
+          ) : (
+            <span className="text-xs font-semibold px-2 py-1 rounded-full bg-red-100 text-red-700 border border-red-200">Not Set</span>
+          )}
+        </div>
+      </div>
+
+      {!status && (
+        <button
+          onClick={loadVapid}
+          disabled={loading}
+          className="h-9 px-4 rounded-lg border border-border bg-muted/40 text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+        >
+          {loading ? "Loading…" : "Check VAPID Status"}
+        </button>
+      )}
+
+      {status?.configured && (
+        <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+          ✓ VAPID keys are set on your server. Push notifications are enabled.
+          <p className="text-xs text-green-600 mt-1 font-mono break-all">Public key: {status.publicKey}</p>
+        </div>
+      )}
+
+      {status && !status.configured && (
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            VAPID keys are not set. Copy the generated keys below and add them as environment variables on your <strong>Render</strong> service, then redeploy.
+          </p>
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <p className="text-xs font-semibold text-foreground">VAPID_PUBLIC_KEY</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 text-xs font-mono bg-background border border-border rounded px-2 py-1.5 break-all">{status.publicKey}</code>
+                <button
+                  onClick={() => copyToClipboard(status.publicKey, "pub")}
+                  className="shrink-0 p-1.5 rounded border border-border hover:bg-muted transition-colors"
+                  title="Copy"
+                >
+                  {copied === "pub" ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+            </div>
+            {status.privateKey && (
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-foreground">VAPID_PRIVATE_KEY</p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-xs font-mono bg-background border border-border rounded px-2 py-1.5 break-all">{status.privateKey}</code>
+                  <button
+                    onClick={() => copyToClipboard(status.privateKey!, "priv")}
+                    className="shrink-0 p-1.5 rounded border border-border hover:bg-muted transition-colors"
+                    title="Copy"
+                  >
+                    {copied === "priv" ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+            ⚠ These keys are generated fresh each time you click "Check VAPID Status". Copy both before leaving — they cannot be retrieved again. Once set on Render, do not regenerate or existing subscriptions will break.
+          </p>
+          <button
+            onClick={loadVapid}
+            disabled={loading}
+            className="h-8 px-3 rounded border border-border bg-muted/40 text-xs font-medium hover:bg-muted transition-colors disabled:opacity-50"
+          >
+            Regenerate Keys
+          </button>
+        </div>
+      )}
+    </Card>
+  );
 }
 
 export default function AdminConfig() {
@@ -163,6 +280,16 @@ export default function AdminConfig() {
             </button>
           )}
         </div>
+
+        <div className="flex items-center gap-3 pt-2">
+          <Bell className="h-6 w-6 text-primary" />
+          <div>
+            <h2 className="text-xl font-bold uppercase tracking-tight">Push Notifications</h2>
+            <p className="text-sm text-muted-foreground">VAPID key setup for driver push alerts.</p>
+          </div>
+        </div>
+
+        <VapidSetup />
       </div>
     </Layout>
   );
