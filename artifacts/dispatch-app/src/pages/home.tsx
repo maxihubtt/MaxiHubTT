@@ -680,6 +680,7 @@ export default function Home() {
   const [returnDatetime, setReturnDatetime]   = useState("");
   const [datetimeError, setDatetimeError]     = useState("");
   const [returnDatetimeError, setReturnDatetimeError] = useState("");
+  const [returnDifferentDay, setReturnDifferentDay]   = useState(false);
 
   // Step 2 — Contact
   const [name, setName]   = useState("");
@@ -745,9 +746,23 @@ export default function Home() {
   };
 
   const validateReturnDatetime = (pickup: string, ret: string) => {
-    if (!ret) { setReturnDatetimeError(""); return; }
-    if (!pickup) { setReturnDatetimeError("Set a pickup time first."); return; }
-    setReturnDatetimeError(new Date(ret) <= new Date(pickup) ? "Return must be after pickup." : "");
+    if (!ret) { setReturnDatetimeError(""); setReturnDifferentDay(false); return; }
+    if (!pickup) { setReturnDatetimeError("Set a pickup time first."); setReturnDifferentDay(false); return; }
+    if (new Date(ret) <= new Date(pickup)) {
+      setReturnDatetimeError("Return must be after pickup.");
+      setReturnDifferentDay(false);
+      return;
+    }
+    // Check same-day: compare YYYY-MM-DD portion of the datetime-local strings
+    const pickupDay = pickup.slice(0, 10);
+    const returnDay = ret.slice(0, 10);
+    if (pickupDay !== returnDay) {
+      setReturnDifferentDay(true);
+      setReturnDatetimeError("");
+    } else {
+      setReturnDifferentDay(false);
+      setReturnDatetimeError("");
+    }
   };
 
   const canAdvanceStep0 = pickup.trim() !== "" && dropoff.trim() !== "";
@@ -755,7 +770,7 @@ export default function Home() {
     tripType !== null &&
     pickupDatetime !== "" &&
     !datetimeError &&
-    (tripType !== "round" || (returnDatetime !== "" && !returnDatetimeError));
+    (tripType !== "round" || (returnDatetime !== "" && !returnDatetimeError && !returnDifferentDay));
   const canAdvanceStep2 = name.trim() !== "" && phone.trim() !== "";
   const isReadyToSubmit = canAdvanceStep0 && canAdvanceStep1 && canAdvanceStep2;
 
@@ -797,7 +812,7 @@ export default function Home() {
     setStep(0);
     setPickup(""); setDropoff("");
     setTripType(null); setPax(8);
-    setPickupDatetime(""); setReturnDatetime(""); setDatetimeError(""); setReturnDatetimeError("");
+    setPickupDatetime(""); setReturnDatetime(""); setDatetimeError(""); setReturnDatetimeError(""); setReturnDifferentDay(false);
     setName(""); setPhone("");
     setAgreedToTerms(false);
     setBookedJob(null);
@@ -1025,14 +1040,41 @@ export default function Home() {
                           type="datetime-local"
                           min={pickupDatetime || getMinDatetime()}
                           className={`w-full h-12 pl-9 pr-4 rounded-xl border-2 bg-white focus:outline-none text-teal-900 text-sm transition-colors ${
-                            returnDatetimeError || (stepErrors && !returnDatetime) ? "border-red-400" : "border-amber-200 focus:border-amber-400"
+                            returnDatetimeError || returnDifferentDay || (stepErrors && !returnDatetime) ? "border-red-400" : "border-amber-200 focus:border-amber-400"
                           }`}
                           value={returnDatetime}
                           onChange={e => { setReturnDatetime(e.target.value); validateReturnDatetime(pickupDatetime, e.target.value); setStepErrors(false); }}
                         />
                       </div>
                       {returnDatetimeError && <p className="text-xs text-red-600 font-medium">{returnDatetimeError}</p>}
-                      {stepErrors && !returnDatetime && !returnDatetimeError && <p className="text-xs text-red-600 font-medium">Please set a return date and time.</p>}
+                      {stepErrors && !returnDatetime && !returnDatetimeError && !returnDifferentDay && (
+                        <p className="text-xs text-red-600 font-medium">Please set a return date and time.</p>
+                      )}
+                      {returnDifferentDay && (
+                        <div className="rounded-xl border-2 border-amber-400 bg-amber-50 px-4 py-3 space-y-2.5">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-bold text-amber-800">Return must be on the same day</p>
+                              <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+                                For overnight or multi-day trips, please contact us directly on WhatsApp to arrange a custom booking.
+                              </p>
+                            </div>
+                          </div>
+                          <a
+                            href={waLink(
+                              `Hi Maxi Hub TT, I'd like to arrange a custom booking.\n\nPickup: ${pickup}\nDropoff: ${dropoff}\nOutbound: ${pickupDatetime}\nReturn: ${returnDatetime}\nPassengers: ${pax}`
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 w-full h-10 rounded-lg text-sm font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            style={{ background: "#25D366" }}
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                            Book via WhatsApp
+                          </a>
+                        </div>
+                      )}
                     </div>
                   )}
 
