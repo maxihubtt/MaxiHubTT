@@ -12,6 +12,8 @@ tags:
     description: Health operations
   - name: jobs
     description: Job dispatch operations
+  - name: config
+    description: Admin configuration
 paths:
   /healthz:
     get:
@@ -186,6 +188,62 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /jobs/{id}/deposit-paid:
+    patch:
+      operationId: markDepositPaid
+      tags: [jobs]
+      summary: Mark a booking deposit as received
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deposit marked as received — job moved to deposit_received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/{id}/status:
+    patch:
+      operationId: updateJobStatus
+      tags: [jobs]
+      summary: Update job status (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateJobStatusBody"
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /jobs/{id}:
     get:
       operationId: getJob
@@ -210,6 +268,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/config:
+    get:
+      operationId: getAdminConfig
+      tags: [config]
+      summary: Get all admin configuration values
+      responses:
+        "200":
+          description: Admin configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminConfig"
+    put:
+      operationId: updateAdminConfig
+      tags: [config]
+      summary: Update admin configuration values
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminConfig"
+      responses:
+        "200":
+          description: Config updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminConfig"
 
 components:
   schemas:
@@ -241,7 +329,36 @@ components:
           nullable: true
         status:
           type: string
-          enum: [pending, claimed, completed]
+          enum:
+            - pending
+            - pending_deposit
+            - deposit_received
+            - driver_assigned
+            - driver_en_route
+            - claimed
+            - completed
+            - cancelled
+            - expired
+        urgency:
+          type: string
+          enum: [standard, same_day, urgent]
+          default: standard
+        depositAmount:
+          type: integer
+          nullable: true
+        rushFee:
+          type: integer
+          default: 0
+        depositPaid:
+          type: boolean
+          default: false
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        pickupDatetime:
+          type: string
+          nullable: true
         claimedBy:
           type: string
           nullable: true
@@ -265,6 +382,9 @@ components:
         - phone
         - price
         - status
+        - urgency
+        - depositPaid
+        - rushFee
         - createdAt
         - updatedAt
 
@@ -283,6 +403,9 @@ components:
           type: string
         passengers:
           type: string
+        pickupDatetime:
+          type: string
+          description: ISO datetime string of desired pickup time (used for urgency classification)
       required:
         - pickup
         - dropoff
@@ -297,23 +420,34 @@ components:
           type: integer
         pending:
           type: integer
+        pendingDeposit:
+          type: integer
+        depositReceived:
+          type: integer
         claimed:
           type: integer
         completed:
           type: integer
+        expired:
+          type: integer
+        cancelled:
+          type: integer
       required:
         - total
         - pending
+        - pendingDeposit
+        - depositReceived
         - claimed
         - completed
+        - expired
+        - cancelled
 
     ClaimJobBody:
       type: object
       properties:
         driverName:
           type: string
-      required:
-        - driverName
+          description: Deprecated — driver identity is resolved from session. Field ignored if provided.
 
     UpdateDriverInfoBody:
       type: object
@@ -321,6 +455,40 @@ components:
         vehicleType:
           type: string
         numberPlate:
+          type: string
+
+    UpdateJobStatusBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - pending
+            - pending_deposit
+            - deposit_received
+            - driver_assigned
+            - driver_en_route
+            - claimed
+            - completed
+            - cancelled
+            - expired
+      required:
+        - status
+
+    AdminConfig:
+      type: object
+      properties:
+        min_booking_hours:
+          type: string
+        same_day_min_hours:
+          type: string
+        deposit_pct:
+          type: string
+        rush_fee:
+          type: string
+        deposit_expiry_mins:
+          type: string
+        urgent_enabled:
           type: string
 
     ErrorResponse:

@@ -12,7 +12,15 @@ function generateDriverId(): string {
 
 router.get("/admin/drivers", requireAdmin, async (req, res) => {
   const drivers = await db
-    .select({ id: driversTable.id, name: driversTable.name, username: driversTable.username, createdAt: driversTable.createdAt })
+    .select({
+      id: driversTable.id,
+      name: driversTable.name,
+      username: driversTable.username,
+      availability: driversTable.availability,
+      dpExpiry: driversTable.dpExpiry,
+      insuranceExpiry: driversTable.insuranceExpiry,
+      createdAt: driversTable.createdAt,
+    })
     .from(driversTable)
     .orderBy(driversTable.createdAt);
   res.json(drivers.map(d => ({ ...d, createdAt: d.createdAt.toISOString() })));
@@ -40,10 +48,37 @@ router.post("/admin/drivers", requireAdmin, async (req, res) => {
     name: name.trim(),
     username: username.trim().toLowerCase(),
     passwordHash,
-  }).returning({ id: driversTable.id, name: driversTable.name, username: driversTable.username, createdAt: driversTable.createdAt });
+  }).returning({
+    id: driversTable.id,
+    name: driversTable.name,
+    username: driversTable.username,
+    availability: driversTable.availability,
+    dpExpiry: driversTable.dpExpiry,
+    insuranceExpiry: driversTable.insuranceExpiry,
+    createdAt: driversTable.createdAt,
+  });
 
   req.log.info({ driverId: id, username }, "Driver account created");
   res.status(201).json({ ...driver, createdAt: driver.createdAt.toISOString() });
+});
+
+router.patch("/admin/drivers/:id/documents", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { dpExpiry, insuranceExpiry } = req.body as { dpExpiry?: string | null; insuranceExpiry?: string | null };
+
+  const [driver] = await db.select().from(driversTable).where(eq(driversTable.id, id as string));
+  if (!driver) { res.status(404).json({ error: "Driver not found" }); return; }
+
+  await db.update(driversTable)
+    .set({
+      dpExpiry: dpExpiry ?? null,
+      insuranceExpiry: insuranceExpiry ?? null,
+      updatedAt: new Date(),
+    })
+    .where(eq(driversTable.id, id as string));
+
+  req.log.info({ driverId: id }, "Driver document expiry dates updated");
+  res.json({ ok: true });
 });
 
 router.patch("/admin/drivers/:id/reset-password", requireAdmin, async (req, res) => {

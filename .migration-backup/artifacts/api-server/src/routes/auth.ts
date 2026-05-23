@@ -55,7 +55,7 @@ router.post("/auth/logout", (req, res) => {
 });
 
 router.post("/auth/driver-login", async (req, res) => {
-  const { username, password } = req.body as { username?: string; password?: string };
+  const { username, password, rememberMe } = req.body as { username?: string; password?: string; rememberMe?: boolean };
 
   if (!username?.trim() || !password?.trim()) {
     res.status(400).json({ error: "Username and password are required" });
@@ -81,6 +81,9 @@ router.post("/auth/driver-login", async (req, res) => {
   req.session.driver = true;
   req.session.driverId = driver.id;
   req.session.driverName = driver.name;
+  if (rememberMe) {
+    req.session.cookie.maxAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+  }
   req.session.save((err) => {
     if (err) {
       logger.error({ err }, "Failed to save driver session");

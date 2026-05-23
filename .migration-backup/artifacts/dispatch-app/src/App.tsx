@@ -1,4 +1,5 @@
-import { Switch, Route, Router as WouterRouter } from "wouter";
+import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +14,9 @@ import DriverJobs from "@/pages/driver-jobs";
 import DriverLogin from "@/pages/driver-login";
 import DriverSignup from "@/pages/driver-signup";
 import AdminDrivers from "@/pages/admin-drivers";
+import AdminConfig from "@/pages/admin-config";
+import TermsUsers from "@/pages/terms-users";
+import TermsDrivers from "@/pages/terms-drivers";
 import NotFound from "@/pages/not-found";
 
 import { AdminGuard } from "@/components/admin-guard";
@@ -54,6 +58,12 @@ function Router() {
         </AdminGuard>
       </Route>
 
+      <Route path="/admin/config">
+        <AdminGuard>
+          <AdminConfig />
+        </AdminGuard>
+      </Route>
+
       {/* JOBS */}
       <Route path="/jobs/:id" component={JobDetails} />
 
@@ -61,6 +71,9 @@ function Router() {
       <Route path="/driver/login" component={DriverLogin} />
 
       <Route path="/driver/signup" component={DriverSignup} />
+
+      <Route path="/terms" component={TermsUsers} />
+      <Route path="/driver/terms" component={TermsDrivers} />
 
       <Route path="/driver/jobs">
         <DriverGuard>
@@ -80,11 +93,28 @@ function Router() {
   );
 }
 
+function ManifestSwitcher() {
+  const [location] = useLocation();
+  useEffect(() => {
+    const link = document.querySelector<HTMLLinkElement>("link[rel='manifest']");
+    if (!link) return;
+    if (location.startsWith("/driver/")) {
+      link.href = `${import.meta.env.BASE_URL}driver-manifest.json`;
+    } else if (location.startsWith("/admin")) {
+      link.href = `${import.meta.env.BASE_URL}admin-manifest.json`;
+    } else {
+      link.href = `${import.meta.env.BASE_URL}manifest.json`;
+    }
+  }, [location]);
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <ManifestSwitcher />
           <Router />
         </WouterRouter>
 

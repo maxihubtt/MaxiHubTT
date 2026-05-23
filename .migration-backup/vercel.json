@@ -1,8 +1,16 @@
 {
+  "buildCommand": "npx pnpm@9 install --no-frozen-lockfile && npx pnpm@9 --filter @workspace/dispatch-app run build",
+  "outputDirectory": "artifacts/dispatch-app/dist/public",
+  "installCommand": "echo skip",
+  "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://maxihubtt-api-9pav.onrender.com*"
+      "source": "/api/(.*)",
+      "destination": "https://maxihubtt-api-9pav.onrender.com/api/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }

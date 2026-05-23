@@ -3,8 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
-// We removed the Replit-specific error overlay as it's not needed on Vercel
-// We also added default values (|| "5173" and || "/") so the build won't fail
+// PORT and BASE_PATH are injected by the Replit artifact runner at startup
 
 const port = Number(process.env.PORT || "5173");
 const basePath = process.env.BASE_PATH || "/";
@@ -24,12 +23,18 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname),
   build: {
-    // This tells Vercel where to put the finished files
-    outDir: path.resolve(import.meta.dirname, "dist"),
+    outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
   server: {
     port,
     host: "0.0.0.0",
+    allowedHosts: true,
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+    },
   },
 });

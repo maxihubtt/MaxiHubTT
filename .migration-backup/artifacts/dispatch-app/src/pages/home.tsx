@@ -6,29 +6,6 @@ import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Ca
 const WA_BASE = "https://wa.me/18684818039?text=";
 const waLink = (msg: string) => WA_BASE + encodeURIComponent(msg);
 
-// ── Render API Pricing Helper ────────────────────────────────────────────────
-async function fetchPrice(pickup: string, dropoff: string) {
-  try {
-    const res = await fetch("https://maxihubtt-api-9pav.onrender.com/pricing", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pickup, dropoff }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      console.error(data.error);
-      return null;
-    }
-
-    return data.price;
-  } catch (err) {
-    console.error(err);
-    return null;
-  }
-}
-
 // ── Fare calculation helpers ─────────────────────────────────────────────────
 
 type FareRange = [number, number];
@@ -54,7 +31,38 @@ function isWest(loc: string): boolean {
     "cascade", "mucurapo", "newtown", "beetham", "barataria", "aranguez",
     "el socorro", "mount hope", "mount lambert west", "upper laventille",
     "success village", "d martin", "santa cruz", "signal hill", "the saddle",
-    "santa cruz",
+    "federation park", "belmont", "gonzales", "east dry river", "west dry river",
+    "richplain", "four roads", "long circular", "glencoe", "morne coco",
+    "boissiere", "ellerslie park", "andalusia", "starlite", "carapo",
+    "blue range", "warren", "patna", "sea lots", "gulf city mall",
+    "trou macaque", "patna village", "fairways", "long circular mall",
+    // additional west areas
+    "st francois valley", "saint francois valley", "paramin", "bayshore",
+    "goodwood park", "haleland park", "glenroyal", "covigne", "bel air",
+    "ben lomond", "reform", "nook avenue", "upper maraval", "lower maraval",
+    "marli street", "duke street", "park street", "charlotte street",
+    "henry street", "independence square", "queens park savannah",
+    "queen park savannah", "the savannah", "botanic gardens", "the oval",
+    "movie towne", "invaders bay", "the falls at west mall", "west mall",
+    "c3 centre", "gulf city las alturas", "el dorado west", "bournes road",
+    "observatory street", "tranquillity", "st vincent street", "brian lara promenade",
+    "victoria square", "chacon street", "abercromby street", "frederick street",
+    "sackville street", "nelson street", "george street", "broadway",
+    "wrightson road", "audrey jeffers highway", "lady young road",
+    "fort george", "morne coco road", "river estate", "macqueripe",
+    "chaguaramas bay", "teteron", "carenage bay", "gasparee",
+    "champs fleurs", "calvary hill", "lower barataria", "upper barataria",
+    "croisee de barataria", "mt hope", "noel street", "tarouba",
+    "cocorite village", "western main road", "mucurapo road",
+    // more west / pOS areas
+    "tucker valley", "la seiva", "la joya", "chagville", "river road west",
+    "caroni swamp", "caroni bird sanctuary", "caroni arena",
+    "saint anns", "st anns", "upper cascade", "maracas valley", "barataria east",
+    "starlite park", "les efforts", "marianne", "dundonald hill",
+    "nook", "fondes amandes", "lady young", "upper laventille south",
+    "calvary hill extension", "beetham land", "beetham estate",
+    "belmont valley road", "observatory", "long circular road",
+    "lady young road extension", "penco road", "morne diablo west",
   ].some(k => loc.includes(k));
 }
 function isCentral(loc: string): boolean {
@@ -64,7 +72,33 @@ function isCentral(loc: string): boolean {
     "springvale", "chase village", "edinburgh", "kelly village", "caroni",
     "warrenville", "claxton bay", "gasparillo central", "pointe a pierre",
     "pointe-a-pierre", "preysal", "mon repos", "mc bean", "mcbean", "skinner park",
-    "naparima bowl",
+    "naparima bowl", "todd street", "centre pointe mall", "highway plaza",
+    "ramsaran street", "cross crossing", "endeavour road", "interchange",
+    "montrose", "munroe road", "southern main road central", "st mary",
+    "ste madeleine", "brechin", "buen intento", "hermitage", "palmiste",
+    "california", "waterloo", "chandernagore", "carapichaima",
+    // additional central areas
+    "orange field", "st helena", "saint helena", "brickfield",
+    "pierre road", "orange valley", "caparo valley", "brasso",
+    "brasso caparo", "la paille", "bon aventure", "d'abadie south",
+    "felicite", "enterprise central", "todds road", "southern main road",
+    "mill street", "race course", "central market", "chaguanas main road",
+    "high street chaguanas", "writers avenue", "endeavour road",
+    "mc bean village", "forest reserve", "perot", "st madeline",
+    "la romaine", "navet road", "plum mitan", "buen intento road",
+    "caparo", "coolie trace", "hindustan", "cedros junction",
+    "san isidore", "el carmen", "palmyra", "retrench", "gran couva",
+    "hindustan road", "carli bay", "chaguanas bypass", "uriah butler highway",
+    "sir solomon hochoy highway", "ssolomon hochoy", "midcenter mall",
+    "price plaza", "excellent city centre", "trincity central",
+    // more central areas
+    "point lisas", "point lisas industrial", "samaroo village", "tabaquite",
+    "jerningham junction", "golconda", "craignish", "mt pleasant central",
+    "southern main road west", "navet reservoir", "mt pleasant village",
+    "brechin castle estate", "felicity junction", "charlieville extension",
+    "couva junction", "railway road central", "claxton bay extension",
+    "gasparillo junction", "pointe a pierre south", "st mary junction",
+    "chase village junction", "mc bean road", "warrenville junction",
   ].some(k => loc.includes(k));
 }
 function isEast(loc: string): boolean {
@@ -76,6 +110,34 @@ function isEast(loc: string): boolean {
     "santa rosa", "cumana", "guaico", "tumpuna", "saint augustine", "st augustine",
     "five rivers", "el dorado", "golden grove", "bejucal", "heights of guanapo",
     "airport", "piarco airport", "international airport",
+    "east west corridor", "ewc", "d abadie", "bon air", "eden gardens",
+    "gordon street", "o'meara", "omeara", "hollis avenue", "eastern main road",
+    "university of the west indies", "uwi", "st augustine campus",
+    "zero", "zero street", "clocktower", "beetham highway east",
+    "mount d or", "mount dor", "the arena", "cleaver road", "waller field",
+    "blanchette", "peter hill", "santa flora east", "new grant",
+    // additional east areas
+    "macoya", "pasea estate", "matura", "fishing pond", "tamana",
+    "coalmine", "galera", "salybia", "rampanalgas", "toco main road",
+    "heights of aripo", "aripo", "el socorro east", "south quay east",
+    "beetham gardens", "morvant extension", "la horquetta", "lahorquetta",
+    "o meara road", "trincity mall", "d abadie village",
+    "guaico tamana", "biche", "biche road", "platanal", "sangre chiquito",
+    "turure", "poole", "vega de oropouche", "wallerfield",
+    "cumuto", "mount aripo", "brasso seco", "paria main road",
+    "toco bay", "grandes riviere", "matelot village",
+    "san rafael", "la fillette", "petit valley east",
+    "hillsborough dam", "verdant vale", "mt pleasant east",
+    // more east areas
+    "maloney gardens", "o meara industrial", "trincity estate",
+    "tamana industrial", "imperial road", "biche village", "carapo east",
+    "sangre chiquito junction", "heights of el socorro", "mar road",
+    "five rivers extension", "mount aripo trail", "paria springs",
+    "blanchette road", "arena junction", "santa rosa extension",
+    "golden grove estate", "south oropouche", "spring bridge",
+    "demerara road", "cunapo southern", "cunapo northern",
+    "matura junction", "galera point", "saline bay east",
+    "toco beach", "grande riviere", "matelot junction",
   ].some(k => loc.includes(k));
 }
 function isSouth(loc: string): boolean {
@@ -85,7 +147,76 @@ function isSouth(loc: string): boolean {
     "barrackpore", "rio claro", "la brea", "debe", "naparima", "williamsville",
     "tableland", "pointe-a-pierre", "preysal", "mon repos", "paradise pasture",
     "gulf view", "south park", "pleasantville", "fernando",
+    "harris promenade", "coffee street", "high street sf", "gulf city",
+    "mon chagrin", "la resource", "sobo", "southern main road south",
+    "cross crossing south", "st julien", "les efforts", "rushworth street",
+    "paradise hill", "vistabella", "upper coora", "lower coora",
+    "princess town", "st mary village", "harmony hall", "lengua",
+    "la fortune", "bamboo", "ste madeleine south", "enterprise",
+    "corinth", "navet", "corosal", "morne diablo", "rancho quemado",
+    "vessigny village", "cap de ville", "bonasse", "irois bay",
+    // additional south areas
+    "santa flora", "oropouche", "penal rock road", "monkey town",
+    "convert", "california south", "st mary", "la lune",
+    "icacos village", "granville", "guayaguayare", "radix",
+    "basse terre", "st george", "parrylands", "paradise village",
+    "siparia main road", "penal main road", "barrackpore main road",
+    "navet dam", "world's end", "worlds end", "spring trace",
+    "corosal village", "rancho quemado road", "bronte", "rambert",
+    "palo seco", "inniss", "junction", "thick village",
+    "la lune road", "laborie", "rochard road", "les efforts east",
+    "les efforts west", "cunjal", "gasparillo south", "ste madeleine village",
+    "pond road", "princess town main road", "naparima mayaro road",
+    "naparima prionces road", "high street princes town",
+    "rushworth street sf", "cipero street", "st james street sf",
+    "st paul's road", "lady hailes avenue", "coffee street sf",
+    "penitence hill", "oropouche road", "south trunk road",
+    "cocoyea village", "rousillac", "cap de ville road",
+    "pitch lake", "brighton", "california village",
+    // more south areas
+    "guapo", "guapo beach", "fyzabad", "union hall", "siparia market",
+    "dogpatch", "tableland junction", "moruga road", "moruga",
+    "williamsville", "quinam", "quinam road", "harrison trace",
+    "corosal junction", "barrackpore junction", "st mary's village",
+    "debe junction", "debe market", "mcbean junction",
+    "lengua junction", "barrackpore market", "southern main road sf",
+    "sobo junction", "erin", "erin bay", "thick village road",
+    "bonasse village", "irois", "constance trace", "naparima trace",
+    "union road", "pepper village", "hermitage junction",
   ].some(k => loc.includes(k));
+}
+
+// Approximate zone center coordinates [lat, lon]
+const ZONE_COORDS: Record<ZoneKey, [number, number]> = {
+  west:    [10.657, -61.502],
+  central: [10.520, -61.414],
+  east:    [10.638, -61.284],
+  south:   [10.280, -61.468],
+};
+
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const toRad = (d: number) => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// Estimate a maxi fare for any two detected zones using road-distance approximation
+function estimateFareFromZones(pickup: string, dropoff: string): number | null {
+  const pZone = getZone(pickup);
+  const dZone = getZone(dropoff);
+  if (!pZone || !dZone || pZone === dZone) return null;
+  const [pLat, pLon] = ZONE_COORDS[pZone];
+  const [dLat, dLon] = ZONE_COORDS[dZone];
+  const straightKm = haversineKm(pLat, pLon, dLat, dLon);
+  const roadKm = straightKm * 1.4; // road vs straight-line factor for TT
+  let fare = 25 + roadKm * 8;
+  if (roadKm > 25) fare += 20;
+  if (roadKm > 50) fare += 40;
+  return Math.round(fare / 50) * 50;
 }
 function eastSubzone(loc: string): "near" | "mid" | "far" | "toco" {
   const n = normalizeLoc(loc);
@@ -125,13 +256,13 @@ const BEACH_RATES: Record<BeachKey, Record<RegionKey, [number, number, number, n
 };
 function identifyBeach(loc: string): BeachKey | null {
   const n = normalizeLoc(loc);
-  if (n.includes("maracas") || n.includes("tyrico")) return "maracas";
-  if (n.includes("las cuevas")) return "las_cuevas";
-  if (n.includes("blanchisseuse") || n.includes("paria")) return "blanchisseuse";
-  if (n.includes("manzanilla")) return "manzanilla";
-  if (n.includes("mayaro")) return "mayaro";
-  if (n.includes("vessigny")) return "vessigny";
-  if (n.includes("icacos") || n.includes("columbus bay")) return "icacos";
+  if (n.includes("maracas") || n.includes("tyrico") || n.includes("coral cove") || n.includes("maqueripe beach")) return "maracas";
+  if (n.includes("las cuevas") || n.includes("richard bay") || n.includes("richards bay") || n.includes("rincon")) return "las_cuevas";
+  if (n.includes("blanchisseuse") || n.includes("paria") || n.includes("marianne river")) return "blanchisseuse";
+  if (n.includes("manzanilla") || n.includes("sans souci") || n.includes("saline bay") || n.includes("toco beach") || n.includes("matura beach") || n.includes("balandra bay") || n.includes("grande riviere beach")) return "manzanilla";
+  if (n.includes("mayaro") || n.includes("guayaguayare beach") || n.includes("cocos bay")) return "mayaro";
+  if (n.includes("vessigny") || n.includes("quinam beach") || n.includes("quinam bay")) return "vessigny";
+  if (n.includes("icacos") || n.includes("columbus bay") || n.includes("soldado")) return "icacos";
   return null;
 }
 function identifyRegion(loc: string): RegionKey {
@@ -315,11 +446,17 @@ function LiveStatusBadge({ jobId }: { jobId: string }) {
 
   const status = job?.status ?? "pending";
   const configs: Record<string, { label: string; color: string; dot: string }> = {
-    pending:   { label: "Awaiting Driver",  color: "text-amber-700 bg-amber-50 border-amber-200",  dot: "bg-amber-400 animate-pulse" },
-    claimed:   { label: "Driver Assigned",  color: "text-teal-700 bg-teal-50 border-teal-200",     dot: "bg-teal-500" },
-    completed: { label: "Completed",        color: "text-gray-600 bg-gray-50 border-gray-300",     dot: "bg-gray-400" },
+    pending:          { label: "Awaiting Driver",    color: "text-amber-700 bg-amber-50 border-amber-200",   dot: "bg-amber-400 animate-pulse" },
+    pending_deposit:  { label: "Awaiting Deposit",   color: "text-yellow-700 bg-yellow-50 border-yellow-200",dot: "bg-yellow-400 animate-pulse" },
+    deposit_received: { label: "Ready for Driver",   color: "text-emerald-700 bg-emerald-50 border-emerald-200", dot: "bg-emerald-500 animate-pulse" },
+    driver_assigned:  { label: "Driver Assigned",    color: "text-teal-700 bg-teal-50 border-teal-200",     dot: "bg-teal-500" },
+    driver_en_route:  { label: "Driver En Route",    color: "text-blue-700 bg-blue-50 border-blue-200",     dot: "bg-blue-500 animate-pulse" },
+    claimed:          { label: "Driver Assigned",    color: "text-teal-700 bg-teal-50 border-teal-200",     dot: "bg-teal-500" },
+    completed:        { label: "Completed",          color: "text-gray-600 bg-gray-50 border-gray-300",     dot: "bg-gray-400" },
+    cancelled:        { label: "Cancelled",          color: "text-red-700 bg-red-50 border-red-200",        dot: "bg-red-400" },
+    expired:          { label: "Booking Expired",    color: "text-gray-500 bg-gray-50 border-gray-200",     dot: "bg-gray-300" },
   };
-  const cfg = configs[status] ?? configs.pending;
+  const cfg = configs[status] ?? configs["pending_deposit"];
   return (
     <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold ${cfg.color}`}>
       <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
@@ -433,11 +570,58 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
+function ExpiryCountdown({ expiresAt }: { expiresAt: string | null | undefined }) {
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!expiresAt) return;
+    function update() {
+      const remaining = new Date(expiresAt!).getTime() - Date.now();
+      if (remaining <= 0) { setTimeLeft("Expired"); return; }
+      const totalSecs = Math.floor(remaining / 1000);
+      const mins = Math.floor(totalSecs / 60);
+      const secs = totalSecs % 60;
+      setTimeLeft(`${mins}:${secs.toString().padStart(2, "0")}`);
+    }
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  if (!expiresAt || !timeLeft) return null;
+
+  const isExpired = timeLeft === "Expired";
+  const isUrgent = (() => {
+    const remaining = new Date(expiresAt).getTime() - Date.now();
+    return remaining < 10 * 60 * 1000; // < 10 mins
+  })();
+
+  return (
+    <div className={`rounded-2xl border-2 px-4 py-3 text-center ${
+      isExpired ? "border-red-500/30 bg-red-500/10" :
+      isUrgent  ? "border-red-400/40 bg-red-400/10 animate-pulse" :
+                  "border-amber-400/40 bg-amber-400/10"
+    }`}>
+      <p className="text-xs font-bold uppercase tracking-widest text-amber-300/80 mb-1">
+        {isExpired ? "Booking Expired" : "Deposit Window Closes In"}
+      </p>
+      <p className={`text-3xl font-black font-mono leading-none ${
+        isExpired ? "text-red-400" : isUrgent ? "text-red-300" : "text-amber-300"
+      }`}>
+        {timeLeft}
+      </p>
+      {!isExpired && (
+        <p className="text-xs text-teal-400/70 mt-1">Contact us now to secure your booking</p>
+      )}
+    </div>
+  );
+}
+
 function ConfirmedScreen({
   job,
   onReset,
 }: {
-  job: { id: string; name: string; pickup: string; dropoff: string; fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string };
+  job: { id: string; name: string; pickup: string; dropoff: string; fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string; expiresAt?: string | null; urgency?: string };
   onReset: () => void;
 }) {
   return (
@@ -501,6 +685,27 @@ function ConfirmedScreen({
           </div>
         </div>
 
+        {/* Urgency badge */}
+        {job.urgency === "urgent" && (
+          <div className="mt-4 rounded-2xl border-2 border-red-500/40 bg-red-500/15 px-4 py-3">
+            <p className="text-red-300 text-sm font-black">⚡ Urgent Booking</p>
+            <p className="text-red-200/80 text-xs mt-1">Full payment + rush fee required. Our team will contact you immediately.</p>
+          </div>
+        )}
+        {job.urgency === "same_day" && (
+          <div className="mt-4 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3">
+            <p className="text-amber-300 text-sm font-bold">🕐 Same-Day Booking</p>
+            <p className="text-amber-200/80 text-xs mt-1">Deposit must be received promptly to confirm your driver.</p>
+          </div>
+        )}
+
+        {/* Expiry countdown */}
+        {job.expiresAt && (
+          <div className="mt-4">
+            <ExpiryCountdown expiresAt={job.expiresAt} />
+          </div>
+        )}
+
         <div className="mt-4 rounded-2xl bg-amber-400/10 border border-amber-400/30 px-4 py-4">
           <p className="text-amber-300 text-xs font-bold uppercase tracking-widest mb-1">Deposit Due to Confirm</p>
           {job.deposit > 0 ? (
@@ -542,9 +747,6 @@ export default function Home() {
   // Step 0 — Route
   const [pickup, setPickup]   = useState("");
   const [dropoff, setDropoff] = useState("");
-  const [apiFare, setApiFare] = useState<number | null>(null);
-  const [isFetchingApiFare, setIsFetchingApiFare] = useState(false);
-
   // Step 1 — Details
   const [tripType, setTripType]               = useState<"one-way" | "round" | null>(null);
   const [pax, setPax]                         = useState(8);
@@ -552,15 +754,20 @@ export default function Home() {
   const [returnDatetime, setReturnDatetime]   = useState("");
   const [datetimeError, setDatetimeError]     = useState("");
   const [returnDatetimeError, setReturnDatetimeError] = useState("");
+  const [returnDifferentDay, setReturnDifferentDay]   = useState(false);
 
   // Step 2 — Contact
   const [name, setName]   = useState("");
   const [phone, setPhone] = useState("");
 
+  // Step 3 — T&C agreement
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
   // Booking result
   const [bookedJob, setBookedJob] = useState<{
     id: string; name: string; pickup: string; dropoff: string;
     fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string;
+    expiresAt?: string | null; urgency?: string;
   } | null>(null);
 
   const [stepErrors, setStepErrors] = useState(false);
@@ -568,72 +775,50 @@ export default function Home() {
   const queryClient = useQueryClient();
   const createJob   = useCreateJob();
 
-  // ── LIVE API FETCH EFFECT ──
-  useEffect(() => {
-    // Only fetch if they have typed somewhat meaningful locations
-    if (pickup.trim().length < 3 || dropoff.trim().length < 3) {
-      setApiFare(null);
-      return;
+  // ── LOCAL FARE CALCULATOR ──
+  // Computes the correct fare from the built-in tables, accounting for
+  // passenger count and trip type. No external API involved.
+  const displayFare = useMemo<number | null>(() => {
+    if (!pickup.trim() || !dropoff.trim()) return null;
+
+    // 1. Beach routes (exact fare with pax + tripType)
+    if (tripType) {
+      const beachFare = getBeachExactFare(pickup, dropoff, pax, tripType);
+      if (beachFare) return beachFare;
+    } else {
+      // Step 0 preview: show the 12-seater one-way minimum as a starting price
+      const beachPreview = getBeachExactFare(pickup, dropoff, 12, "one-way");
+      if (beachPreview) return beachPreview;
     }
 
-    const timer = setTimeout(async () => {
-      setIsFetchingApiFare(true);
-      const price = await fetchPrice(pickup, dropoff);
-      setApiFare(price);
-      setIsFetchingApiFare(false);
-    }, 800); // 800ms debounce to avoid spamming the Render API
-
-    return () => clearTimeout(timer);
-  }, [pickup, dropoff]);
-
-  const [displayFare, setDisplayFare] = useState<number | null>(null);
-const [loadingFare, setLoadingFare] = useState(false);
-
-const deposit = displayFare
-  ? Math.ceil(displayFare * 0.25)
-  : null;
-
-useEffect(() => {
-  async function fetchFare() {
-    if (!pickup.trim() || !dropoff.trim()) {
-      setDisplayFare(null);
-      return;
-    }
-
-    try {
-      setLoadingFare(true);
-
-      const response = await fetch(
-        "https://maxihubtt-api-9pav.onrender.com/pricing",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            pickup,
-            dropoff,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok && data.price) {
-        setDisplayFare(data.price);
+    // 2. Exact fare table (with pax + tripType when available)
+    const key = getFareTableKey(pickup, dropoff);
+    if (key) {
+      if (tripType) {
+        const fare = getFareFromTable(key, pax, tripType);
+        if (fare) return fare;
       } else {
-        setDisplayFare(null);
+        // Step 0: show the range start (12-seater one-way) as a preview
+        const range = getRouteDisplayRange(key);
+        if (range) return range[0];
       }
-    } catch (err) {
-      console.error(err);
-      setDisplayFare(null);
-    } finally {
-      setLoadingFare(false);
     }
-  }
 
-  fetchFare();
-}, [pickup, dropoff]);
+    // 3. Zone-distance estimate fallback
+    return estimateFareFromZones(pickup, dropoff);
+  }, [pickup, dropoff, pax, tripType]);
+
+  const urgencyTier = useMemo(() => {
+    if (!pickupDatetime) return null;
+    const hoursUntil = (new Date(pickupDatetime).getTime() - Date.now()) / (1000 * 60 * 60);
+    if (hoursUntil < 2) return "urgent";
+    if (hoursUntil < 6) return "same_day";
+    return "standard";
+  }, [pickupDatetime]);
+
+  const deposit = displayFare
+    ? Math.ceil(displayFare * 0.25)
+    : null;
 
   const validateDatetime = (value: string) => {
     if (!value) { setDatetimeError(""); return; }
@@ -644,9 +829,23 @@ useEffect(() => {
   };
 
   const validateReturnDatetime = (pickup: string, ret: string) => {
-    if (!ret) { setReturnDatetimeError(""); return; }
-    if (!pickup) { setReturnDatetimeError("Set a pickup time first."); return; }
-    setReturnDatetimeError(new Date(ret) <= new Date(pickup) ? "Return must be after pickup." : "");
+    if (!ret) { setReturnDatetimeError(""); setReturnDifferentDay(false); return; }
+    if (!pickup) { setReturnDatetimeError("Set a pickup time first."); setReturnDifferentDay(false); return; }
+    if (new Date(ret) <= new Date(pickup)) {
+      setReturnDatetimeError("Return must be after pickup.");
+      setReturnDifferentDay(false);
+      return;
+    }
+    // Check same-day: compare YYYY-MM-DD portion of the datetime-local strings
+    const pickupDay = pickup.slice(0, 10);
+    const returnDay = ret.slice(0, 10);
+    if (pickupDay !== returnDay) {
+      setReturnDifferentDay(true);
+      setReturnDatetimeError("");
+    } else {
+      setReturnDifferentDay(false);
+      setReturnDatetimeError("");
+    }
   };
 
   const canAdvanceStep0 = pickup.trim() !== "" && dropoff.trim() !== "";
@@ -654,7 +853,7 @@ useEffect(() => {
     tripType !== null &&
     pickupDatetime !== "" &&
     !datetimeError &&
-    (tripType !== "round" || (returnDatetime !== "" && !returnDatetimeError));
+    (tripType !== "round" || (returnDatetime !== "" && !returnDatetimeError && !returnDifferentDay));
   const canAdvanceStep2 = name.trim() !== "" && phone.trim() !== "";
   const isReadyToSubmit = canAdvanceStep0 && canAdvanceStep1 && canAdvanceStep2;
 
@@ -669,6 +868,7 @@ useEffect(() => {
 
   function handleSubmit() {
     if (!isReadyToSubmit || !tripType) { setStepErrors(true); return; }
+    if (!agreedToTerms) { setStepErrors(true); return; }
     const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
     const passengerDesc = paxLabel(pax);
     const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
@@ -680,12 +880,13 @@ useEffect(() => {
     const priceNote = `${fareLabel} (${tripLabel}, ${passengerDesc}) — Pickup: ${pickupDatetime}${returnNote}`;
 
     createJob.mutate(
-      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: passengerDesc } },
+      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: passengerDesc, pickupDatetime: pickupDatetime || undefined } },
       {
         onSuccess: job => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
-          setBookedJob({ id: job.id, name, pickup, dropoff, fare: displayFare ?? 0, deposit: deposit ?? 0, pickupDatetime, returnDatetime, tripType });
+          const jobAny = job as typeof job & { expiresAt?: string | null; urgency?: string };
+          setBookedJob({ id: job.id, name, pickup, dropoff, fare: displayFare ?? 0, deposit: deposit ?? 0, pickupDatetime, returnDatetime, tripType, expiresAt: jobAny.expiresAt ?? null, urgency: jobAny.urgency ?? "standard" });
         },
       }
     );
@@ -693,13 +894,15 @@ useEffect(() => {
 
   function resetAll() {
     setStep(0);
-    setPickup(""); setDropoff(""); setApiFare(null);
+    setPickup(""); setDropoff("");
     setTripType(null); setPax(8);
-    setPickupDatetime(""); setReturnDatetime(""); setDatetimeError(""); setReturnDatetimeError("");
+    setPickupDatetime(""); setReturnDatetime(""); setDatetimeError(""); setReturnDatetimeError(""); setReturnDifferentDay(false);
     setName(""); setPhone("");
+    setAgreedToTerms(false);
     setBookedJob(null);
     setStepErrors(false);
   }
+
 
   if (bookedJob) {
     return <ConfirmedScreen job={bookedJob} onReset={resetAll} />;
@@ -823,53 +1026,18 @@ useEffect(() => {
 
                   {pickup.trim() && dropoff.trim() && (
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-teal-700">
-                      {isFetchingApiFare ? (
-                        <div className="flex items-center gap-2 text-teal-600 font-semibold py-1">
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          Checking live prices...
-                        </div>
-                      ) : apiFare ? (
+                      {displayFare ? (
                         <>
-                          <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Live API Fare Estimate</p>
-                          <p className="text-2xl font-black text-teal-900">{fmtFare(apiFare)}</p>
-                          <p className="text-xs text-teal-500 mt-1">Select trip type & passengers on next step for your exact price</p>
+                          <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Estimated Fare</p>
+                          <p className="text-2xl font-black text-teal-900">from TTD {displayFare.toLocaleString("en-TT")}</p>
+                          <p className="text-xs text-teal-500 mt-1">Exact price confirmed after trip details</p>
                         </>
                       ) : (
-                        {loadingFare ? (
-  <>
-    <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">
-      Calculating fare
-    </p>
-
-    <p className="text-2xl font-black text-teal-900">
-      Please wait...
-    </p>
-  </>
-) : displayFare ? (
-  <>
-    <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">
-      Estimated Fare
-    </p>
-
-    <p className="text-2xl font-black text-teal-900">
-      TTD ${displayFare.toLocaleString("en-TT")}
-    </p>
-
-    <p className="text-xs text-teal-500 mt-1">
-      Live distance-based pricing
-    </p>
-  </>
-) : (
-  <>
-    <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">
-      Fare estimate
-    </p>
-
-    <p className="text-sm text-teal-600">
-      Enter valid Trinidad & Tobago locations
-    </p>
-  </>
-)}
+                        <>
+                          <p className="text-xs text-teal-500 uppercase tracking-wider mb-1 font-bold">Fare estimate</p>
+                          <p className="text-sm text-teal-600">Your fare will be confirmed via WhatsApp after booking.</p>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
@@ -956,14 +1124,41 @@ useEffect(() => {
                           type="datetime-local"
                           min={pickupDatetime || getMinDatetime()}
                           className={`w-full h-12 pl-9 pr-4 rounded-xl border-2 bg-white focus:outline-none text-teal-900 text-sm transition-colors ${
-                            returnDatetimeError || (stepErrors && !returnDatetime) ? "border-red-400" : "border-amber-200 focus:border-amber-400"
+                            returnDatetimeError || returnDifferentDay || (stepErrors && !returnDatetime) ? "border-red-400" : "border-amber-200 focus:border-amber-400"
                           }`}
                           value={returnDatetime}
                           onChange={e => { setReturnDatetime(e.target.value); validateReturnDatetime(pickupDatetime, e.target.value); setStepErrors(false); }}
                         />
                       </div>
                       {returnDatetimeError && <p className="text-xs text-red-600 font-medium">{returnDatetimeError}</p>}
-                      {stepErrors && !returnDatetime && !returnDatetimeError && <p className="text-xs text-red-600 font-medium">Please set a return date and time.</p>}
+                      {stepErrors && !returnDatetime && !returnDatetimeError && !returnDifferentDay && (
+                        <p className="text-xs text-red-600 font-medium">Please set a return date and time.</p>
+                      )}
+                      {returnDifferentDay && (
+                        <div className="rounded-xl border-2 border-amber-400 bg-amber-50 px-4 py-3 space-y-2.5">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-bold text-amber-800">Return must be on the same day</p>
+                              <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+                                For overnight or multi-day trips, please contact us directly on WhatsApp to arrange a custom booking.
+                              </p>
+                            </div>
+                          </div>
+                          <a
+                            href={waLink(
+                              `Hi Maxi Hub TT, I'd like to arrange a custom booking.\n\nPickup: ${pickup}\nDropoff: ${dropoff}\nOutbound: ${pickupDatetime}\nReturn: ${returnDatetime}\nPassengers: ${pax}`
+                            )}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-2 w-full h-10 rounded-lg text-sm font-bold text-white transition-all hover:scale-[1.02] active:scale-[0.98]"
+                            style={{ background: "#25D366" }}
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                            Book via WhatsApp
+                          </a>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -971,18 +1166,36 @@ useEffect(() => {
                     <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
                       <div className="flex justify-between items-center gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">{apiFare ? "API Fare" : "Local Fare"}</p>
+                          <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">Fare</p>
                           <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
                         </div>
                         {displayFare
                           ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtFare(displayFare)}</p>
                           : <p className="text-sm font-semibold text-teal-600 shrink-0">WhatsApp us for a quote</p>}
                       </div>
-                      {beachExactFare && !apiFare && (
+                      {getBeachExactFare(pickup, dropoff, pax, tripType ?? "one-way") && (
                         <p className="text-xs text-teal-500 mt-2 border-t border-amber-200 pt-2">
                           Beach trip · exact quote confirmed by WhatsApp after booking.
                         </p>
                       )}
+                    </div>
+                  )}
+
+                  {/* Urgency tier banner */}
+                  {urgencyTier === "urgent" && pickupDatetime && (
+                    <div className="rounded-xl border-2 border-red-400 bg-red-50 px-4 py-3 space-y-1">
+                      <p className="text-sm font-black text-red-700">⚡ Urgent Booking — Full Payment Required</p>
+                      <p className="text-xs text-red-600 leading-relaxed">
+                        Pickups within 2 hours require full payment plus a rush fee (TTD 150). Our team will contact you immediately after booking.
+                      </p>
+                    </div>
+                  )}
+                  {urgencyTier === "same_day" && pickupDatetime && (
+                    <div className="rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 space-y-1">
+                      <p className="text-sm font-bold text-amber-800">🕐 Same-Day Booking</p>
+                      <p className="text-xs text-amber-700 leading-relaxed">
+                        Pickup within 6 hours. A 25% deposit is required promptly to confirm your driver — please keep your phone nearby.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1105,6 +1318,30 @@ useEffect(() => {
                       </div>
                     </div>
                   </div>
+
+                  <label className={`flex items-start gap-3 rounded-xl border-2 px-4 py-3 cursor-pointer transition-colors ${agreedToTerms ? "border-teal-400 bg-teal-50/60" : stepErrors && !agreedToTerms ? "border-red-400 bg-red-50/40" : "border-teal-100 bg-white"}`}>
+                    <input
+                      type="checkbox"
+                      checked={agreedToTerms}
+                      onChange={e => { setAgreedToTerms(e.target.checked); setStepErrors(false); }}
+                      className="mt-0.5 w-4 h-4 accent-teal-700 shrink-0"
+                    />
+                    <span className="text-xs text-teal-700 leading-relaxed">
+                      I have read and agree to the{" "}
+                      <a
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-teal-700 font-bold underline underline-offset-2 hover:text-teal-900"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        Passenger Terms &amp; Conditions
+                      </a>
+                    </span>
+                  </label>
+                  {stepErrors && !agreedToTerms && (
+                    <p className="text-xs text-red-600 font-medium -mt-2">You must agree to the Terms &amp; Conditions to confirm your booking.</p>
+                  )}
 
                   {createJob.isError && (
                     <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-3 space-y-1">
@@ -1281,6 +1518,10 @@ useEffect(() => {
           <p className="font-black text-teal-900 text-sm">Maxi Hub TT</p>
         </div>
         <p className="text-xs text-teal-600/60 mb-1">Comfort. Reliability. Every Ride.</p>
+        <div className="flex justify-center gap-4 mb-2">
+          <a href="/terms" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">Passenger Terms</a>
+          <a href="/driver/terms" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">Driver Terms</a>
+        </div>
         <p className="text-xs text-teal-600/40">© {new Date().getFullYear()} Maxi Hub TT. All rights reserved. Trinidad & Tobago.</p>
       </footer>
 

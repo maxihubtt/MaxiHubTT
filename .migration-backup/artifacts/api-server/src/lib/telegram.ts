@@ -73,6 +73,39 @@ export async function sendJobDetailsToDriver(
   });
 }
 
+export async function notifyDriverSignup(driver: {
+  full_name: string;
+  phone: string;
+  number_plate: string;
+  dp_number: string;
+  taxi_badge_number: string;
+}): Promise<boolean> {
+  if (!GROUP_ID) return false;
+
+  const appDomain = process.env["APP_DOMAIN"] ?? process.env["REPLIT_DOMAINS"]?.split(",")[0];
+  const adminLink = appDomain ? `https://${appDomain}/admin/drivers` : null;
+
+  const markup = adminLink
+    ? { inline_keyboard: [[{ text: "REVIEW APPLICATION", url: adminLink }]] }
+    : undefined;
+
+  return telegramRequest("sendMessage", {
+    chat_id: GROUP_ID,
+    text: [
+      `NEW DRIVER APPLICATION`,
+      ``,
+      `Name: ${driver.full_name}`,
+      `Phone: ${driver.phone}`,
+      `Plate: ${driver.number_plate}`,
+      `DP No: ${driver.dp_number}`,
+      `Badge: ${driver.taxi_badge_number}`,
+      ``,
+      `Log in to the admin panel to approve or reject.`,
+    ].join("\n"),
+    ...(markup && { reply_markup: markup }),
+  });
+}
+
 let lastUpdateId = 0;
 
 export async function pollTelegramUpdates(

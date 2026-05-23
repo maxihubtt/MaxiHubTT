@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "python-3.11"]
 
 [deployment]
 router = "application"
@@ -9,10 +9,9 @@ args = ["pnpm", "store", "prune"]
 env = { "CI" = "true" }
 
 [workflows]
-runButton = "Project"
 
 [agent]
-stack = "PNPM_WORKSPACE"
+stack = "BEST_EFFORT_FALLBACK"
 expertMode = true
 
 [postMerge]
@@ -20,26 +19,30 @@ path = "scripts/post-merge.sh"
 timeoutMs = 20000
 
 [[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
 localPort = 8080
 externalPort = 8080
 
 [[ports]]
 localPort = 8081
-externalPort = 80
-
-[[ports]]
-localPort = 8082
-externalPort = 3002
-
-[[ports]]
-localPort = 8083
-externalPort = 3001
+externalPort = 8081
 
 [[ports]]
 localPort = 19494
-externalPort = 3000
+externalPort = 80
 
 [userenv]
 
 [userenv.shared]
-TELEGRAM_GROUP_ID = "-1003402083882"
+VAPID_PUBLIC_KEY = "BGmc5ftxoM6jT7QVXDouPP6jJ5mVBKt11g2Ba_HWH1BWxNpTUQoEocrNfZ4P8Ex_K8u_xZeqAJ5yIkhlaWAGD2c"
+VAPID_PRIVATE_KEY = "ZLfAZ3j1Lhc5F817WwelAX4H5f-s74ftoGgsvru4P28"
+VAPID_SUBJECT = "mailto:admin@maxihubtt.com"
+PORT = "8080"
+SUPABASE_DB_HOST = "aws-1-us-east-2.pooler.supabase.com"
+SUPABASE_DB_USER = "postgres.bfufjqlofylnjamfoorb"
+
+[nix]
+channel = "stable-25_05"
