@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { pollTelegramUpdates } from "./lib/telegram";
 import { handleDriverClaim } from "./routes/jobs";
+import { startExpiryJob } from "./lib/expiry";
 
 const rawPort = process.env["PORT"];
 
@@ -30,4 +31,6 @@ app.listen(port, (err) => {
   }, 3000);
 
   logger.info("Telegram polling started");
+
+  startExpiryJob();
 });

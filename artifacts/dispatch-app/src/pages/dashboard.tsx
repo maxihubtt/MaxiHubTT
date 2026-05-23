@@ -29,9 +29,12 @@ export default function Dashboard() {
     retry: false,
   });
 
+  const ACTIVE_STATUSES = new Set([JobStatus.pending, "pending_deposit", "deposit_received", "driver_assigned", "driver_en_route", JobStatus.claimed]);
   const sortedJobs = jobs ? [...jobs].sort((a, b) => {
-    if (a.status === JobStatus.pending && b.status !== JobStatus.pending) return -1;
-    if (a.status !== JobStatus.pending && b.status === JobStatus.pending) return 1;
+    const aActive = ACTIVE_STATUSES.has(a.status);
+    const bActive = ACTIVE_STATUSES.has(b.status);
+    if (aActive && !bActive) return -1;
+    if (!aActive && bActive) return 1;
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   }) : [];
 
@@ -50,12 +53,32 @@ export default function Dashboard() {
             icon={<ListOrdered className="h-4 w-4 text-muted-foreground" />}
           />
           <StatCard
-            title="Pending"
+            title="Awaiting Deposit"
+            value={(stats as (typeof stats & { pendingDeposit?: number }) | undefined)?.pendingDeposit}
+            loading={isStatsLoading}
+            icon={<Activity className="h-4 w-4 text-yellow-500" />}
+            highlight={((stats as (typeof stats & { pendingDeposit?: number }) | undefined)?.pendingDeposit ?? 0) > 0}
+            color="yellow"
+          />
+          <StatCard
+            title="Deposit Received"
+            value={(stats as (typeof stats & { depositReceived?: number }) | undefined)?.depositReceived}
+            loading={isStatsLoading}
+            icon={<Activity className="h-4 w-4 text-emerald-500" />}
+            highlight={((stats as (typeof stats & { depositReceived?: number }) | undefined)?.depositReceived ?? 0) > 0}
+            color="emerald"
+          />
+          <StatCard
+            title="Pending (Admin)"
             value={stats?.pending}
             loading={isStatsLoading}
             icon={<Activity className="h-4 w-4 text-orange-500" />}
             highlight={stats?.pending ? stats.pending > 0 : false}
           />
+        </div>
+
+        {/* Secondary stats */}
+        <div className="grid grid-cols-3 gap-4">
           <StatCard
             title="Claimed"
             value={stats?.claimed}
@@ -67,6 +90,12 @@ export default function Dashboard() {
             value={stats?.completed}
             loading={isStatsLoading}
             icon={<CheckCircle2 className="h-4 w-4 text-muted-foreground" />}
+          />
+          <StatCard
+            title="Expired"
+            value={(stats as (typeof stats & { expired?: number }) | undefined)?.expired}
+            loading={isStatsLoading}
+            icon={<Clock className="h-4 w-4 text-red-400" />}
           />
         </div>
 
@@ -198,15 +227,23 @@ function StatCard({
   loading,
   icon,
   highlight,
+  color = "orange",
 }: {
   title: string;
   value?: number;
   loading: boolean;
   icon: React.ReactNode;
   highlight?: boolean;
+  color?: "orange" | "yellow" | "emerald";
 }) {
+  const colorMap = {
+    orange:  { border: "border-orange-500/50",  bg: "bg-orange-500/5",  text: "text-orange-500" },
+    yellow:  { border: "border-yellow-500/50",  bg: "bg-yellow-500/5",  text: "text-yellow-600" },
+    emerald: { border: "border-emerald-500/50", bg: "bg-emerald-500/5", text: "text-emerald-600" },
+  };
+  const c = colorMap[color];
   return (
-    <Card className={`p-4 ${highlight ? "border-orange-500/50 bg-orange-500/5" : "bg-muted/20"}`}>
+    <Card className={`p-4 ${highlight ? `${c.border} ${c.bg}` : "bg-muted/20"}`}>
       <div className="flex items-center justify-between pb-2">
         <p className="text-xs font-mono uppercase text-muted-foreground tracking-wider">{title}</p>
         {icon}
@@ -215,7 +252,7 @@ function StatCard({
         {loading ? (
           <Skeleton className="h-8 w-16" />
         ) : (
-          <p className={`text-3xl font-mono font-bold ${highlight ? "text-orange-500" : "text-foreground"}`}>
+          <p className={`text-3xl font-mono font-bold ${highlight ? c.text : "text-foreground"}`}>
             {value ?? 0}
           </p>
         )}

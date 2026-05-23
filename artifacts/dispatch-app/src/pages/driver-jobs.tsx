@@ -14,7 +14,9 @@ interface DriverJob {
   dropoff: string;
   passengers: string | null;
   price: string;
-  status: "pending" | "claimed" | "completed";
+  status: string;
+  urgency?: string;
+  depositPaid?: boolean;
   claimedBy: string | null;
   name: string;
   phone: string;
@@ -25,7 +27,8 @@ interface HistoryJob {
   id: string;
   pickup: string;
   dropoff: string;
-  status: "pending" | "claimed" | "completed";
+  status: string;
+  urgency?: string;
   price: string;
   passengers: string | null;
   createdAt: string;
@@ -103,7 +106,7 @@ function JobCard({ job, isMine, onClaim, claiming }: {
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 flex-wrap">
         {job.passengers && (
           <div className="flex items-center gap-1.5">
             <Users className="w-3.5 h-3.5 text-teal-400" />
@@ -114,9 +117,18 @@ function JobCard({ job, isMine, onClaim, claiming }: {
           <DollarSign className="w-3.5 h-3.5 text-amber-400" />
           <span className="text-amber-300 font-black text-sm">{job.price}</span>
         </div>
+        {job.urgency === "urgent" && (
+          <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/30">⚡ URGENT</span>
+        )}
+        {job.urgency === "same_day" && (
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">🕐 SAME DAY</span>
+        )}
+        {job.status === "deposit_received" && (
+          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">✓ DEPOSIT PAID</span>
+        )}
         <span className="ml-auto text-teal-700 text-[10px] font-mono">#{job.id}</span>
       </div>
-      {job.status === "pending" && !isMine && (
+      {(job.status === "pending" || job.status === "deposit_received") && !isMine && (
         <button
           onClick={() => onClaim(job.id)}
           disabled={claiming}
@@ -292,8 +304,8 @@ export default function DriverJobs() {
   }
 
   const driverName = auth?.name ?? "";
-  const pending = jobs.filter(j => j.status === "pending");
-  const mine = jobs.filter(j => j.claimedBy === driverName && j.status !== "pending");
+  const pending = jobs.filter(j => j.status === "pending" || j.status === "deposit_received");
+  const mine = jobs.filter(j => j.claimedBy === driverName && j.status !== "pending" && j.status !== "deposit_received");
 
   const lastUpdated = dataUpdatedAt
     ? new Date(dataUpdatedAt).toLocaleTimeString("en-TT", { hour: "2-digit", minute: "2-digit", second: "2-digit" })

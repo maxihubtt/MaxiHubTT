@@ -6,6 +6,7 @@ import adminDriversRouter from "./admin-drivers";
 import driverSignupsRouter from "./driver-signups";
 import drivers from "./drivers";
 import pricing from "./pricing";
+import adminConfig from "./admin-config";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(adminDriversRouter);
 router.use(driverSignupsRouter);
 router.use("/drivers", drivers);
 router.use("/pricing", pricing);
+router.use(adminConfig);
 
 export default router;

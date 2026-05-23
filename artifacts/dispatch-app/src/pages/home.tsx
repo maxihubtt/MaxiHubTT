@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCreateJob, useGetJob, getGetJobQueryKey, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle, AlertTriangle } from "lucide-react";
@@ -446,11 +446,17 @@ function LiveStatusBadge({ jobId }: { jobId: string }) {
 
   const status = job?.status ?? "pending";
   const configs: Record<string, { label: string; color: string; dot: string }> = {
-    pending:   { label: "Awaiting Driver",  color: "text-amber-700 bg-amber-50 border-amber-200",  dot: "bg-amber-400 animate-pulse" },
-    claimed:   { label: "Driver Assigned",  color: "text-teal-700 bg-teal-50 border-teal-200",     dot: "bg-teal-500" },
-    completed: { label: "Completed",        color: "text-gray-600 bg-gray-50 border-gray-300",     dot: "bg-gray-400" },
+    pending:          { label: "Awaiting Driver",    color: "text-amber-700 bg-amber-50 border-amber-200",   dot: "bg-amber-400 animate-pulse" },
+    pending_deposit:  { label: "Awaiting Deposit",   color: "text-yellow-700 bg-yellow-50 border-yellow-200",dot: "bg-yellow-400 animate-pulse" },
+    deposit_received: { label: "Ready for Driver",   color: "text-emerald-700 bg-emerald-50 border-emerald-200", dot: "bg-emerald-500 animate-pulse" },
+    driver_assigned:  { label: "Driver Assigned",    color: "text-teal-700 bg-teal-50 border-teal-200",     dot: "bg-teal-500" },
+    driver_en_route:  { label: "Driver En Route",    color: "text-blue-700 bg-blue-50 border-blue-200",     dot: "bg-blue-500 animate-pulse" },
+    claimed:          { label: "Driver Assigned",    color: "text-teal-700 bg-teal-50 border-teal-200",     dot: "bg-teal-500" },
+    completed:        { label: "Completed",          color: "text-gray-600 bg-gray-50 border-gray-300",     dot: "bg-gray-400" },
+    cancelled:        { label: "Cancelled",          color: "text-red-700 bg-red-50 border-red-200",        dot: "bg-red-400" },
+    expired:          { label: "Booking Expired",    color: "text-gray-500 bg-gray-50 border-gray-200",     dot: "bg-gray-300" },
   };
-  const cfg = configs[status] ?? configs.pending;
+  const cfg = configs[status] ?? configs["pending_deposit"];
   return (
     <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold ${cfg.color}`}>
       <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
@@ -564,11 +570,58 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
+function ExpiryCountdown({ expiresAt }: { expiresAt: string | null | undefined }) {
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!expiresAt) return;
+    function update() {
+      const remaining = new Date(expiresAt!).getTime() - Date.now();
+      if (remaining <= 0) { setTimeLeft("Expired"); return; }
+      const totalSecs = Math.floor(remaining / 1000);
+      const mins = Math.floor(totalSecs / 60);
+      const secs = totalSecs % 60;
+      setTimeLeft(`${mins}:${secs.toString().padStart(2, "0")}`);
+    }
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  if (!expiresAt || !timeLeft) return null;
+
+  const isExpired = timeLeft === "Expired";
+  const isUrgent = (() => {
+    const remaining = new Date(expiresAt).getTime() - Date.now();
+    return remaining < 10 * 60 * 1000; // < 10 mins
+  })();
+
+  return (
+    <div className={`rounded-2xl border-2 px-4 py-3 text-center ${
+      isExpired ? "border-red-500/30 bg-red-500/10" :
+      isUrgent  ? "border-red-400/40 bg-red-400/10 animate-pulse" :
+                  "border-amber-400/40 bg-amber-400/10"
+    }`}>
+      <p className="text-xs font-bold uppercase tracking-widest text-amber-300/80 mb-1">
+        {isExpired ? "Booking Expired" : "Deposit Window Closes In"}
+      </p>
+      <p className={`text-3xl font-black font-mono leading-none ${
+        isExpired ? "text-red-400" : isUrgent ? "text-red-300" : "text-amber-300"
+      }`}>
+        {timeLeft}
+      </p>
+      {!isExpired && (
+        <p className="text-xs text-teal-400/70 mt-1">Contact us now to secure your booking</p>
+      )}
+    </div>
+  );
+}
+
 function ConfirmedScreen({
   job,
   onReset,
 }: {
-  job: { id: string; name: string; pickup: string; dropoff: string; fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string };
+  job: { id: string; name: string; pickup: string; dropoff: string; fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string; expiresAt?: string | null; urgency?: string };
   onReset: () => void;
 }) {
   return (
@@ -632,6 +685,27 @@ function ConfirmedScreen({
           </div>
         </div>
 
+        {/* Urgency badge */}
+        {job.urgency === "urgent" && (
+          <div className="mt-4 rounded-2xl border-2 border-red-500/40 bg-red-500/15 px-4 py-3">
+            <p className="text-red-300 text-sm font-black">⚡ Urgent Booking</p>
+            <p className="text-red-200/80 text-xs mt-1">Full payment + rush fee required. Our team will contact you immediately.</p>
+          </div>
+        )}
+        {job.urgency === "same_day" && (
+          <div className="mt-4 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3">
+            <p className="text-amber-300 text-sm font-bold">🕐 Same-Day Booking</p>
+            <p className="text-amber-200/80 text-xs mt-1">Deposit must be received promptly to confirm your driver.</p>
+          </div>
+        )}
+
+        {/* Expiry countdown */}
+        {job.expiresAt && (
+          <div className="mt-4">
+            <ExpiryCountdown expiresAt={job.expiresAt} />
+          </div>
+        )}
+
         <div className="mt-4 rounded-2xl bg-amber-400/10 border border-amber-400/30 px-4 py-4">
           <p className="text-amber-300 text-xs font-bold uppercase tracking-widest mb-1">Deposit Due to Confirm</p>
           {job.deposit > 0 ? (
@@ -693,6 +767,7 @@ export default function Home() {
   const [bookedJob, setBookedJob] = useState<{
     id: string; name: string; pickup: string; dropoff: string;
     fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string;
+    expiresAt?: string | null; urgency?: string;
   } | null>(null);
 
   const [stepErrors, setStepErrors] = useState(false);
@@ -732,6 +807,14 @@ export default function Home() {
     // 3. Zone-distance estimate fallback
     return estimateFareFromZones(pickup, dropoff);
   }, [pickup, dropoff, pax, tripType]);
+
+  const urgencyTier = useMemo(() => {
+    if (!pickupDatetime) return null;
+    const hoursUntil = (new Date(pickupDatetime).getTime() - Date.now()) / (1000 * 60 * 60);
+    if (hoursUntil < 2) return "urgent";
+    if (hoursUntil < 6) return "same_day";
+    return "standard";
+  }, [pickupDatetime]);
 
   const deposit = displayFare
     ? Math.ceil(displayFare * 0.25)
@@ -797,12 +880,13 @@ export default function Home() {
     const priceNote = `${fareLabel} (${tripLabel}, ${passengerDesc}) — Pickup: ${pickupDatetime}${returnNote}`;
 
     createJob.mutate(
-      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: passengerDesc } },
+      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: passengerDesc, pickupDatetime: pickupDatetime || undefined } },
       {
         onSuccess: job => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
-          setBookedJob({ id: job.id, name, pickup, dropoff, fare: displayFare ?? 0, deposit: deposit ?? 0, pickupDatetime, returnDatetime, tripType });
+          const jobAny = job as typeof job & { expiresAt?: string | null; urgency?: string };
+          setBookedJob({ id: job.id, name, pickup, dropoff, fare: displayFare ?? 0, deposit: deposit ?? 0, pickupDatetime, returnDatetime, tripType, expiresAt: jobAny.expiresAt ?? null, urgency: jobAny.urgency ?? "standard" });
         },
       }
     );
@@ -1094,6 +1178,24 @@ export default function Home() {
                           Beach trip · exact quote confirmed by WhatsApp after booking.
                         </p>
                       )}
+                    </div>
+                  )}
+
+                  {/* Urgency tier banner */}
+                  {urgencyTier === "urgent" && pickupDatetime && (
+                    <div className="rounded-xl border-2 border-red-400 bg-red-50 px-4 py-3 space-y-1">
+                      <p className="text-sm font-black text-red-700">⚡ Urgent Booking — Full Payment Required</p>
+                      <p className="text-xs text-red-600 leading-relaxed">
+                        Pickups within 2 hours require full payment plus a rush fee (TTD 150). Our team will contact you immediately after booking.
+                      </p>
+                    </div>
+                  )}
+                  {urgencyTier === "same_day" && pickupDatetime && (
+                    <div className="rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 space-y-1">
+                      <p className="text-sm font-bold text-amber-800">🕐 Same-Day Booking</p>
+                      <p className="text-xs text-amber-700 leading-relaxed">
+                        Pickup within 6 hours. A 25% deposit is required promptly to confirm your driver — please keep your phone nearby.
+                      </p>
                     </div>
                   )}
                 </div>

@@ -5,8 +5,8 @@
  * Job dispatch API for transport booking and driver claims
  * OpenAPI spec version: 0.1.0
  */
+import type { UpdateJobStatusBodyStatus } from './updateJobStatusBodyStatus';
 
-export interface UpdateDriverInfoBody {
-  vehicleType?: string;
-  numberPlate?: string;
+export interface UpdateJobStatusBody {
+  status: UpdateJobStatusBodyStatus;
 }

@@ -1,8 +1,8 @@
-import { Job, JobStatus, useCompleteJob, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
+import { Job, useCompleteJob, useMarkDepositPaid, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { Link } from "wouter";
-import { DollarSign, Clock, CheckCircle2 } from "lucide-react";
+import { DollarSign, Clock, CheckCircle2, CreditCard } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { JobStatusBadge } from "./job-status-badge";
+import { JobStatusBadge, UrgencyBadge } from "./job-status-badge";
 import { formatRelativeTime } from "@/lib/format";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -13,43 +13,70 @@ interface JobCardProps {
 }
 
 export function JobCard({ job, index }: JobCardProps) {
-  const isPending = job.status === JobStatus.pending;
-  const isClaimed = job.status === JobStatus.claimed;
-  const isCompleted = job.status === JobStatus.completed;
-  const [confirmed, setConfirmed] = useState(false);
+  const isPendingDeposit = job.status === "pending_deposit";
+  const isCompleted = job.status === "completed";
+  const isCancelled = job.status === "cancelled";
+  const isExpired = job.status === "expired";
+  const isDone = isCompleted || isCancelled || isExpired;
+
+  const [confirmComplete, setConfirmComplete] = useState(false);
+  const [confirmDeposit, setConfirmDeposit] = useState(false);
   const queryClient = useQueryClient();
+
   const completeJob = useCompleteJob();
+  const markDepositPaid = useMarkDepositPaid();
+
+  function invalidateAll() {
+    queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
+  }
 
   const handleComplete = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!confirmed) { setConfirmed(true); return; }
+    e.preventDefault(); e.stopPropagation();
+    if (!confirmComplete) { setConfirmComplete(true); return; }
     completeJob.mutate({ id: job.id }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
-        queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
-        setConfirmed(false);
-      },
+      onSuccess: () => { invalidateAll(); setConfirmComplete(false); },
     });
   };
 
+  const handleMarkDepositPaid = (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!confirmDeposit) { setConfirmDeposit(true); return; }
+    markDepositPaid.mutate({ id: job.id }, {
+      onSuccess: () => { invalidateAll(); setConfirmDeposit(false); },
+    });
+  };
+
+  const urgency = (job as Job & { urgency?: string }).urgency;
+  const depositAmount = (job as Job & { depositAmount?: number | null }).depositAmount;
+  const depositPaid = (job as Job & { depositPaid?: boolean }).depositPaid;
+
   return (
     <Link href={`/jobs/${job.id}`}>
-      <Card 
+      <Card
         className={`group relative overflow-hidden border transition-all duration-200 hover:border-primary/50 hover:bg-muted/30 cursor-pointer ${
-          isPending ? 'border-border' : 'border-border/50 opacity-75 hover:opacity-100'
+          isDone ? "border-border/50 opacity-75 hover:opacity-100" :
+          isPendingDeposit ? "border-yellow-500/40 bg-yellow-500/5" :
+          "border-border"
         } animate-in fade-in slide-in-from-bottom-4 fill-mode-both`}
         style={{ animationDelay: `${index * 50}ms` }}
       >
-        {isPending && (
-          <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-500" />
+        {/* Left accent bar by urgency */}
+        {!isDone && (
+          <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+            urgency === "urgent" ? "bg-red-500" :
+            urgency === "same_day" ? "bg-amber-500" :
+            isPendingDeposit ? "bg-yellow-500" :
+            "bg-orange-500"
+          }`} />
         )}
-        
+
         <div className="p-5 flex flex-col gap-4">
-          <div className="flex items-start justify-between">
-            <div className="flex items-center gap-2">
+          <div className="flex items-start justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="font-mono text-xs text-muted-foreground">#{job.id.slice(0, 8)}</span>
               <JobStatusBadge status={job.status} />
+              <UrgencyBadge urgency={urgency} />
             </div>
             <div className="flex items-center text-primary font-mono font-bold text-lg">
               <DollarSign className="h-4 w-4" />
@@ -90,26 +117,55 @@ export function JobCard({ job, index }: JobCardProps) {
                     <span>{job.claimedBy}</span>
                   </div>
                 )}
+                {depositAmount != null && (
+                  <div className={`flex justify-between w-full ${depositPaid ? "text-emerald-600" : "text-yellow-600"}`}>
+                    <span className="uppercase text-xs">Deposit</span>
+                    <span className="font-bold">
+                      TTD {depositAmount.toLocaleString()} {depositPaid ? "✓" : "— Unpaid"}
+                    </span>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center justify-between w-full mt-4">
+
+              <div className="flex items-center justify-between w-full mt-4 gap-2 flex-wrap">
                 <div className="flex items-center gap-1.5 text-xs">
                   <Clock className="h-3 w-3" />
                   <span>{formatRelativeTime(job.createdAt)}</span>
                 </div>
-                {!isCompleted && (
-                  <button
-                    onClick={handleComplete}
-                    disabled={completeJob.isPending}
-                    className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-md transition-all ${
-                      confirmed
-                        ? "bg-green-600 text-white animate-pulse"
-                        : "bg-muted/60 text-muted-foreground hover:bg-green-600 hover:text-white"
-                    }`}
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    {completeJob.isPending ? "…" : confirmed ? "Confirm?" : "Complete"}
-                  </button>
-                )}
+
+                <div className="flex items-center gap-1.5">
+                  {/* Mark Deposit Paid button */}
+                  {isPendingDeposit && !depositPaid && (
+                    <button
+                      onClick={handleMarkDepositPaid}
+                      disabled={markDepositPaid.isPending}
+                      className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-md transition-all ${
+                        confirmDeposit
+                          ? "bg-emerald-600 text-white animate-pulse"
+                          : "bg-yellow-500/20 text-yellow-700 hover:bg-emerald-600 hover:text-white"
+                      }`}
+                    >
+                      <CreditCard className="h-3 w-3" />
+                      {markDepositPaid.isPending ? "…" : confirmDeposit ? "Confirm?" : "Deposit Paid"}
+                    </button>
+                  )}
+
+                  {/* Complete button */}
+                  {!isDone && (
+                    <button
+                      onClick={handleComplete}
+                      disabled={completeJob.isPending}
+                      className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-md transition-all ${
+                        confirmComplete
+                          ? "bg-green-600 text-white animate-pulse"
+                          : "bg-muted/60 text-muted-foreground hover:bg-green-600 hover:text-white"
+                      }`}
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      {completeJob.isPending ? "…" : confirmComplete ? "Confirm?" : "Complete"}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>

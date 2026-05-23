@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type JobStatus = typeof JobStatus[keyof typeof JobStatus];
+export type UpdateJobStatusBodyStatus = typeof UpdateJobStatusBodyStatus[keyof typeof UpdateJobStatusBodyStatus];
 
 
-export const JobStatus = {
+export const UpdateJobStatusBodyStatus = {
   pending: 'pending',
   pending_deposit: 'pending_deposit',
   deposit_received: 'deposit_received',
