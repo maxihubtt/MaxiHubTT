@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Job dispatch API for transport booking and driver claims
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: jobs
+    description: Job dispatch operations
+  - name: config
+    description: Admin configuration
 paths:
   /healthz:
     get:
@@ -24,6 +28,277 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /jobs:
+    get:
+      operationId: listJobs
+      tags: [jobs]
+      summary: List all active jobs
+      description: Returns all unclaimed jobs
+      responses:
+        "200":
+          description: List of active jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Job"
+    post:
+      operationId: createJob
+      tags: [jobs]
+      summary: Create and dispatch a new job
+      description: Posts a new job to the Telegram group for drivers to claim
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateJobBody"
+      responses:
+        "201":
+          description: Job created and dispatched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to send to Telegram
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/stats:
+    get:
+      operationId: getJobStats
+      tags: [jobs]
+      summary: Get job statistics
+      description: Returns summary counts of jobs by status
+      responses:
+        "200":
+          description: Job statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobStats"
+
+  /jobs/{id}/driver-info:
+    patch:
+      operationId: updateDriverInfo
+      tags: [jobs]
+      summary: Set vehicle type and number plate for a claimed job
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDriverInfoBody"
+      responses:
+        "200":
+          description: Driver info updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/{id}/claim:
+    post:
+      operationId: claimJob
+      tags: [jobs]
+      summary: Claim a job as a driver
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClaimJobBody"
+      responses:
+        "200":
+          description: Job claimed successfully — returns full job including customer details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Job already claimed or completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/{id}/complete:
+    patch:
+      operationId: completeJob
+      tags: [jobs]
+      summary: Mark a job as completed
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job marked as completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Job already completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/{id}/deposit-paid:
+    patch:
+      operationId: markDepositPaid
+      tags: [jobs]
+      summary: Mark a booking deposit as received
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deposit marked as received — job moved to deposit_received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/{id}/status:
+    patch:
+      operationId: updateJobStatus
+      tags: [jobs]
+      summary: Update job status (admin)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateJobStatusBody"
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /jobs/{id}:
+    get:
+      operationId: getJob
+      tags: [jobs]
+      summary: Get a job by ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /admin/config:
+    get:
+      operationId: getAdminConfig
+      tags: [config]
+      summary: Get all admin configuration values
+      responses:
+        "200":
+          description: Admin configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminConfig"
+    put:
+      operationId: updateAdminConfig
+      tags: [config]
+      summary: Update admin configuration values
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminConfig"
+      responses:
+        "200":
+          description: Config updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminConfig"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +309,192 @@ components:
       required:
         - status
 
+    Job:
+      type: object
+      properties:
+        id:
+          type: string
+        pickup:
+          type: string
+        dropoff:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        price:
+          type: string
+        passengers:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - pending
+            - pending_deposit
+            - deposit_received
+            - driver_assigned
+            - driver_en_route
+            - claimed
+            - completed
+            - cancelled
+            - expired
+        urgency:
+          type: string
+          enum: [standard, same_day, urgent]
+          default: standard
+        depositAmount:
+          type: integer
+          nullable: true
+        rushFee:
+          type: integer
+          default: 0
+        depositPaid:
+          type: boolean
+          default: false
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        pickupDatetime:
+          type: string
+          nullable: true
+        claimedBy:
+          type: string
+          nullable: true
+        vehicleType:
+          type: string
+          nullable: true
+        numberPlate:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - pickup
+        - dropoff
+        - name
+        - phone
+        - price
+        - status
+        - urgency
+        - depositPaid
+        - rushFee
+        - createdAt
+        - updatedAt
+
+    CreateJobBody:
+      type: object
+      properties:
+        pickup:
+          type: string
+        dropoff:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        price:
+          type: string
+        passengers:
+          type: string
+        pickupDatetime:
+          type: string
+          description: ISO datetime string of desired pickup time (used for urgency classification)
+      required:
+        - pickup
+        - dropoff
+        - name
+        - phone
+        - price
+
+    JobStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        pending:
+          type: integer
+        pendingDeposit:
+          type: integer
+        depositReceived:
+          type: integer
+        claimed:
+          type: integer
+        completed:
+          type: integer
+        expired:
+          type: integer
+        cancelled:
+          type: integer
+      required:
+        - total
+        - pending
+        - pendingDeposit
+        - depositReceived
+        - claimed
+        - completed
+        - expired
+        - cancelled
+
+    ClaimJobBody:
+      type: object
+      properties:
+        driverName:
+          type: string
+          description: Deprecated — driver identity is resolved from session. Field ignored if provided.
+
+    UpdateDriverInfoBody:
+      type: object
+      properties:
+        vehicleType:
+          type: string
+        numberPlate:
+          type: string
+
+    UpdateJobStatusBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - pending
+            - pending_deposit
+            - deposit_received
+            - driver_assigned
+            - driver_en_route
+            - claimed
+            - completed
+            - cancelled
+            - expired
+      required:
+        - status
+
+    AdminConfig:
+      type: object
+      properties:
+        min_booking_hours:
+          type: string
+        same_day_min_hours:
+          type: string
+        deposit_pct:
+          type: string
+        rush_fee:
+          type: string
+        deposit_expiry_mins:
+          type: string
+        urgent_enabled:
+          type: string
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
