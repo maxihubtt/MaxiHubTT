@@ -1,12 +1,19 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
   MapPin, Navigation, Users, DollarSign, Phone, User,
   CheckCircle2, LogOut, Loader2, RefreshCw, BriefcaseBusiness,
-  Bell, BellOff, Clock, Wifi, WifiOff,
+  Bell, BellOff, Clock, Wifi, WifiOff, Download, AlertCircle,
 } from "lucide-react";
 import { useDriverAuth } from "@/components/driver-guard";
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
 
 interface DriverJob {
   id: string;
@@ -34,6 +41,8 @@ interface HistoryJob {
   createdAt: string;
   updatedAt: string;
 }
+
+// ── API helpers ────────────────────────────────────────────────────────────────
 
 async function fetchDriverJobs(): Promise<DriverJob[]> {
   const res = await fetch("/api/driver/jobs", { credentials: "include" });
@@ -73,12 +82,64 @@ async function doLogout() {
   await fetch("/api/auth/driver-logout", { method: "POST", credentials: "include" });
 }
 
+// ── Push helpers ───────────────────────────────────────────────────────────────
+
 function urlB64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = window.atob(base64);
   return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
 }
+
+/** Ensure the service worker is registered and active. Returns the registration. */
+async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
+  if (!("serviceWorker" in navigator)) {
+    throw new Error("Service workers are not supported on this browser.");
+  }
+
+  // Register if not already registered
+  let reg: ServiceWorkerRegistration | undefined;
+  try {
+    // Try to find an existing registration first
+    reg = await navigator.serviceWorker.getRegistration("/");
+    if (!reg) {
+      reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    }
+  } catch {
+    // Fallback: use serviceWorker.ready (waits for active registration)
+    reg = await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Service worker timed out after 10s")), 10_000)
+      ),
+    ]);
+    return reg;
+  }
+
+  // Wait for the SW to become active (with timeout)
+  if (reg.active) return reg;
+
+  await new Promise<void>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("Service worker took too long to activate")), 10_000);
+    const sw = reg!.installing ?? reg!.waiting;
+    if (!sw) { clearTimeout(timeout); resolve(); return; }
+    sw.addEventListener("statechange", function handler() {
+      if (this.state === "activated") {
+        clearTimeout(timeout);
+        sw.removeEventListener("statechange", handler);
+        resolve();
+      } else if (this.state === "redundant") {
+        clearTimeout(timeout);
+        sw.removeEventListener("statechange", handler);
+        reject(new Error("Service worker became redundant"));
+      }
+    });
+  });
+
+  return reg;
+}
+
+// ── JobCard ────────────────────────────────────────────────────────────────────
 
 function JobCard({ job, isMine, onClaim, claiming }: {
   job: DriverJob;
@@ -167,6 +228,8 @@ function JobCard({ job, isMine, onClaim, claiming }: {
   );
 }
 
+// ── HistoryCard ────────────────────────────────────────────────────────────────
+
 function HistoryCard({ job }: { job: HistoryJob }) {
   const statusColor = job.status === "completed"
     ? "text-emerald-400 bg-emerald-900/30"
@@ -200,6 +263,8 @@ function HistoryCard({ job }: { job: HistoryJob }) {
   );
 }
 
+// ── Main component ─────────────────────────────────────────────────────────────
+
 export default function DriverJobs() {
   const { data: auth } = useDriverAuth();
   const [, navigate] = useLocation();
@@ -209,8 +274,15 @@ export default function DriverJobs() {
   const [tab, setTab] = useState<"jobs" | "history">("jobs");
   const [availability, setAvailability] = useState<"available" | "offline">("offline");
   const [togglingAvail, setTogglingAvail] = useState(false);
-  const [pushStatus, setPushStatus] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
+
+  // Push notification state
+  const [pushStatus, setPushStatus] = useState<"idle" | "requesting" | "granted" | "denied" | "unsupported">("idle");
   const [pushSub, setPushSub] = useState<PushSubscription | null>(null);
+  const [pushError, setPushError] = useState<string | null>(null);
+
+  // PWA install prompt
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installing, setInstalling] = useState(false);
 
   const { data: jobs = [], isLoading, isFetching, dataUpdatedAt } = useQuery({
     queryKey: ["driver-jobs"],
@@ -226,15 +298,44 @@ export default function DriverJobs() {
     retry: false,
   });
 
+  // ── Init: check existing SW subscription + push permission ──────────────────
   useEffect(() => {
-    if ("serviceWorker" in navigator && "PushManager" in window) {
-      navigator.serviceWorker.ready.then(reg => {
-        reg.pushManager.getSubscription().then(sub => {
-          if (sub) { setPushSub(sub); setPushStatus("granted"); }
-          else if (Notification.permission === "denied") setPushStatus("denied");
-        });
-      });
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setPushStatus("unsupported");
+      return;
     }
+
+    navigator.serviceWorker.ready
+      .then(reg => reg.pushManager.getSubscription())
+      .then(sub => {
+        if (sub) {
+          setPushSub(sub);
+          setPushStatus("granted");
+        } else if (Notification.permission === "denied") {
+          setPushStatus("denied");
+        }
+        // else: stays "idle" → show Enable Alerts button
+      })
+      .catch(() => {
+        // SW not yet active — stays idle so user can trigger it manually
+      });
+  }, []);
+
+  // ── PWA install prompt ───────────────────────────────────────────────────────
+  useEffect(() => {
+    function handleBeforeInstallPrompt(e: Event) {
+      e.preventDefault(); // suppress automatic mini-infobar
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    }
+    function handleAppInstalled() {
+      setInstallPrompt(null);
+    }
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
   }, []);
 
   const claimMutation = useMutation({
@@ -262,39 +363,117 @@ export default function DriverJobs() {
   }
 
   async function handleEnablePush() {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setPushError("Push notifications are not supported on this browser.");
+      return;
+    }
     setPushStatus("requesting");
+    setPushError(null);
+
     try {
+      // 1. Ensure SW is registered and active
+      let reg: ServiceWorkerRegistration;
+      try {
+        reg = await ensureServiceWorker();
+      } catch (e) {
+        setPushStatus("idle");
+        setPushError(`Service worker error: ${(e as Error).message}. Try reloading the page.`);
+        return;
+      }
+
+      // 2. Request notification permission (must come from a user gesture)
       const permission = await Notification.requestPermission();
-      if (permission !== "granted") { setPushStatus("denied"); return; }
+      if (permission !== "granted") {
+        setPushStatus("denied");
+        setPushError(
+          permission === "denied"
+            ? "Notifications blocked — enable them in your browser/phone settings then reload."
+            : "Notification permission was dismissed. Tap Enable Alerts to try again."
+        );
+        return;
+      }
+
+      // 3. Fetch VAPID public key
       const vapidRes = await fetch("/api/drivers/push-key");
-      if (!vapidRes.ok) { setPushStatus("idle"); return; }
+      if (!vapidRes.ok) {
+        const body = await vapidRes.json().catch(() => ({})) as { error?: string };
+        setPushStatus("idle");
+        setPushError(body.error ?? "Push service is not configured. Contact your admin.");
+        return;
+      }
       const { publicKey } = await vapidRes.json() as { publicKey: string };
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlB64ToUint8Array(publicKey),
-      });
-      await fetch("/api/drivers/push-subscribe", {
+
+      // 4. Subscribe
+      let sub: PushSubscription;
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlB64ToUint8Array(publicKey),
+        });
+      } catch (e) {
+        setPushStatus("idle");
+        const msg = (e as Error).message ?? "";
+        if (msg.includes("Permission denied") || msg.includes("NotAllowedError")) {
+          setPushStatus("denied");
+          setPushError("Notifications are blocked. Check your browser settings.");
+        } else {
+          setPushError(`Subscription failed: ${msg}`);
+        }
+        return;
+      }
+
+      // 5. Save subscription to server
+      const subJson = sub.toJSON();
+      const saveRes = await fetch("/api/drivers/push-subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(sub.toJSON()),
+        body: JSON.stringify({
+          endpoint: subJson.endpoint,
+          keys: subJson.keys,
+        }),
       });
-      setPushSub(sub); setPushStatus("granted");
-    } catch { setPushStatus("idle"); }
+      if (!saveRes.ok) {
+        await sub.unsubscribe().catch(() => {});
+        setPushStatus("idle");
+        const body = await saveRes.json().catch(() => ({})) as { error?: string };
+        setPushError(body.error ?? "Failed to save subscription. Please try again.");
+        return;
+      }
+
+      setPushSub(sub);
+      setPushStatus("granted");
+    } catch (e) {
+      setPushStatus("idle");
+      setPushError(`Unexpected error: ${(e as Error).message ?? "Unknown"}`);
+    }
   }
 
   async function handleDisablePush() {
     if (!pushSub) return;
-    await pushSub.unsubscribe();
-    await fetch("/api/drivers/push-subscribe", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ endpoint: pushSub.endpoint }),
-    });
-    setPushSub(null); setPushStatus("idle");
+    try {
+      await pushSub.unsubscribe();
+      await fetch("/api/drivers/push-subscribe", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ endpoint: pushSub.endpoint }),
+      });
+    } catch {}
+    setPushSub(null);
+    setPushStatus("idle");
+    setPushError(null);
+  }
+
+  async function handleInstall() {
+    if (!installPrompt) return;
+    setInstalling(true);
+    try {
+      await installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
+      if (outcome === "accepted") setInstallPrompt(null);
+    } catch {}
+    setInstalling(false);
   }
 
   async function handleLogout() {
@@ -345,8 +524,9 @@ export default function DriverJobs() {
         </div>
       </header>
 
-      {/* Status bar: availability + push alerts */}
-      <div className="px-4 mb-3 flex items-center gap-2 flex-wrap">
+      {/* Status bar: availability + push + install */}
+      <div className="px-4 mb-1 flex items-center gap-2 flex-wrap">
+        {/* Availability */}
         <button
           onClick={handleToggleAvailability}
           disabled={togglingAvail}
@@ -363,6 +543,7 @@ export default function DriverJobs() {
           {availability === "available" ? "Available" : "Offline"}
         </button>
 
+        {/* Push toggle */}
         {pushStatus === "granted" ? (
           <button
             onClick={handleDisablePush}
@@ -376,20 +557,50 @@ export default function DriverJobs() {
             <BellOff className="w-3 h-3" />
             Alerts Blocked
           </span>
-        ) : (
+        ) : pushStatus === "unsupported" ? null : (
           <button
             onClick={handleEnablePush}
             disabled={pushStatus === "requesting"}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/5 border border-white/10 text-teal-400 hover:border-amber-600/40 hover:text-amber-300 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white/5 border border-white/10 text-teal-400 hover:border-amber-600/40 hover:text-amber-300 transition-all disabled:opacity-50"
           >
             {pushStatus === "requesting" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Bell className="w-3 h-3" />}
             {pushStatus === "requesting" ? "Enabling…" : "Enable Alerts"}
           </button>
         )}
+
+        {/* PWA install button — only shown when browser fires beforeinstallprompt */}
+        {installPrompt && (
+          <button
+            onClick={handleInstall}
+            disabled={installing}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-teal-800/60 border border-teal-500/50 text-teal-300 hover:bg-teal-700/60 transition-all disabled:opacity-50"
+          >
+            {installing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+            {installing ? "Installing…" : "Install App"}
+          </button>
+        )}
       </div>
 
+      {/* Push error / hint feedback */}
+      {pushError && (
+        <div className="mx-4 mb-2 flex items-start gap-2 rounded-xl bg-red-900/30 border border-red-700/40 px-3 py-2.5">
+          <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
+          <p className="text-red-300 text-xs leading-relaxed">{pushError}</p>
+        </div>
+      )}
+
+      {/* iOS push hint: push only works when installed as PWA on iOS */}
+      {pushStatus === "idle" && !installPrompt && /iphone|ipad|ipod/i.test(navigator.userAgent) && (
+        <div className="mx-4 mb-2 flex items-start gap-2 rounded-xl bg-teal-900/30 border border-teal-700/30 px-3 py-2.5">
+          <Bell className="w-3.5 h-3.5 text-teal-400 shrink-0 mt-0.5" />
+          <p className="text-teal-400 text-xs leading-relaxed">
+            On iPhone/iPad: tap <span className="font-bold">Share → Add to Home Screen</span> first, then open from your home screen to enable alerts.
+          </p>
+        </div>
+      )}
+
       {/* Tabs */}
-      <div className="px-4 mb-4">
+      <div className="px-4 mb-4 mt-2">
         <div className="flex gap-1 bg-white/5 rounded-xl p-1">
           <button
             onClick={() => setTab("jobs")}
