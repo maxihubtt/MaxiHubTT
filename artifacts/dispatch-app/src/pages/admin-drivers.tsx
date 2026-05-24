@@ -365,7 +365,7 @@ export default function AdminDrivers() {
     queryKey: ["admin-drivers"],
     queryFn: fetchDrivers,
     retry: false,
-    refetchInterval: 60_000,
+    refetchInterval: 10_000,
   });
 
   const { data: pending = [], isLoading: pendingLoading } = useQuery({
