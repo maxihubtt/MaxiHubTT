@@ -376,7 +376,7 @@ export function JobCard({ job, index }: JobCardProps) {
                   )}
 
                   {/* Mark Deposit Paid */}
-                  {isPendingDeposit && !j.depositPaid && (
+                  {!isDone && j.depositAmount != null && !j.depositPaid && (
                     <button
                       onClick={handleMarkDepositPaid}
                       disabled={markDepositPaid.isPending}
