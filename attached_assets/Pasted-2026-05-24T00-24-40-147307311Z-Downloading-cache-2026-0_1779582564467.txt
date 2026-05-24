@@ -1,0 +1,37 @@
+2026-05-24T00:24:40.147307311Z ==> Downloading cache...
+2026-05-24T00:24:40.181615105Z ==> Cloning from https://github.com/maxihubtt/MaxiHubTT
+2026-05-24T00:24:40.649676592Z ==> Checking out commit cab508f6b7caee9da3a4c29c0c077d118ff8c755 in branch main
+2026-05-24T00:24:48.333609081Z ==> Downloaded 274MB in 1s. Extraction took 7s.
+2026-05-24T00:24:58.306453812Z ==> Using Node.js version 24.14.1 (default)
+2026-05-24T00:24:58.306462452Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-05-24T00:24:58.349506433Z ==> Running build command 'npx --yes pnpm@9 install --no-frozen-lockfile --ignore-scripts && npx pnpm@9 rebuild esbuild && npx pnpm@9 --filter @workspace/db run migrate && npx pnpm@9 --filter @workspace/api-server run build'...
+2026-05-24T00:24:59.623106494Z (node:110) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-05-24T00:24:59.623131394Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-05-24T00:25:03.309049594Z (node:160) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-05-24T00:25:03.309076855Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-05-24T00:25:04.51583365Z 
+2026-05-24T00:25:04.515861111Z > @workspace/db@0.0.0 migrate /opt/render/project/src/lib/db
+2026-05-24T00:25:04.515867551Z > node src/migrate.mjs
+2026-05-24T00:25:04.515871631Z 
+2026-05-24T00:25:04.543373396Z node:internal/modules/cjs/loader:1459
+2026-05-24T00:25:04.543396526Z   throw err;
+2026-05-24T00:25:04.543403376Z   ^
+2026-05-24T00:25:04.543409696Z 
+2026-05-24T00:25:04.543415567Z Error: Cannot find module '/opt/render/project/src/lib/db/src/migrate.mjs'
+2026-05-24T00:25:04.543419607Z     at Module._resolveFilename (node:internal/modules/cjs/loader:1456:15)
+2026-05-24T00:25:04.543423577Z     at defaultResolveImpl (node:internal/modules/cjs/loader:1066:19)
+2026-05-24T00:25:04.543428257Z     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1071:22)
+2026-05-24T00:25:04.543432897Z     at Module._load (node:internal/modules/cjs/loader:1242:25)
+2026-05-24T00:25:04.543436767Z     at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+2026-05-24T00:25:04.543441057Z     at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+2026-05-24T00:25:04.543444907Z     at node:internal/main/run_main_module:33:47 {
+2026-05-24T00:25:04.543449637Z   code: 'MODULE_NOT_FOUND',
+2026-05-24T00:25:04.543454227Z   requireStack: []
+2026-05-24T00:25:04.543458177Z }
+2026-05-24T00:25:04.543462028Z 
+2026-05-24T00:25:04.543465928Z Node.js v24.14.1
+2026-05-24T00:25:04.547648287Z /opt/render/project/src/lib/db:
+2026-05-24T00:25:04.547661008Z  ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/db@0.0.0 migrate: `node src/migrate.mjs`
+2026-05-24T00:25:04.547665898Z Exit status 1
+2026-05-24T00:25:04.613366961Z ==> Build failed 😞
+2026-05-24T00:25:04.613388801Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
