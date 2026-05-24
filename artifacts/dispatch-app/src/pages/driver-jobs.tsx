@@ -5,7 +5,7 @@ import {
   MapPin, Navigation, Users, DollarSign, Phone, User,
   CheckCircle2, LogOut, Loader2, RefreshCw, BriefcaseBusiness,
   Bell, BellOff, Clock, Wifi, WifiOff, Download, AlertCircle,
-  MessageCircle, Car, Flag, Calendar, TrendingUp,
+  MessageCircle, Car, Flag, Calendar, TrendingUp, Star,
 } from "lucide-react";
 import { useDriverAuth } from "@/components/driver-guard";
 
@@ -389,6 +389,14 @@ function HistoryCard({ job }: { job: HistoryJob }) {
           </span>
         </div>
       </div>
+      {job.rating != null && (
+        <div className="flex items-center gap-1">
+          {[1,2,3,4,5].map(s => (
+            <Star key={s} className={`w-3 h-3 ${s <= job.rating! ? "text-amber-400 fill-amber-400" : "text-teal-700"}`} />
+          ))}
+          <span className="text-teal-500 text-[10px] ml-1">Customer rating</span>
+        </div>
+      )}
       <p className="text-teal-700 text-[10px] font-mono">
         {new Date(job.createdAt).toLocaleDateString("en-TT", { day: "numeric", month: "short", year: "numeric" })} · #{job.id}
       </p>
@@ -842,6 +850,7 @@ export default function DriverJobs() {
                       key={job.id}
                       job={job}
                       isMine={false}
+                      driverName={driverName}
                       onClaim={handleClaim}
                       claiming={claimingId === job.id}
                     />
@@ -864,6 +873,7 @@ export default function DriverJobs() {
                       key={job.id}
                       job={job}
                       isMine={true}
+                      driverName={driverName}
                       onClaim={handleClaim}
                       claiming={false}
                       onEnRoute={handleEnRoute}

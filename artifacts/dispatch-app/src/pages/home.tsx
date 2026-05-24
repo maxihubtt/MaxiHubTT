@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCreateJob, useGetJob, getGetJobQueryKey, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle, AlertTriangle, Star, Car, MessageSquare } from "lucide-react";
@@ -621,12 +621,81 @@ function LiveStatusBadge({ jobId }: { jobId: string }) {
   );
 }
 
+function StarRating({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const [hovered, setHovered] = useState(0);
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map(s => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => onChange(s)}
+          onMouseEnter={() => setHovered(s)}
+          onMouseLeave={() => setHovered(0)}
+          className="focus:outline-none transition-transform hover:scale-110 active:scale-95"
+        >
+          <Star
+            className={`w-7 h-7 transition-colors ${
+              s <= (hovered || value) ? "text-amber-400 fill-amber-400" : "text-teal-300"
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function BookingLookup() {
   const [refInput, setRefInput] = useState("");
   const [searchId, setSearchId] = useState("");
+  const qc = useQueryClient();
   const { data: job, isLoading, isError } = useGetJob(searchId, {
     query: { queryKey: getGetJobQueryKey(searchId), enabled: !!searchId },
   });
+
+  // Rating state
+  const [ratingValue, setRatingValue] = useState(0);
+  const [ratingComment, setRatingComment] = useState("");
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
+  const [ratingDone, setRatingDone] = useState(false);
+  const [ratingError, setRatingError] = useState<string | null>(null);
+
+  // Reset rating UI when a new job is looked up
+  const prevJobId = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (job?.id !== prevJobId.current) {
+      setRatingValue(0);
+      setRatingComment("");
+      setRatingDone(false);
+      setRatingError(null);
+      prevJobId.current = job?.id;
+    }
+  }, [job?.id]);
+
+  async function handleSubmitRating() {
+    if (!job || ratingValue < 1) return;
+    setRatingSubmitting(true);
+    setRatingError(null);
+    try {
+      const res = await fetch(`/api/jobs/${job.id}/rate`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating: ratingValue, comment: ratingComment || undefined }),
+      });
+      if (!res.ok) {
+        const body = await res.json() as { error?: string };
+        throw new Error(body.error ?? "Failed to submit rating");
+      }
+      setRatingDone(true);
+      qc.invalidateQueries({ queryKey: getGetJobQueryKey(searchId) });
+    } catch (e) {
+      setRatingError((e as Error).message);
+    }
+    setRatingSubmitting(false);
+  }
+
+  const hasDriver = job?.claimedBy && ["claimed", "driver_en_route", "driver_assigned"].includes(job.status ?? "");
+  const alreadyRated = job?.rating != null;
 
   return (
     <section className="py-16 px-6 md:px-12 bg-white/60">
@@ -677,24 +746,91 @@ function BookingLookup() {
                   <div><p className="text-xs text-teal-500 uppercase tracking-wider">Dropoff</p><p className="font-semibold text-teal-900">{job.dropoff}</p></div>
                 </div>
               </div>
-              {job.status === "claimed" && (
-                <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 space-y-2">
+
+              {/* Driver profile card — shown when driver assigned/en-route */}
+              {hasDriver && (
+                <div className="bg-teal-50 border border-teal-200 rounded-xl px-4 py-3 space-y-3">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
-                    <p className="text-xs font-semibold text-teal-700 uppercase tracking-wide">Driver Assigned</p>
+                    <p className="text-xs font-semibold text-teal-700 uppercase tracking-wide">
+                      {job.status === "driver_en_route" ? "Driver En Route" : "Driver Assigned"}
+                    </p>
                   </div>
-                  {job.claimedBy && (
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div><p className="text-teal-400 uppercase tracking-wider mb-0.5">Driver</p><p className="font-bold text-teal-900">{job.claimedBy}</p></div>
-                      {job.vehicleType && <div><p className="text-teal-400 uppercase tracking-wider mb-0.5">Vehicle</p><p className="font-bold text-teal-900">{job.vehicleType}</p></div>}
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center shrink-0">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-teal-900 text-sm">{job.claimedBy}</p>
+                      {(job.vehicleType || job.numberPlate) && (
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <Car className="w-3 h-3 text-teal-500 shrink-0" />
+                          <p className="text-teal-600 text-xs">
+                            {[job.vehicleType, job.numberPlate].filter(Boolean).join(" · ")}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {job.status === "driver_en_route" && (
+                    <div className="flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+                      <span className="text-blue-500 text-xs font-semibold">🚐 Your driver is on the way!</span>
                     </div>
                   )}
                 </div>
               )}
+
               {job.status === "pending" && (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
                   <Info className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                   <p className="text-xs text-teal-700">Your booking is waiting to be claimed by a driver. You'll be contacted shortly.</p>
+                </div>
+              )}
+
+              {/* Rating UI — only for completed, unrated jobs */}
+              {job.status === "completed" && !alreadyRated && !ratingDone && (
+                <div className="border border-amber-200 bg-amber-50 rounded-xl px-4 py-4 space-y-3">
+                  <p className="text-sm font-black text-teal-900">How was your ride?</p>
+                  <StarRating value={ratingValue} onChange={setRatingValue} />
+                  <textarea
+                    placeholder="Leave a comment (optional)"
+                    value={ratingComment}
+                    onChange={e => setRatingComment(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 rounded-lg border border-teal-200 bg-white text-teal-900 text-xs placeholder:text-teal-400 focus:border-teal-500 focus:outline-none resize-none"
+                  />
+                  {ratingError && (
+                    <p className="text-xs text-red-600">{ratingError}</p>
+                  )}
+                  <button
+                    onClick={handleSubmitRating}
+                    disabled={ratingValue < 1 || ratingSubmitting}
+                    className="w-full py-2.5 rounded-xl text-sm font-black text-white disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    style={{ background: "linear-gradient(135deg, #0f3d2e, #1a5c42)" }}
+                  >
+                    {ratingSubmitting ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "Submit Rating"}
+                  </button>
+                </div>
+              )}
+
+              {/* Already rated */}
+              {job.status === "completed" && (alreadyRated || ratingDone) && (
+                <div className="border border-teal-200 bg-teal-50 rounded-xl px-4 py-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-teal-600 shrink-0" />
+                    <p className="text-xs font-semibold text-teal-700">Thanks for your rating!</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map(s => (
+                      <Star
+                        key={s}
+                        className={`w-4 h-4 ${s <= (job.rating ?? ratingValue) ? "text-amber-400 fill-amber-400" : "text-teal-300"}`}
+                      />
+                    ))}
+                  </div>
+                  {(job.ratingComment || ratingComment) && (
+                    <p className="text-xs text-teal-700 italic">"{job.ratingComment ?? ratingComment}"</p>
+                  )}
                 </div>
               )}
             </div>
