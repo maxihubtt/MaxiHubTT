@@ -94,12 +94,20 @@ router.post("/auth/driver-login", async (req, res) => {
   });
 });
 
-router.get("/auth/driver-me", (req, res) => {
-  if (req.session?.driver) {
-    res.json({ authenticated: true, name: req.session.driverName ?? "" });
-  } else {
+router.get("/auth/driver-me", async (req, res) => {
+  if (!req.session?.driver || !req.session.driverId) {
     res.status(401).json({ authenticated: false });
+    return;
   }
+  const [driver] = await db
+    .select({ name: driversTable.name, availability: driversTable.availability })
+    .from(driversTable)
+    .where(eq(driversTable.id, req.session.driverId));
+  if (!driver) {
+    res.status(401).json({ authenticated: false });
+    return;
+  }
+  res.json({ authenticated: true, name: driver.name, availability: driver.availability });
 });
 
 router.post("/auth/driver-logout", (req, res) => {

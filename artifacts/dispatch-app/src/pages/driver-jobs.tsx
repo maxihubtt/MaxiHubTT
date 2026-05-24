@@ -418,6 +418,13 @@ export default function DriverJobs() {
   const [availability, setAvailability] = useState<"available" | "offline">("offline");
   const [togglingAvail, setTogglingAvail] = useState(false);
 
+  // Sync availability from server once auth loads
+  useEffect(() => {
+    if (auth?.availability) {
+      setAvailability(auth.availability);
+    }
+  }, [auth?.availability]);
+
   // Push notification state
   const [pushStatus, setPushStatus] = useState<"idle" | "requesting" | "granted" | "denied" | "unsupported">("idle");
   const [pushSub, setPushSub] = useState<PushSubscription | null>(null);

@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 export interface DriverSession {
   authenticated: boolean;
   name: string;
+  availability?: "available" | "offline";
 }
 
 async function fetchDriverAuth(): Promise<DriverSession> {
