@@ -84,6 +84,7 @@ router.get("/driver/jobs", requireDriver, async (req, res) => {
           vehicleType: j.vehicleType,
           numberPlate: j.numberPlate,
           claimedBy: j.claimedBy,
+          pickupDatetime: j.pickupDatetime ?? null,
           createdAt: j.createdAt.toISOString(),
           updatedAt: j.updatedAt.toISOString(),
         };
@@ -111,10 +112,38 @@ router.get("/driver/jobs/history", requireDriver, async (req, res) => {
       urgency: j.urgency,
       price: j.price,
       passengers: j.passengers,
+      pickupDatetime: j.pickupDatetime ?? null,
       createdAt: j.createdAt.toISOString(),
       updatedAt: j.updatedAt.toISOString(),
     }))
   );
+});
+
+// ── Driver: update own job status (en_route / completed) ──────────────────────
+
+router.patch("/jobs/:id/driver-status", requireDriver, async (req, res) => {
+  const id = req.params["id"] as string;
+  const driverName = req.session.driverName ?? "";
+  const { status } = req.body as { status?: string };
+
+  const allowed = ["driver_en_route", "completed"];
+  if (!status || !allowed.includes(status)) {
+    res.status(400).json({ error: `status must be one of: ${allowed.join(", ")}` });
+    return;
+  }
+
+  const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
+  if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+  if (job.claimedBy !== driverName) { res.status(403).json({ error: "Not your job" }); return; }
+
+  const [updated] = await db
+    .update(jobsTable)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(jobsTable.id, id))
+    .returning();
+
+  req.log.info({ jobId: id, status, driverName }, "Driver updated job status");
+  res.json(serializeJob(updated));
 });
 
 // ── Admin job list ─────────────────────────────────────────────────────────────

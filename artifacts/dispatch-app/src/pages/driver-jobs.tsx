@@ -5,6 +5,7 @@ import {
   MapPin, Navigation, Users, DollarSign, Phone, User,
   CheckCircle2, LogOut, Loader2, RefreshCw, BriefcaseBusiness,
   Bell, BellOff, Clock, Wifi, WifiOff, Download, AlertCircle,
+  MessageCircle, Car, Flag, Calendar, TrendingUp,
 } from "lucide-react";
 import { useDriverAuth } from "@/components/driver-guard";
 
@@ -27,6 +28,7 @@ interface DriverJob {
   claimedBy: string | null;
   name: string;
   phone: string;
+  pickupDatetime: string | null;
   createdAt: string;
 }
 
@@ -38,6 +40,7 @@ interface HistoryJob {
   urgency?: string;
   price: string;
   passengers: string | null;
+  pickupDatetime: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -80,6 +83,58 @@ async function doSetAvailability(availability: "available" | "offline"): Promise
 
 async function doLogout() {
   await fetch("/api/auth/driver-logout", { method: "POST", credentials: "include" });
+}
+
+async function doUpdateDriverStatus(id: string, status: "driver_en_route" | "completed"): Promise<void> {
+  const res = await fetch(`/api/jobs/${id}/driver-status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ status }),
+  });
+  const data = await res.json() as { error?: string };
+  if (!res.ok) throw new Error(data.error ?? "Failed to update status");
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function fmtPickupTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-TT", {
+    weekday: "short", month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+
+function playNewJobAlert() {
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const tones = [880, 1100, 1320];
+    tones.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.12 + 0.02);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.12 + 0.14);
+      osc.start(ctx.currentTime + i * 0.12);
+      osc.stop(ctx.currentTime + i * 0.12 + 0.15);
+    });
+  } catch {
+    // Audio not supported — silently skip
+  }
 }
 
 // ── Push helpers ───────────────────────────────────────────────────────────────
@@ -141,16 +196,32 @@ async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
 
 // ── JobCard ────────────────────────────────────────────────────────────────────
 
-function JobCard({ job, isMine, onClaim, claiming }: {
+function JobCard({ job, isMine, onClaim, claiming, onEnRoute, onComplete, enRouting, completing }: {
   job: DriverJob;
   isMine: boolean;
   onClaim: (id: string) => void;
   claiming: boolean;
+  onEnRoute?: (id: string) => void;
+  onComplete?: (id: string) => void;
+  enRouting?: boolean;
+  completing?: boolean;
 }) {
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.pickup)}`;
+  const waUrl = `https://wa.me/${job.phone?.replace(/\D/g, "")}?text=${encodeURIComponent(`Hi, I'm your Maxi Hub TT driver. I've claimed your job (#${job.id}): ${job.pickup} → ${job.dropoff}. I'll be in touch shortly!`)}`;
+  const isEnRoute = job.status === "driver_en_route";
+
   return (
     <div className={`rounded-2xl border p-4 space-y-3 transition-all ${
       isMine ? "bg-emerald-900/40 border-emerald-600/40" : "bg-white/8 border-white/10"
     }`}>
+      {/* Pickup time banner */}
+      {job.pickupDatetime && (
+        <div className="flex items-center gap-2 bg-teal-900/40 rounded-xl px-3 py-1.5 border border-teal-700/30">
+          <Calendar className="w-3 h-3 text-teal-400 shrink-0" />
+          <span className="text-teal-200 text-xs font-bold">{fmtPickupTime(job.pickupDatetime)}</span>
+        </div>
+      )}
+
       <div className="space-y-2">
         <div className="flex items-start gap-2.5">
           <MapPin className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
@@ -167,6 +238,7 @@ function JobCard({ job, isMine, onClaim, claiming }: {
           </div>
         </div>
       </div>
+
       <div className="flex items-center gap-4 flex-wrap">
         {job.passengers && (
           <div className="flex items-center gap-1.5">
@@ -187,8 +259,12 @@ function JobCard({ job, isMine, onClaim, claiming }: {
         {job.status === "deposit_received" && (
           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">✓ DEPOSIT PAID</span>
         )}
-        <span className="ml-auto text-teal-700 text-[10px] font-mono">#{job.id}</span>
+        {isEnRoute && (
+          <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">🚐 EN ROUTE</span>
+        )}
+        <span className="ml-auto text-teal-700 text-[10px] font-mono">{timeAgo(job.createdAt)}</span>
       </div>
+
       {(job.status === "pending" || job.status === "deposit_received") && !isMine && (
         <button
           onClick={() => onClaim(job.id)}
@@ -201,6 +277,7 @@ function JobCard({ job, isMine, onClaim, claiming }: {
             : "Claim This Job"}
         </button>
       )}
+
       {isMine && (
         <div className="space-y-2 pt-1 border-t border-emerald-700/40">
           <p className="text-emerald-400 text-[10px] font-semibold uppercase tracking-wider flex items-center gap-1.5">
@@ -216,12 +293,59 @@ function JobCard({ job, isMine, onClaim, claiming }: {
               {job.phone}
             </a>
           </div>
+          {/* Contact row: Call + WhatsApp */}
+          <div className="grid grid-cols-2 gap-2">
+            <a
+              href={`tel:${job.phone}`}
+              className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-teal-900 font-black text-sm text-center transition-colors"
+            >
+              <Phone className="w-3.5 h-3.5" /> Call
+            </a>
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white font-black text-sm text-center transition-colors"
+            >
+              <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
+            </a>
+          </div>
+          {/* Maps navigate to pickup */}
           <a
-            href={`tel:${job.phone}`}
-            className="block w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-teal-900 font-black text-sm text-center transition-colors"
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-300 font-bold text-sm transition-colors"
           >
-            Call Customer
+            <Navigation className="w-3.5 h-3.5" /> Navigate to Pickup
           </a>
+          {/* Status actions */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            {!isEnRoute && onEnRoute && (
+              <button
+                onClick={() => onEnRoute(job.id)}
+                disabled={enRouting}
+                className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-blue-600/40 hover:bg-blue-600/60 border border-blue-500/40 text-blue-200 font-black text-xs transition-colors disabled:opacity-50"
+              >
+                {enRouting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Car className="w-3.5 h-3.5" />}
+                En Route
+              </button>
+            )}
+            {onComplete && (
+              <button
+                onClick={() => onComplete(job.id)}
+                disabled={completing}
+                className={`flex items-center justify-center gap-1.5 py-2.5 rounded-xl border font-black text-xs transition-colors disabled:opacity-50 ${
+                  isEnRoute
+                    ? "col-span-2 bg-amber-500 hover:bg-amber-400 border-amber-400 text-teal-900"
+                    : "bg-white/5 hover:bg-white/10 border-white/10 text-teal-400"
+                }`}
+              >
+                {completing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Flag className="w-3.5 h-3.5" />}
+                Mark Completed
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -271,6 +395,8 @@ export default function DriverJobs() {
   const qc = useQueryClient();
   const [claimingId, setClaimingId] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [enRoutingId, setEnRoutingId] = useState<string | null>(null);
+  const [completingId, setCompletingId] = useState<string | null>(null);
   const [tab, setTab] = useState<"jobs" | "history">("jobs");
   const [availability, setAvailability] = useState<"available" | "offline">("offline");
   const [togglingAvail, setTogglingAvail] = useState(false);
@@ -350,9 +476,37 @@ export default function DriverJobs() {
     },
   });
 
+  const enRouteMutation = useMutation({
+    mutationFn: (id: string) => doUpdateDriverStatus(id, "driver_en_route"),
+    onSettled: (_, __, id) => {
+      setEnRoutingId(null);
+      qc.invalidateQueries({ queryKey: ["driver-jobs"] });
+      qc.invalidateQueries({ queryKey: ["driver-jobs-history"] });
+    },
+  });
+
+  const completeMutation = useMutation({
+    mutationFn: (id: string) => doUpdateDriverStatus(id, "completed"),
+    onSettled: (_, __, id) => {
+      setCompletingId(null);
+      qc.invalidateQueries({ queryKey: ["driver-jobs"] });
+      qc.invalidateQueries({ queryKey: ["driver-jobs-history"] });
+    },
+  });
+
   function handleClaim(id: string) {
     setClaimingId(id); setClaimError(null);
     claimMutation.mutate(id);
+  }
+
+  function handleEnRoute(id: string) {
+    setEnRoutingId(id);
+    enRouteMutation.mutate(id);
+  }
+
+  function handleComplete(id: string) {
+    setCompletingId(id);
+    completeMutation.mutate(id);
   }
 
   async function handleToggleAvailability() {
@@ -476,6 +630,16 @@ export default function DriverJobs() {
     setInstalling(false);
   }
 
+  // ── Sound alert: play a tone when new pending jobs appear ─────────────────
+  const prevPendingCount = useRef<number | null>(null);
+  useEffect(() => {
+    const count = jobs.filter(j => j.status === "pending" || j.status === "deposit_received").length;
+    if (prevPendingCount.current !== null && count > prevPendingCount.current) {
+      playNewJobAlert();
+    }
+    prevPendingCount.current = count;
+  }, [jobs]);
+
   async function handleLogout() {
     await doLogout();
     await qc.invalidateQueries({ queryKey: ["driver-auth"] });
@@ -491,10 +655,18 @@ export default function DriverJobs() {
     : null;
 
   const historyCompleted = history.filter(j => j.status === "completed");
-  const historyEarnings = historyCompleted.reduce((sum, j) => {
-    const n = parseFloat(j.price.replace(/[^0-9.]/g, ""));
-    return sum + (isNaN(n) ? 0 : n);
-  }, 0);
+  const parsePrice = (price: string) => {
+    const n = parseFloat(price.replace(/[^0-9.]/g, ""));
+    return isNaN(n) ? 0 : n;
+  };
+  const historyEarnings = historyCompleted.reduce((sum, j) => sum + parsePrice(j.price), 0);
+  const now = new Date();
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const weekCompleted = historyCompleted.filter(j => new Date(j.updatedAt) >= weekAgo);
+  const monthCompleted = historyCompleted.filter(j => new Date(j.updatedAt) >= monthStart);
+  const weekEarnings = weekCompleted.reduce((sum, j) => sum + parsePrice(j.price), 0);
+  const monthEarnings = monthCompleted.reduce((sum, j) => sum + parsePrice(j.price), 0);
 
   return (
     <div className="min-h-screen bg-[#0c3527] flex flex-col pb-10" style={{ fontFamily: "'Outfit', sans-serif" }}>
@@ -657,7 +829,13 @@ export default function DriverJobs() {
               ) : (
                 <div className="space-y-3">
                   {pending.map(job => (
-                    <JobCard key={job.id} job={job} isMine={false} onClaim={handleClaim} claiming={claimingId === job.id} />
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      isMine={false}
+                      onClaim={handleClaim}
+                      claiming={claimingId === job.id}
+                    />
                   ))}
                 </div>
               )}
@@ -673,7 +851,17 @@ export default function DriverJobs() {
                 </div>
                 <div className="space-y-3">
                   {mine.map(job => (
-                    <JobCard key={job.id} job={job} isMine={true} onClaim={handleClaim} claiming={false} />
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      isMine={true}
+                      onClaim={handleClaim}
+                      claiming={false}
+                      onEnRoute={handleEnRoute}
+                      onComplete={handleComplete}
+                      enRouting={enRoutingId === job.id}
+                      completing={completingId === job.id}
+                    />
                   ))}
                 </div>
               </section>
@@ -710,14 +898,36 @@ export default function DriverJobs() {
               </div>
             ) : (
               <>
-                <div className="mb-4 rounded-2xl bg-white/5 border border-white/10 p-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-teal-400 text-[10px] uppercase tracking-wider font-semibold">Estimated Earnings</p>
-                    <p className="text-amber-300 font-black text-xl">TT$ {historyEarnings.toFixed(0)}</p>
+                <div className="mb-4 space-y-2">
+                  {/* All-time summary */}
+                  <div className="rounded-2xl bg-white/5 border border-white/10 p-4 flex items-center justify-between">
+                    <div>
+                      <p className="text-teal-400 text-[10px] uppercase tracking-wider font-semibold">All-Time Earnings</p>
+                      <p className="text-amber-300 font-black text-xl">TT$ {historyEarnings.toFixed(0)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-teal-400 text-[10px] uppercase tracking-wider font-semibold">Completed</p>
+                      <p className="text-emerald-400 font-black text-xl">{historyCompleted.length}</p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-teal-400 text-[10px] uppercase tracking-wider font-semibold">Completed</p>
-                    <p className="text-emerald-400 font-black text-xl">{historyCompleted.length}</p>
+                  {/* This week / This month */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <TrendingUp className="w-3 h-3 text-teal-400" />
+                        <p className="text-teal-400 text-[10px] uppercase tracking-wider font-semibold">This Week</p>
+                      </div>
+                      <p className="text-amber-300 font-black text-base">TT$ {weekEarnings.toFixed(0)}</p>
+                      <p className="text-teal-600 text-[10px]">{weekCompleted.length} job{weekCompleted.length !== 1 ? "s" : ""}</p>
+                    </div>
+                    <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <Calendar className="w-3 h-3 text-teal-400" />
+                        <p className="text-teal-400 text-[10px] uppercase tracking-wider font-semibold">This Month</p>
+                      </div>
+                      <p className="text-amber-300 font-black text-base">TT$ {monthEarnings.toFixed(0)}</p>
+                      <p className="text-teal-600 text-[10px]">{monthCompleted.length} job{monthCompleted.length !== 1 ? "s" : ""}</p>
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-2">
