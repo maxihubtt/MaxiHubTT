@@ -83,5 +83,20 @@ await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS rating INTEGER`);
 await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS rating_comment TEXT`);
 console.log("✓ jobs columns");
 
+await client.query(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS dp_expiry DATE`);
+await client.query(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS insurance_expiry DATE`);
+console.log("✓ drivers columns");
+
+await client.query(`ALTER TABLE driver_signups ADD COLUMN IF NOT EXISTS username TEXT NOT NULL DEFAULT ''`);
+console.log("✓ driver_signups columns");
+
+await client.query(`
+  CREATE TABLE IF NOT EXISTS admin_config (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )
+`);
+console.log("✓ admin_config");
+
 await client.end();
 console.log("Migrations complete.");
