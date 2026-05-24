@@ -89,6 +89,16 @@ function isWest(loc: string): boolean {
     "calvary hill extension", "beetham land", "beetham estate",
     "belmont valley road", "observatory", "long circular road",
     "lady young road extension", "penco road", "morne diablo west",
+    // extra west areas
+    "petit bourg west", "down the islands", "monos island", "gaspar grande",
+    "huevos", "chacachacare", "coral cove", "maqueripe", "williams bay",
+    "stollmeyer", "long circular mall", "west mall west",
+    "la seiva road", "chagville village", "des vignes", "dundonald street",
+    "keate street", "henry street west", "nelson street west",
+    "pemberton street", "cipriani boulevard", "wrightson road west",
+    "port of spain", "pos", "newcastle street", "albany street",
+    "st ann's road", "cascade road", "upper cascade road",
+    "morne coco rd", "petit valley road", "la resource west",
   ].some(k => loc.includes(k));
 }
 function isCentral(loc: string): boolean {
@@ -125,6 +135,17 @@ function isCentral(loc: string): boolean {
     "couva junction", "railway road central", "claxton bay extension",
     "gasparillo junction", "pointe a pierre south", "st mary junction",
     "chase village junction", "mc bean road", "warrenville junction",
+    // extra central areas
+    "talparo", "madras road", "enterprise central", "el carmen central",
+    "hindustan trace", "dow village central", "reform central",
+    "st helena village", "buen intento village", "hermitage central",
+    "plum mitan road", "navet road central", "marathon road",
+    "caroni arena road", "felicite road", "freeport main road",
+    "longdenville main road", "chaguanas market", "high street",
+    "chaguanas bypass", "southern main rd central", "chaguanas east",
+    "enterprise road", "todd street south", "writer's avenue",
+    "esperanza", "brasso caparo road", "caparo junction",
+    "orange field road", "waterloo road", "chandernagore road",
   ].some(k => loc.includes(k));
 }
 function isEast(loc: string): boolean {
@@ -164,6 +185,19 @@ function isEast(loc: string): boolean {
     "demerara road", "cunapo southern", "cunapo northern",
     "matura junction", "galera point", "saline bay east",
     "toco beach", "grande riviere", "matelot junction",
+    // extra east areas
+    "orange grove", "caura", "two mile", "malick", "upper malick",
+    "lower malick", "upper barataria east", "junior sammy road",
+    "laventille east", "beetham highway", "simbhoonath road",
+    "pasea main road", "tunapuna road", "eastern main rd",
+    "el dorado road", "la horquetta road", "cumuto main road",
+    "verdant vale road", "heights of guanapo road", "arima bypass",
+    "piarco main road", "airport road", "trincity road",
+    "nariva swamp", "cocos bay road", "platanal road",
+    "mount lambert east", "san juan extension", "don miguel road",
+    "el socorro road", "priority bus route", "pbr",
+    "beetham expressway", "tumpuna road", "lopinot road",
+    "la horquetta bypass", "arima old road",
   ].some(k => loc.includes(k));
 }
 function isSouth(loc: string): boolean {
@@ -209,6 +243,24 @@ function isSouth(loc: string): boolean {
     "sobo junction", "erin", "erin bay", "thick village road",
     "bonasse village", "irois", "constance trace", "naparima trace",
     "union road", "pepper village", "hermitage junction",
+    // extra south areas
+    "mayaro", "guayaguayare", "cocos bay", "naparima mayaro",
+    "dow village", "siparia old road", "pinto road", "pinto",
+    "la lune village", "rambert village", "bronte village",
+    "palo seco road", "brighton lake", "pitch lake la brea",
+    "fullarton", "victoria trace", "mon chagrin road",
+    "paradise pasture", "gulf view south", "pleasantville south",
+    "paradise hill", "corinth village", "harmony hall south",
+    "la fortune road", "bamboo village", "ste madeleine road",
+    "navet village", "corosal road", "rancho quemado village",
+    "vistabella road", "upper coora road", "lower coora road",
+    "san francique", "santa flora south", "monkey town south",
+    "convert village", "california south village",
+    "guayaguayare road", "radix village", "basse terre south",
+    "parrylands sf", "rushworth street sf", "coffee street sf",
+    "high street sf", "harris promenade sf", "gulf city sf",
+    "mon repos sf", "paradise sf", "pleasantville sf",
+    "cross crossing sf", "les efforts sf", "rio claro",
   ].some(k => loc.includes(k));
 }
 
@@ -276,7 +328,7 @@ const BEACH_RATES: Record<BeachKey, Record<RegionKey, [number, number, number, n
   las_cuevas:    { west: [750, 950, 1200, 1400],   east: [850, 1050, 1400, 1600],  central: [950, 1150, 1600, 1800],  south: [1300, 1600, 2200, 2600] },
   blanchisseuse: { west: [900, 1100, 1500, 1800],  east: [600, 800, 1000, 1200],   central: [1100, 1350, 1800, 2100], south: [1600, 2000, 2600, 3000] },
   manzanilla:    { west: [1200, 1500, 2000, 2400], east: [600, 800, 1000, 1200],   central: [900, 1100, 1500, 1800],  south: [900, 1100, 1500, 1800]  },
-  mayaro:        { west: [1400, 1800, 2400, 2800], east: [800, 1000, 1400, 1600],  central: [1000, 1200, 1700, 2000], south: [650, 800, 1100, 1300]   },
+  mayaro:        { west: [1000, 1250, 1700, 2000], east: [750,  950, 1300, 1550],  central: [850,  1050, 1450, 1750], south: [600, 750, 1050, 1250]   },
   vessigny:      { west: [1100, 1400, 1800, 2100], east: [1300, 1600, 2200, 2600], central: [800, 1000, 1400, 1600],  south: [500, 650, 900, 1100]    },
   icacos:        { west: [1600, 2000, 2600, 3000], east: [1500, 1900, 2600, 3000], central: [1400, 1800, 2400, 2800], south: [800, 1000, 1400, 1600]  },
 };
@@ -328,6 +380,7 @@ function getBeachExactFare(pickup: string, dropoff: string, pax: number, tripTyp
 }
 
 const ROUTE_FARES: Record<string, [number,number,number,number,number, number,number,number,number,number]> = {
+  // ── Cross-zone ──────────────────────────────────────────────────────────────
   "west-central":      [         480,  650,  800,  950, 1100,   800, 1000, 1250, 1500, 1750],
   "west-east-near":    [         350,  400,  500,  600,  700,   600,  700,  850, 1000, 1150],
   "west-east-mid":     [         480,  520,  650,  800,  950,   800,  900, 1100, 1300, 1500],
@@ -338,6 +391,11 @@ const ROUTE_FARES: Record<string, [number,number,number,number,number, number,nu
   "west-south-far":    [         900, 1000, 1200, 1450, 1650,  1500, 1650, 2000, 2400, 2750],
   "west-south-deep":   [        1050, 1150, 1400, 1650, 1900,  1700, 1800, 2200, 2600, 3000],
   "central-crossing":  [         500,  700,  850, 1000, 1200,   800, 1000, 1250, 1500, 1750],
+  // ── Intra-zone (same zone, different areas) ─────────────────────────────────
+  "intra-west":        [         250,  300,  380,  450,  520,   420,  500,  620,  750,  870],
+  "intra-central":     [         220,  270,  340,  410,  480,   370,  440,  550,  660,  770],
+  "intra-east":        [         280,  340,  420,  500,  580,   470,  560,  700,  840,  980],
+  "intra-south":       [         250,  310,  390,  470,  550,   420,  510,  640,  760,  890],
 };
 
 function getFareTableKey(pickup: string, dropoff: string): string | null {
@@ -349,7 +407,10 @@ function getFareTableKey(pickup: string, dropoff: string): string | null {
 
   const pZone = getZone(p);
   const dZone = getZone(d);
-  if (!pZone || !dZone || pZone === dZone) return null;
+  if (!pZone || !dZone) return null;
+
+  // Same-zone intra-zone routes (e.g. Diego Martin → POS, SF → Penal)
+  if (pZone === dZone) return `intra-${pZone}`;
 
   if ((pZone === "west" && dZone === "central") || (pZone === "central" && dZone === "west")) {
     return "west-central";
