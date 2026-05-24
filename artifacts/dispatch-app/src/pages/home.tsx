@@ -99,6 +99,26 @@ function isWest(loc: string): boolean {
     "port of spain", "pos", "newcastle street", "albany street",
     "st ann's road", "cascade road", "upper cascade road",
     "morne coco rd", "petit valley road", "la resource west",
+    // hotels & hospitality
+    "hyatt regency", "hyatt trinidad", "trinidad hilton", "hilton trinidad",
+    "courtyard marriott", "marriott trinidad", "cascadia hotel", "cascadia trinidad",
+    "hotel normandie", "normandie hotel", "kapok hotel", "radisson hotel",
+    "holiday inn pos", "asa wright lodge", "chaguaramas hotel",
+    // stadiums & sports
+    "hasely crawford stadium", "hasely crawford", "national stadium",
+    "jean pierre complex", "jean pierre stadium",
+    "queens park oval", "queen's park oval",
+    // healthcare
+    "port of spain general hospital", "pos general hospital",
+    "st clair medical centre", "medical associates", "westshore medical",
+    // cultural / entertainment
+    "emperor valley zoo", "emperor zoo", "national zoo",
+    "queen's hall", "queens hall",
+    "national library", "nalis trinidad", "national museum trinidad",
+    "red house trinidad", "hall of justice pos",
+    "movietowne", "imax", "carib cinemas",
+    // shopping
+    "8 grand bazaar", "falls at west mall",
   ].some(k => loc.includes(k));
 }
 function isCentral(loc: string): boolean {
@@ -146,6 +166,19 @@ function isCentral(loc: string): boolean {
     "enterprise road", "todd street south", "writer's avenue",
     "esperanza", "brasso caparo road", "caparo junction",
     "orange field road", "waterloo road", "chandernagore road",
+    // popular leisure / tourist destinations (central)
+    "harrys fun park", "harry's fun park", "harrys water park", "harry's water park",
+    "harrys park", "harry park", "harry fun", "harry water",
+    "waterloo temple", "temple in the sea", "temple at sea",
+    "must marine waterloo", "waterloo waterfront",
+    "carapichaima recreation", "felicity park",
+    "arena recreation centre", "arena sports",
+    // shopping / commercial
+    "centre pointe", "center pointe", "chaguanas mall",
+    "trincity central mall", "excellent stores", "kirpalanis",
+    // healthcare (central)
+    "couva medical", "couva hospital", "couva health",
+    "point lisas hospital", "penal hospital",
   ].some(k => loc.includes(k));
 }
 function isEast(loc: string): boolean {
@@ -198,6 +231,20 @@ function isEast(loc: string): boolean {
     "el socorro road", "priority bus route", "pbr",
     "beetham expressway", "tumpuna road", "lopinot road",
     "la horquetta bypass", "arima old road",
+    // popular leisure / tourist (east)
+    "asa wright nature centre", "asa wright", "asa wright lodge",
+    "springhill estate arima", "caura valley", "caura recreational park",
+    "caura park", "arima velodrome", "velodrome arima",
+    "heights of guanapo recreational", "lopinot complex", "lopinot heritage",
+    "hollis reservoir", "navet dam east",
+    // shopping / commercial (east)
+    "trincity mall", "trincity central", "grand bazaar centre",
+    "arima market", "arima town centre",
+    // healthcare (east)
+    "ewmsc", "eric williams medical sciences", "mount hope hospital",
+    "arima general hospital", "arima hospital",
+    "sangre grande hospital", "sangre grande medical",
+    "eastern regional health", "north east regional",
   ].some(k => loc.includes(k));
 }
 function isSouth(loc: string): boolean {
@@ -261,6 +308,23 @@ function isSouth(loc: string): boolean {
     "high street sf", "harris promenade sf", "gulf city sf",
     "mon repos sf", "paradise sf", "pleasantville sf",
     "cross crossing sf", "les efforts sf", "rio claro",
+    // stadiums & sports (south)
+    "tarouba", "brian lara stadium", "brian lara cricket",
+    "national cricket centre tarouba", "blia",
+    "skinner park sf",
+    // popular leisure / tourist (south)
+    "pitch lake", "la brea pitch", "brighton beach",
+    "guapo beach", "erin beach", "icacos beach",
+    "gulf city mall sf", "gulf city san fernando", "south park mall",
+    "southern sales", "pennywise sf", "nlcb south",
+    // healthcare (south)
+    "san fernando general hospital", "sfgh",
+    "naparima general hospital", "naparima hospital",
+    "penal district hospital", "siparia district hospital",
+    "south west regional health", "princes town hospital",
+    // tourist/heritage
+    "devils woodyard", "devil's woodyard", "moruga museum",
+    "siparia la divina pastora", "la divina pastora",
   ].some(k => loc.includes(k));
 }
 
@@ -337,7 +401,7 @@ function identifyBeach(loc: string): BeachKey | null {
   if (n.includes("maracas") || n.includes("tyrico") || n.includes("coral cove") || n.includes("maqueripe beach")) return "maracas";
   if (n.includes("las cuevas") || n.includes("richard bay") || n.includes("richards bay") || n.includes("rincon")) return "las_cuevas";
   if (n.includes("blanchisseuse") || n.includes("paria") || n.includes("marianne river")) return "blanchisseuse";
-  if (n.includes("manzanilla") || n.includes("sans souci") || n.includes("saline bay") || n.includes("toco beach") || n.includes("matura beach") || n.includes("balandra bay") || n.includes("grande riviere beach")) return "manzanilla";
+  if (n.includes("manzanilla") || n.includes("sans souci") || n.includes("saline bay") || n.includes("toco beach") || n.includes("toco bay") || n.includes("toco village") || n.includes("matura beach") || n.includes("balandra bay") || n.includes("grande riviere") || n.includes("salybia") || n.includes("galera") || n.includes("rampanalgas beach")) return "manzanilla";
   if (n.includes("mayaro") || n.includes("guayaguayare beach") || n.includes("cocos bay")) return "mayaro";
   if (n.includes("vessigny") || n.includes("quinam beach") || n.includes("quinam bay")) return "vessigny";
   if (n.includes("icacos") || n.includes("columbus bay") || n.includes("soldado")) return "icacos";
