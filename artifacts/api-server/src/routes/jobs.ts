@@ -298,6 +298,76 @@ router.patch("/jobs/:id/status", requireAdmin, async (req, res) => {
   res.json(serializeJob(updated));
 });
 
+// ── Admin: export CSV ─────────────────────────────────────────────────────────
+
+router.get("/jobs/export", requireAdmin, async (req, res) => {
+  const jobs = await db.select().from(jobsTable).orderBy(desc(jobsTable.createdAt));
+  const headers = ["id","pickup","dropoff","name","phone","price","passengers","status","urgency","depositAmount","depositPaid","rushFee","pickupDatetime","claimedBy","vehicleType","numberPlate","notes","createdAt","updatedAt"];
+  const escape = (v: unknown) => {
+    if (v == null) return "";
+    const s = String(v);
+    if (s.includes(",") || s.includes('"') || s.includes("\n")) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+  };
+  const rows = [headers.join(","), ...jobs.map(j =>
+    [j.id,j.pickup,j.dropoff,j.name,j.phone,j.price,j.passengers,j.status,j.urgency,j.depositAmount,j.depositPaid,j.rushFee,j.pickupDatetime,j.claimedBy,j.vehicleType,j.numberPlate,j.notes,j.createdAt.toISOString(),j.updatedAt.toISOString()].map(escape).join(",")
+  )];
+  const today = new Date().toISOString().slice(0, 10);
+  res.setHeader("Content-Type", "text/csv");
+  res.setHeader("Content-Disposition", `attachment; filename="maxihub-jobs-${today}.csv"`);
+  res.send(rows.join("\n"));
+});
+
+// ── Admin: re-dispatch to Telegram ────────────────────────────────────────────
+
+router.post("/jobs/:id/redispatch", requireAdmin, async (req, res) => {
+  const id = req.params["id"] as string;
+  const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
+  if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+  const sent = await sendJobToGroup({ id: job.id, pickup: job.pickup, dropoff: job.dropoff, price: job.price, passengers: job.passengers });
+  if (!sent) { res.status(503).json({ error: "Telegram not configured or send failed" }); return; }
+  req.log.info({ jobId: id }, "Job re-dispatched to Telegram by admin");
+  res.json({ ok: true });
+});
+
+// ── Admin: update price ───────────────────────────────────────────────────────
+
+router.patch("/jobs/:id/price", requireAdmin, async (req, res) => {
+  const id = req.params["id"] as string;
+  const { price } = req.body as { price?: string };
+  if (!price?.trim()) { res.status(400).json({ error: "Price is required" }); return; }
+  const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
+  if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+  const [updated] = await db.update(jobsTable).set({ price: price.trim(), updatedAt: new Date() }).where(eq(jobsTable.id, id)).returning();
+  req.log.info({ jobId: id, price }, "Job price updated by admin");
+  res.json(serializeJob(updated));
+});
+
+// ── Admin: update notes ───────────────────────────────────────────────────────
+
+router.patch("/jobs/:id/notes", requireAdmin, async (req, res) => {
+  const id = req.params["id"] as string;
+  const { notes } = req.body as { notes?: string };
+  const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
+  if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+  const [updated] = await db.update(jobsTable).set({ notes: notes ?? null, updatedAt: new Date() }).where(eq(jobsTable.id, id)).returning();
+  req.log.info({ jobId: id }, "Job notes updated by admin");
+  res.json(serializeJob(updated));
+});
+
+// ── Admin: update deposit amount ──────────────────────────────────────────────
+
+router.patch("/jobs/:id/deposit-amount", requireAdmin, async (req, res) => {
+  const id = req.params["id"] as string;
+  const { depositAmount } = req.body as { depositAmount?: number };
+  if (depositAmount == null || isNaN(depositAmount)) { res.status(400).json({ error: "depositAmount (number) is required" }); return; }
+  const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
+  if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+  const [updated] = await db.update(jobsTable).set({ depositAmount, updatedAt: new Date() }).where(eq(jobsTable.id, id)).returning();
+  req.log.info({ jobId: id, depositAmount }, "Job deposit amount updated by admin");
+  res.json(serializeJob(updated));
+});
+
 // ── Get job by ID ─────────────────────────────────────────────────────────────
 
 router.get("/jobs/:id", async (req, res) => {
