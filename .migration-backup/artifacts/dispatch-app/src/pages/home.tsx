@@ -3,6 +3,32 @@ import { useCreateJob, useGetJob, getGetJobQueryKey, getListJobsQueryKey, getGet
 import { useQueryClient } from "@tanstack/react-query";
 import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle, AlertTriangle } from "lucide-react";
 
+interface BookingConfig {
+  deposit_pct: number;
+  rush_fee: number;
+  min_booking_hours: number;
+  same_day_min_hours: number;
+  urgent_enabled: boolean;
+}
+
+const DEFAULT_BOOKING_CONFIG: BookingConfig = {
+  deposit_pct: 25,
+  rush_fee: 150,
+  min_booking_hours: 6,
+  same_day_min_hours: 2,
+  urgent_enabled: true,
+};
+
+async function fetchBookingConfig(): Promise<BookingConfig> {
+  try {
+    const res = await fetch("/api/config/booking");
+    if (!res.ok) return DEFAULT_BOOKING_CONFIG;
+    return res.json() as Promise<BookingConfig>;
+  } catch {
+    return DEFAULT_BOOKING_CONFIG;
+  }
+}
+
 const WA_BASE = "https://wa.me/18684818039?text=";
 const waLink = (msg: string) => WA_BASE + encodeURIComponent(msg);
 
@@ -63,6 +89,16 @@ function isWest(loc: string): boolean {
     "calvary hill extension", "beetham land", "beetham estate",
     "belmont valley road", "observatory", "long circular road",
     "lady young road extension", "penco road", "morne diablo west",
+    // extra west areas
+    "petit bourg west", "down the islands", "monos island", "gaspar grande",
+    "huevos", "chacachacare", "coral cove", "maqueripe", "williams bay",
+    "stollmeyer", "long circular mall", "west mall west",
+    "la seiva road", "chagville village", "des vignes", "dundonald street",
+    "keate street", "henry street west", "nelson street west",
+    "pemberton street", "cipriani boulevard", "wrightson road west",
+    "port of spain", "pos", "newcastle street", "albany street",
+    "st ann's road", "cascade road", "upper cascade road",
+    "morne coco rd", "petit valley road", "la resource west",
   ].some(k => loc.includes(k));
 }
 function isCentral(loc: string): boolean {
@@ -99,6 +135,17 @@ function isCentral(loc: string): boolean {
     "couva junction", "railway road central", "claxton bay extension",
     "gasparillo junction", "pointe a pierre south", "st mary junction",
     "chase village junction", "mc bean road", "warrenville junction",
+    // extra central areas
+    "talparo", "madras road", "enterprise central", "el carmen central",
+    "hindustan trace", "dow village central", "reform central",
+    "st helena village", "buen intento village", "hermitage central",
+    "plum mitan road", "navet road central", "marathon road",
+    "caroni arena road", "felicite road", "freeport main road",
+    "longdenville main road", "chaguanas market", "high street",
+    "chaguanas bypass", "southern main rd central", "chaguanas east",
+    "enterprise road", "todd street south", "writer's avenue",
+    "esperanza", "brasso caparo road", "caparo junction",
+    "orange field road", "waterloo road", "chandernagore road",
   ].some(k => loc.includes(k));
 }
 function isEast(loc: string): boolean {
@@ -138,6 +185,19 @@ function isEast(loc: string): boolean {
     "demerara road", "cunapo southern", "cunapo northern",
     "matura junction", "galera point", "saline bay east",
     "toco beach", "grande riviere", "matelot junction",
+    // extra east areas
+    "orange grove", "caura", "two mile", "malick", "upper malick",
+    "lower malick", "upper barataria east", "junior sammy road",
+    "laventille east", "beetham highway", "simbhoonath road",
+    "pasea main road", "tunapuna road", "eastern main rd",
+    "el dorado road", "la horquetta road", "cumuto main road",
+    "verdant vale road", "heights of guanapo road", "arima bypass",
+    "piarco main road", "airport road", "trincity road",
+    "nariva swamp", "cocos bay road", "platanal road",
+    "mount lambert east", "san juan extension", "don miguel road",
+    "el socorro road", "priority bus route", "pbr",
+    "beetham expressway", "tumpuna road", "lopinot road",
+    "la horquetta bypass", "arima old road",
   ].some(k => loc.includes(k));
 }
 function isSouth(loc: string): boolean {
@@ -183,6 +243,24 @@ function isSouth(loc: string): boolean {
     "sobo junction", "erin", "erin bay", "thick village road",
     "bonasse village", "irois", "constance trace", "naparima trace",
     "union road", "pepper village", "hermitage junction",
+    // extra south areas
+    "mayaro", "guayaguayare", "cocos bay", "naparima mayaro",
+    "dow village", "siparia old road", "pinto road", "pinto",
+    "la lune village", "rambert village", "bronte village",
+    "palo seco road", "brighton lake", "pitch lake la brea",
+    "fullarton", "victoria trace", "mon chagrin road",
+    "paradise pasture", "gulf view south", "pleasantville south",
+    "paradise hill", "corinth village", "harmony hall south",
+    "la fortune road", "bamboo village", "ste madeleine road",
+    "navet village", "corosal road", "rancho quemado village",
+    "vistabella road", "upper coora road", "lower coora road",
+    "san francique", "santa flora south", "monkey town south",
+    "convert village", "california south village",
+    "guayaguayare road", "radix village", "basse terre south",
+    "parrylands sf", "rushworth street sf", "coffee street sf",
+    "high street sf", "harris promenade sf", "gulf city sf",
+    "mon repos sf", "paradise sf", "pleasantville sf",
+    "cross crossing sf", "les efforts sf", "rio claro",
   ].some(k => loc.includes(k));
 }
 
@@ -250,7 +328,7 @@ const BEACH_RATES: Record<BeachKey, Record<RegionKey, [number, number, number, n
   las_cuevas:    { west: [750, 950, 1200, 1400],   east: [850, 1050, 1400, 1600],  central: [950, 1150, 1600, 1800],  south: [1300, 1600, 2200, 2600] },
   blanchisseuse: { west: [900, 1100, 1500, 1800],  east: [600, 800, 1000, 1200],   central: [1100, 1350, 1800, 2100], south: [1600, 2000, 2600, 3000] },
   manzanilla:    { west: [1200, 1500, 2000, 2400], east: [600, 800, 1000, 1200],   central: [900, 1100, 1500, 1800],  south: [900, 1100, 1500, 1800]  },
-  mayaro:        { west: [1400, 1800, 2400, 2800], east: [800, 1000, 1400, 1600],  central: [1000, 1200, 1700, 2000], south: [650, 800, 1100, 1300]   },
+  mayaro:        { west: [750,  950, 1300, 1550],  east: [550,  700,  950, 1150],  central: [650,  800, 1100, 1350], south: [350, 450,  620,  780]   },
   vessigny:      { west: [1100, 1400, 1800, 2100], east: [1300, 1600, 2200, 2600], central: [800, 1000, 1400, 1600],  south: [500, 650, 900, 1100]    },
   icacos:        { west: [1600, 2000, 2600, 3000], east: [1500, 1900, 2600, 3000], central: [1400, 1800, 2400, 2800], south: [800, 1000, 1400, 1600]  },
 };
@@ -302,6 +380,7 @@ function getBeachExactFare(pickup: string, dropoff: string, pax: number, tripTyp
 }
 
 const ROUTE_FARES: Record<string, [number,number,number,number,number, number,number,number,number,number]> = {
+  // ── Cross-zone ──────────────────────────────────────────────────────────────
   "west-central":      [         480,  650,  800,  950, 1100,   800, 1000, 1250, 1500, 1750],
   "west-east-near":    [         350,  400,  500,  600,  700,   600,  700,  850, 1000, 1150],
   "west-east-mid":     [         480,  520,  650,  800,  950,   800,  900, 1100, 1300, 1500],
@@ -312,6 +391,11 @@ const ROUTE_FARES: Record<string, [number,number,number,number,number, number,nu
   "west-south-far":    [         900, 1000, 1200, 1450, 1650,  1500, 1650, 2000, 2400, 2750],
   "west-south-deep":   [        1050, 1150, 1400, 1650, 1900,  1700, 1800, 2200, 2600, 3000],
   "central-crossing":  [         500,  700,  850, 1000, 1200,   800, 1000, 1250, 1500, 1750],
+  // ── Intra-zone (same zone, different areas) ─────────────────────────────────
+  "intra-west":        [         180,  220,  280,  340,  400,   300,  360,  450,  540,  630],
+  "intra-central":     [         160,  195,  245,  295,  350,   260,  315,  395,  475,  555],
+  "intra-east":        [         200,  245,  305,  370,  435,   330,  400,  500,  600,  700],
+  "intra-south":       [         180,  220,  275,  335,  395,   295,  360,  450,  540,  630],
 };
 
 function getFareTableKey(pickup: string, dropoff: string): string | null {
@@ -323,7 +407,10 @@ function getFareTableKey(pickup: string, dropoff: string): string | null {
 
   const pZone = getZone(p);
   const dZone = getZone(d);
-  if (!pZone || !dZone || pZone === dZone) return null;
+  if (!pZone || !dZone) return null;
+
+  // Same-zone intra-zone routes (e.g. Diego Martin → POS, SF → Penal)
+  if (pZone === dZone) return `intra-${pZone}`;
 
   if ((pZone === "west" && dZone === "central") || (pZone === "central" && dZone === "west")) {
     return "west-central";
@@ -743,6 +830,11 @@ function ConfirmedScreen({
 
 export default function Home() {
   const [step, setStep] = useState(0);
+  const [bookingConfig, setBookingConfig] = useState<BookingConfig>(DEFAULT_BOOKING_CONFIG);
+
+  useEffect(() => {
+    fetchBookingConfig().then(setBookingConfig).catch(() => {});
+  }, []);
 
   // Step 0 — Route
   const [pickup, setPickup]   = useState("");
@@ -811,13 +903,13 @@ export default function Home() {
   const urgencyTier = useMemo(() => {
     if (!pickupDatetime) return null;
     const hoursUntil = (new Date(pickupDatetime).getTime() - Date.now()) / (1000 * 60 * 60);
-    if (hoursUntil < 2) return "urgent";
-    if (hoursUntil < 6) return "same_day";
+    if (hoursUntil < bookingConfig.same_day_min_hours) return "urgent";
+    if (hoursUntil < bookingConfig.min_booking_hours) return "same_day";
     return "standard";
-  }, [pickupDatetime]);
+  }, [pickupDatetime, bookingConfig.same_day_min_hours, bookingConfig.min_booking_hours]);
 
   const deposit = displayFare
-    ? Math.ceil(displayFare * 0.25)
+    ? Math.ceil(displayFare * (bookingConfig.deposit_pct / 100))
     : null;
 
   const validateDatetime = (value: string) => {
@@ -1186,7 +1278,7 @@ export default function Home() {
                     <div className="rounded-xl border-2 border-red-400 bg-red-50 px-4 py-3 space-y-1">
                       <p className="text-sm font-black text-red-700">⚡ Urgent Booking — Full Payment Required</p>
                       <p className="text-xs text-red-600 leading-relaxed">
-                        Pickups within 2 hours require full payment plus a rush fee (TTD 150). Our team will contact you immediately after booking.
+                        Pickups within {bookingConfig.same_day_min_hours} hour{bookingConfig.same_day_min_hours !== 1 ? "s" : ""} require full payment{bookingConfig.rush_fee > 0 ? ` plus a rush fee (TTD ${bookingConfig.rush_fee.toLocaleString("en-TT")})` : ""}. Our team will contact you immediately after booking.
                       </p>
                     </div>
                   )}
@@ -1194,7 +1286,7 @@ export default function Home() {
                     <div className="rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 space-y-1">
                       <p className="text-sm font-bold text-amber-800">🕐 Same-Day Booking</p>
                       <p className="text-xs text-amber-700 leading-relaxed">
-                        Pickup within 6 hours. A 25% deposit is required promptly to confirm your driver — please keep your phone nearby.
+                        Pickup within {bookingConfig.min_booking_hours} hours. A {bookingConfig.deposit_pct}% deposit is required promptly to confirm your driver — please keep your phone nearby.
                       </p>
                     </div>
                   )}
@@ -1310,8 +1402,11 @@ export default function Home() {
                       <div>
                         {deposit
                           ? <>
-                              <p className="text-sm font-bold text-teal-900">25% Deposit: TTD {deposit.toLocaleString("en-TT")}</p>
+                              <p className="text-sm font-bold text-teal-900">{bookingConfig.deposit_pct}% Deposit: TTD {deposit.toLocaleString("en-TT")}</p>
                               <p className="text-xs text-teal-700/80 mt-0.5">Balance of TTD {((displayFare ?? 0) - deposit).toLocaleString("en-TT")} paid to your driver on the day.</p>
+                              {urgencyTier === "urgent" && bookingConfig.rush_fee > 0 && (
+                                <p className="text-xs text-red-600 font-semibold mt-1">⚡ Rush fee: TTD {bookingConfig.rush_fee.toLocaleString("en-TT")} (added for urgent bookings)</p>
+                              )}
                             </>
                           : <p className="text-sm text-teal-700">Our team will confirm your exact fare and deposit by WhatsApp after booking.</p>
                         }

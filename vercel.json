@@ -1,7 +1,0 @@
-{
-  "buildCommand": "npx --yes pnpm@9 install --no-frozen-lockfile --ignore-scripts && npx pnpm@9 rebuild esbuild && npx pnpm@9 --filter @workspace/dispatch-app run build",
-  "outputDirectory": "artifacts/dispatch-app/dist/public",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}

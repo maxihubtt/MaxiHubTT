@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "Job Dispatch"
+title = "Maxi Hub TT"
 version = "1.0.0"
 id = "artifacts/dispatch-app"
 router = "path"
