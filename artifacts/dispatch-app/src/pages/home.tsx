@@ -391,6 +391,8 @@ const ROUTE_FARES: Record<string, [number,number,number,number,number, number,nu
   "west-south-far":    [         900, 1000, 1200, 1450, 1650,  1500, 1650, 2000, 2400, 2750],
   "west-south-deep":   [        1050, 1150, 1400, 1650, 1900,  1700, 1800, 2200, 2600, 3000],
   "central-crossing":  [         500,  700,  850, 1000, 1200,   800, 1000, 1250, 1500, 1750],
+  // ── Paramin premium (steep hill road — higher than standard intra-west) ──────
+  "paramin":           [         450,  550,  700,  850, 1000,   750,  900, 1150, 1400, 1650],
   // ── Intra-zone (same zone, different areas) ─────────────────────────────────
   "intra-west":        [         180,  220,  280,  340,  400,   300,  360,  450,  540,  630],
   "intra-central":     [         160,  195,  245,  295,  350,   260,  315,  395,  475,  555],
@@ -403,7 +405,10 @@ function getFareTableKey(pickup: string, dropoff: string): string | null {
   const d = dropoff.toLowerCase();
 
   const beach = identifyBeach(d) ?? identifyBeach(p);
-  if (beach !== null) return null; 
+  if (beach !== null) return null;
+
+  // Paramin override — steep winding hill road commands a premium over standard intra-west
+  if (p.includes("paramin") || d.includes("paramin")) return "paramin";
 
   const pZone = getZone(p);
   const dZone = getZone(d);
