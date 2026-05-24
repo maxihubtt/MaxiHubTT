@@ -1,0 +1,43 @@
+2026-05-24T00:40:49.972666152Z ==> Deploying...
+2026-05-24T00:40:50.082324736Z ==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+2026-05-24T00:40:57.675906297Z ==> Running 'node --enable-source-maps ./artifacts/api-server/dist/index.mjs'
+2026-05-24T00:40:59.07452583Z {"level":40,"time":1779583258888,"pid":70,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-648b69d6f6-4298n","msg":"VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY not set — push notifications disabled"}
+2026-05-24T00:40:59.179882205Z Warning: connect.session() MemoryStore is not
+2026-05-24T00:40:59.179903546Z designed for a production environment, as it will leak
+2026-05-24T00:40:59.179906506Z memory, and will not scale past a single process.
+2026-05-24T00:40:59.18281953Z {"level":30,"time":1779583259182,"pid":70,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-648b69d6f6-4298n","port":10000,"msg":"Server listening"}
+2026-05-24T00:40:59.18283002Z {"level":30,"time":1779583259182,"pid":70,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-648b69d6f6-4298n","msg":"Telegram polling started"}
+2026-05-24T00:40:59.18283226Z {"level":30,"time":1779583259182,"pid":70,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-648b69d6f6-4298n","msg":"Booking expiry job started (60s interval)"}
+2026-05-24T00:41:00.12358996Z {"level":30,"time":1779583260123,"pid":70,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-648b69d6f6-4298n","req":{"id":1,"method":"HEAD","url":"/"},"res":{"statusCode":404},"responseTime":6,"msg":"request completed"}
+2026-05-24T00:41:01.831005451Z ==> Your service is live 🎉
+2026-05-24T00:41:02.006915083Z ==> 
+2026-05-24T00:41:02.009554252Z ==> ///////////////////////////////////////////////////////////
+2026-05-24T00:41:02.012232313Z ==> 
+2026-05-24T00:41:02.01468213Z ==> Available at your primary URL https://maxihubtt-api-9pav.onrender.com
+2026-05-24T00:41:02.017219222Z ==> 
+2026-05-24T00:41:02.019734123Z ==> ///////////////////////////////////////////////////////////
+2026-05-24T00:41:02.17506006Z {"level":30,"time":1779583262174,"pid":70,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-648b69d6f6-4298n","req":{"id":2,"method":"GET","url":"/"},"res":{"statusCode":404},"responseTime":1,"msg":"request completed"}
+2026-05-24T00:46:04.078087097Z ==> Detected service running on port 10000
+2026-05-24T00:46:04.253796579Z ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+2026-05-24T00:53:09.782931548Z {"level":50,"time":1779583989782,"pid":70,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-648b69d6f6-4298n","err":{"type":"TypeError","message":"fetch failed: ","stack":"TypeError: fetch failed\n    at Object.processResponse (node:internal/deps/undici/undici:12793:20)\n    at node:internal/deps/undici/undici:13181:23\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at node:internal/deps/undici/undici:17409:7\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async pollTelegramUpdates (/opt/render/project/src/artifacts/api-server/src/lib/telegram.ts:116:17)\n    at async Timeout._onTimeout (/opt/render/project/src/artifacts/api-server/src/index.ts:30:5)\ncaused by: AggregateError [ETIMEDOUT]: \n    at internalConnectMultiple (node:net:1142:49)\n    at internalConnectMultiple (node:net:1218:5)\n    at Timeout.internalConnectMultipleTimeout (node:net:1750:5)\n    at listOnTimeout (node:internal/timers:607:11)\n    at process.processTimers (node:internal/timers:541:7)"},"msg":"Telegram poll failed"}
+2026-05-24T00:57:32.670944696Z ==> Deploying...
+2026-05-24T00:57:32.797266648Z ==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+2026-05-24T00:57:40.487424565Z ==> Running 'node --enable-source-maps ./artifacts/api-server/dist/index.mjs'
+2026-05-24T00:57:41.985872571Z {"level":40,"time":1779584261896,"pid":69,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-5679ddcc98-sqt5g","msg":"VAPID_PUBLIC_KEY or VAPID_PRIVATE_KEY not set — push notifications disabled"}
+2026-05-24T00:57:41.990970735Z Warning: connect.session() MemoryStore is not
+2026-05-24T00:57:41.990985926Z designed for a production environment, as it will leak
+2026-05-24T00:57:41.990989876Z memory, and will not scale past a single process.
+2026-05-24T00:57:41.993850497Z {"level":30,"time":1779584261993,"pid":69,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-5679ddcc98-sqt5g","port":10000,"msg":"Server listening"}
+2026-05-24T00:57:41.993862817Z {"level":30,"time":1779584261993,"pid":69,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-5679ddcc98-sqt5g","msg":"Telegram polling started"}
+2026-05-24T00:57:41.993865497Z {"level":30,"time":1779584261993,"pid":69,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-5679ddcc98-sqt5g","msg":"Booking expiry job started (60s interval)"}
+2026-05-24T00:57:42.565618648Z {"level":30,"time":1779584262565,"pid":69,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-5679ddcc98-sqt5g","req":{"id":1,"method":"HEAD","url":"/"},"res":{"statusCode":404},"responseTime":6,"msg":"request completed"}
+2026-05-24T00:57:43.561300101Z ==> Your service is live 🎉
+2026-05-24T00:57:43.714802353Z ==> 
+2026-05-24T00:57:43.716010175Z {"level":30,"time":1779584263715,"pid":69,"hostname":"srv-d85301jrjlhs73dki7cg-hibernate-5679ddcc98-sqt5g","req":{"id":2,"method":"GET","url":"/"},"res":{"statusCode":404},"responseTime":2,"msg":"request completed"}
+2026-05-24T00:57:43.717279151Z ==> ///////////////////////////////////////////////////////////
+2026-05-24T00:57:43.720643362Z ==> 
+2026-05-24T00:57:43.723209326Z ==> Available at your primary URL https://maxihubtt-api-9pav.onrender.com
+2026-05-24T00:57:43.726036135Z ==> 
+2026-05-24T00:57:43.728537344Z ==> ///////////////////////////////////////////////////////////
+2026-05-24T01:02:48.660803052Z ==> Detected service running on port 10000
+2026-05-24T01:02:48.861025892Z ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
