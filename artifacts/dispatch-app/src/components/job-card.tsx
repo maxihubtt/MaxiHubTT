@@ -1,6 +1,6 @@
-import { Job, useCompleteJob, useMarkDepositPaid, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
+import { Job, useCompleteJob, useMarkDepositPaid, useUpdateJobStatus, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { Link } from "wouter";
-import { DollarSign, Clock, CheckCircle2, CreditCard } from "lucide-react";
+import { DollarSign, Clock, CheckCircle2, CreditCard, XCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { JobStatusBadge, UrgencyBadge } from "./job-status-badge";
 import { formatRelativeTime } from "@/lib/format";
@@ -21,10 +21,12 @@ export function JobCard({ job, index }: JobCardProps) {
 
   const [confirmComplete, setConfirmComplete] = useState(false);
   const [confirmDeposit, setConfirmDeposit] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const queryClient = useQueryClient();
 
   const completeJob = useCompleteJob();
   const markDepositPaid = useMarkDepositPaid();
+  const updateStatus = useUpdateJobStatus();
 
   function invalidateAll() {
     queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
@@ -44,6 +46,14 @@ export function JobCard({ job, index }: JobCardProps) {
     if (!confirmDeposit) { setConfirmDeposit(true); return; }
     markDepositPaid.mutate({ id: job.id }, {
       onSuccess: () => { invalidateAll(); setConfirmDeposit(false); },
+    });
+  };
+
+  const handleCancel = (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!confirmCancel) { setConfirmCancel(true); return; }
+    updateStatus.mutate({ id: job.id, data: { status: "cancelled" } }, {
+      onSuccess: () => { invalidateAll(); setConfirmCancel(false); },
     });
   };
 
@@ -133,7 +143,23 @@ export function JobCard({ job, index }: JobCardProps) {
                   <span>{formatRelativeTime(job.createdAt)}</span>
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* Cancel button — only for pending jobs (no deposit yet) */}
+                  {job.status === "pending" && (
+                    <button
+                      onClick={handleCancel}
+                      disabled={updateStatus.isPending}
+                      className={`flex items-center gap-1 text-xs font-bold uppercase tracking-wide px-2.5 py-1 rounded-md transition-all ${
+                        confirmCancel
+                          ? "bg-red-600 text-white animate-pulse"
+                          : "bg-red-500/10 text-red-600 hover:bg-red-600 hover:text-white"
+                      }`}
+                    >
+                      <XCircle className="h-3 w-3" />
+                      {updateStatus.isPending ? "…" : confirmCancel ? "Confirm?" : "Cancel"}
+                    </button>
+                  )}
+
                   {/* Mark Deposit Paid button */}
                   {isPendingDeposit && !depositPaid && (
                     <button

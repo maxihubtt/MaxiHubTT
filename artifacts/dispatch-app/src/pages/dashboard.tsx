@@ -4,7 +4,7 @@ import { Layout } from "@/components/layout";
 import { JobCard } from "@/components/job-card";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Activity, CheckCircle2, Clock, ListOrdered, TrendingUp, Users, DollarSign } from "lucide-react";
+import { Activity, CheckCircle2, Clock, ListOrdered, TrendingUp, Users, DollarSign, ChevronDown, ChevronRight } from "lucide-react";
 import { JobStatus } from "@workspace/api-client-react";
 
 interface AnalyticsData {
@@ -30,13 +30,19 @@ export default function Dashboard() {
   });
 
   const ACTIVE_STATUSES = new Set([JobStatus.pending, "pending_deposit", "deposit_received", "driver_assigned", "driver_en_route", JobStatus.claimed]);
-  const sortedJobs = jobs ? [...jobs].sort((a, b) => {
-    const aActive = ACTIVE_STATUSES.has(a.status);
-    const bActive = ACTIVE_STATUSES.has(b.status);
-    if (aActive && !bActive) return -1;
-    if (!aActive && bActive) return 1;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  }) : [];
+  const DONE_STATUSES = new Set(["completed", "cancelled", "expired"]);
+  const [showDone, setShowDone] = useState(false);
+
+  const activeJobs = jobs
+    ? [...jobs]
+        .filter(j => ACTIVE_STATUSES.has(j.status))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    : [];
+  const doneJobs = jobs
+    ? [...jobs]
+        .filter(j => DONE_STATUSES.has(j.status))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    : [];
 
   const maxDayCount = analytics ? Math.max(...analytics.days.map(d => d.count), 1) : 1;
 
@@ -190,7 +196,7 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Feed */}
+        {/* Active Jobs Feed */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold uppercase tracking-tight">Live Dispatch Feed</h2>
@@ -204,17 +210,37 @@ export default function Dashboard() {
               Array.from({ length: 5 }).map((_, i) => (
                 <Skeleton key={i} className="h-32 w-full rounded-lg" />
               ))
-            ) : sortedJobs.length === 0 ? (
+            ) : activeJobs.length === 0 ? (
               <div className="py-12 text-center border border-dashed rounded-lg bg-muted/10">
                 <p className="text-muted-foreground font-mono">No active jobs.</p>
               </div>
             ) : (
-              sortedJobs.map((job, index) => (
+              activeJobs.map((job, index) => (
                 <JobCard key={job.id} job={job} index={index} />
               ))
             )}
           </div>
         </div>
+
+        {/* Completed / Cancelled / Expired */}
+        {!isJobsLoading && doneJobs.length > 0 && (
+          <div className="space-y-3">
+            <button
+              onClick={() => setShowDone(v => !v)}
+              className="flex items-center gap-2 text-sm font-mono uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showDone ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              Completed / Cancelled ({doneJobs.length})
+            </button>
+            {showDone && (
+              <div className="flex flex-col gap-3">
+                {doneJobs.map((job, index) => (
+                  <JobCard key={job.id} job={job} index={index} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </Layout>
