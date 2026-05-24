@@ -443,6 +443,7 @@ router.post("/jobs", async (req, res) => {
 
   const { pickup, dropoff, name, phone, price, passengers } = parsed.data;
   const pickupDatetime = (req.body as { pickupDatetime?: string }).pickupDatetime ?? null;
+  const notes = (req.body as { notes?: string }).notes?.trim() ?? null;
   const isAdmin = req.session?.admin === true;
 
   let urgency: "standard" | "same_day" | "urgent" = "standard";
@@ -493,6 +494,7 @@ router.post("/jobs", async (req, res) => {
       depositPaid: isAdmin,
       expiresAt,
       pickupDatetime: pickupDatetime ?? null,
+      notes: notes ?? null,
     }).returning();
     job = inserted;
   } catch (err) {

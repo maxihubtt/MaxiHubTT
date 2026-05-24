@@ -641,6 +641,84 @@ function BookingLookup() {
   );
 }
 
+function FaqAccordion() {
+  const [open, setOpen] = useState<number | null>(null);
+  const faqs = [
+    {
+      q: "What areas do you cover?",
+      a: "We operate across all of Trinidad & Tobago — from Port of Spain and Piarco Airport to San Fernando, Chaguanas, Arima, Maracas Bay, Las Cuevas, Mayaro, Icacos, Paramin, and more. If you're unsure, WhatsApp us and we'll confirm.",
+    },
+    {
+      q: "How does payment work?",
+      a: "A deposit (usually 25% of the fare) is collected via bank transfer or cash to secure your booking. The remaining balance is paid directly to your driver on the day of the trip. For urgent bookings, full payment is required upfront.",
+    },
+    {
+      q: "Can I book a round trip?",
+      a: "Yes — both one-way and same-day round trips are available through the booking form. For overnight or multi-day arrangements, contact us directly on WhatsApp for a custom quote.",
+    },
+    {
+      q: "What vehicle types do you have?",
+      a: "We have 8-seater and 12-seater maxi taxis for standard group bookings, 15-seater and 22-seater buses for larger groups, and luxury SUVs for premium hire. The vehicle type is automatically matched to your passenger count.",
+    },
+    {
+      q: "Do you handle airport pickups and drop-offs?",
+      a: "Yes — Piarco International Airport runs are one of our most popular services. When you enter 'Airport' or 'Piarco' as your pickup or dropoff, you'll be prompted for your flight number and terminal so we can time your pickup perfectly.",
+    },
+    {
+      q: "What if I need to cancel or change my booking?",
+      a: "Please contact us as soon as possible via WhatsApp. Cancellations made with sufficient notice are handled on a case-by-case basis. Deposits may be non-refundable for same-day or urgent cancellations.",
+    },
+    {
+      q: "How do I know my driver is on the way?",
+      a: "Once a driver claims your booking, you'll receive a call or WhatsApp message directly from them. You can also track your booking status in real time using the 'Track Your Booking' section on this page.",
+    },
+  ];
+
+  return (
+    <section className="py-16 px-6 md:px-12 bg-[#FFFBF4]">
+      <div className="max-w-2xl mx-auto">
+        <div className="text-center mb-10">
+          <div className="h-0.5 w-16 mx-auto mb-4 rounded-full" style={{ background: "linear-gradient(90deg, #ce1126, #000, #ce1126)" }} />
+          <h2 className="text-3xl font-black text-teal-900 mb-2">Frequently Asked Questions</h2>
+          <p className="text-teal-700/70 text-sm">Everything you need to know before you book.</p>
+        </div>
+        <div className="space-y-2">
+          {faqs.map((faq, i) => (
+            <div key={i} className="rounded-2xl border border-teal-100 bg-white overflow-hidden shadow-sm">
+              <button
+                type="button"
+                onClick={() => setOpen(open === i ? null : i)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left gap-3 hover:bg-teal-50/50 transition-colors"
+              >
+                <span className="text-sm font-bold text-teal-900">{faq.q}</span>
+                <ChevronRight className={`w-4 h-4 text-teal-500 shrink-0 transition-transform duration-200 ${open === i ? "rotate-90" : ""}`} />
+              </button>
+              {open === i && (
+                <div className="px-5 pb-4 border-t border-teal-50">
+                  <p className="text-sm text-teal-700 leading-relaxed pt-3">{faq.a}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="mt-8 text-center">
+          <p className="text-sm text-teal-700/70 mb-3">Still have questions?</p>
+          <a
+            href="https://wa.me/18684818039?text=Hi%20Maxi%20Hub%20TT%2C%20I%20have%20a%20question%20about%20booking."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold text-white shadow-md transition-all hover:scale-105 active:scale-95"
+            style={{ background: "#25D366" }}
+          >
+            <MessageCircle className="w-4 h-4" />
+            Ask us on WhatsApp
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 const STEP_LABELS = ["Route", "Details", "You", "Confirm"];
 
 function ProgressBar({ step }: { step: number }) {
@@ -713,7 +791,7 @@ function ConfirmedScreen({
   job,
   onReset,
 }: {
-  job: { id: string; name: string; pickup: string; dropoff: string; fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string; expiresAt?: string | null; urgency?: string };
+  job: { id: string; name: string; phone: string; pickup: string; dropoff: string; fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string; expiresAt?: string | null; urgency?: string };
   onReset: () => void;
 }) {
   return (
@@ -819,9 +897,29 @@ function ConfirmedScreen({
           </p>
         </div>
 
+        <a
+          href={`https://wa.me/${job.phone?.replace(/\D/g, "") || "18684818039"}?text=${encodeURIComponent(
+            `Hi! Here's my Maxi Hub TT booking summary:\n\n` +
+            `📋 Ref: ${job.id}\n` +
+            `📍 From: ${job.pickup}\n` +
+            `📍 To: ${job.dropoff}\n` +
+            `📅 Pickup: ${fmtDt(job.pickupDatetime)}\n` +
+            `💰 Fare: TTD ${job.fare.toLocaleString("en-TT")}\n` +
+            `💳 Deposit: TTD ${job.deposit.toLocaleString("en-TT")}\n\n` +
+            `Saving this for my records.`
+          )}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 w-full h-12 rounded-xl text-sm font-black text-white transition-all active:scale-[0.97] flex items-center justify-center gap-2"
+          style={{ background: "#25D366" }}
+        >
+          <MessageCircle className="w-4 h-4" />
+          Save to WhatsApp
+        </a>
+
         <button
           onClick={onReset}
-          className="mt-6 w-full h-12 rounded-xl text-sm font-black text-teal-900 transition-all active:scale-[0.97]"
+          className="mt-3 w-full h-12 rounded-xl text-sm font-black text-teal-900 transition-all active:scale-[0.97]"
           style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)" }}
         >
           Book Another Ride
@@ -861,16 +959,42 @@ export default function Home() {
   const [returnDatetimeError, setReturnDatetimeError] = useState("");
   const [returnDifferentDay, setReturnDifferentDay]   = useState(false);
 
+  // Airport extras (shown when route involves airport)
+  const [flightNumber, setFlightNumber] = useState("");
+  const [arrDepType, setArrDepType]     = useState<"arrival" | "departure">("arrival");
+  const [terminal, setTerminal]         = useState("");
+
+  const isAirportRoute = useMemo(() => {
+    const p = pickup.toLowerCase();
+    const d = dropoff.toLowerCase();
+    return p.includes("airport") || p.includes("piarco") || d.includes("airport") || d.includes("piarco");
+  }, [pickup, dropoff]);
+
   // Step 2 — Contact
   const [name, setName]   = useState("");
   const [phone, setPhone] = useState("");
+
+  // Step 2b — Notes
+  const [notes, setNotes] = useState("");
+
+  // Pre-fill name/phone from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("maxihub_contact");
+      if (saved) {
+        const { name: n, phone: p } = JSON.parse(saved) as { name: string; phone: string };
+        if (n) setName(n);
+        if (p) setPhone(p);
+      }
+    } catch {}
+  }, []);
 
   // Step 3 — T&C agreement
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Booking result
   const [bookedJob, setBookedJob] = useState<{
-    id: string; name: string; pickup: string; dropoff: string;
+    id: string; name: string; phone: string; pickup: string; dropoff: string;
     fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string;
     expiresAt?: string | null; urgency?: string;
   } | null>(null);
@@ -974,24 +1098,30 @@ export default function Home() {
   function handleSubmit() {
     if (!isReadyToSubmit || !tripType) { setStepErrors(true); return; }
     if (!agreedToTerms) { setStepErrors(true); return; }
+
+    // Save name/phone for future visits
+    try { localStorage.setItem("maxihub_contact", JSON.stringify({ name, phone })); } catch {}
+
     const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
     const passengerDesc = paxLabel(pax);
     const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
-    
-    // Safely handles both our API fallback and local logic
-    const fareLabel = displayFare
-  ? fmtFare(displayFare)
-  : "Quote on request";
+    const fareLabel = displayFare ? fmtFare(displayFare) : "Quote on request";
     const priceNote = `${fareLabel} (${tripLabel}, ${passengerDesc}) — Pickup: ${pickupDatetime}${returnNote}`;
 
+    // Build notes string — combine airport info + freeform notes
+    const airportNote = isAirportRoute && flightNumber
+      ? `Flight: ${flightNumber} (${arrDepType})${terminal ? `, ${terminal}` : ""}`
+      : "";
+    const fullNotes = [airportNote, notes.trim()].filter(Boolean).join(" | ") || null;
+
     createJob.mutate(
-      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: passengerDesc, pickupDatetime: pickupDatetime || undefined } },
+      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: passengerDesc, pickupDatetime: pickupDatetime || undefined, ...(fullNotes ? { notes: fullNotes } as never : {}) } },
       {
         onSuccess: job => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
           const jobAny = job as typeof job & { expiresAt?: string | null; urgency?: string };
-          setBookedJob({ id: job.id, name, pickup, dropoff, fare: displayFare ?? 0, deposit: deposit ?? 0, pickupDatetime, returnDatetime, tripType, expiresAt: jobAny.expiresAt ?? null, urgency: jobAny.urgency ?? "standard" });
+          setBookedJob({ id: job.id, name, phone, pickup, dropoff, fare: displayFare ?? 0, deposit: deposit ?? 0, pickupDatetime, returnDatetime, tripType, expiresAt: jobAny.expiresAt ?? null, urgency: jobAny.urgency ?? "standard" });
         },
       }
     );
@@ -1002,7 +1132,9 @@ export default function Home() {
     setPickup(""); setDropoff("");
     setTripType(null); setPax(8);
     setPickupDatetime(""); setReturnDatetime(""); setDatetimeError(""); setReturnDatetimeError(""); setReturnDifferentDay(false);
+    setFlightNumber(""); setArrDepType("arrival"); setTerminal("");
     setName(""); setPhone("");
+    setNotes("");
     setAgreedToTerms(false);
     setBookedJob(null);
     setStepErrors(false);
@@ -1220,6 +1352,45 @@ export default function Home() {
                     {stepErrors && !pickupDatetime && !datetimeError && <p className="text-xs text-red-600 font-medium">Please set a pickup date and time.</p>}
                   </div>
 
+                  {/* Airport extras */}
+                  {isAirportRoute && (
+                    <div className="rounded-2xl border-2 border-sky-200 bg-sky-50 p-4 space-y-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="bg-sky-100 p-1.5 rounded-lg"><Plane className="w-4 h-4 text-sky-600" /></div>
+                        <p className="text-sm font-black text-sky-900">Airport Trip Details</p>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sky-900 font-semibold text-xs uppercase tracking-wide">Arrival or Departure?</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {(["arrival", "departure"] as const).map(t => (
+                            <button key={t} type="button"
+                              onClick={() => setArrDepType(t)}
+                              className={`h-10 rounded-xl border-2 text-sm font-bold transition-all capitalize ${
+                                arrDepType === t ? "border-sky-600 bg-sky-600 text-white" : "border-dashed border-sky-300 bg-white text-sky-700 hover:border-sky-400"
+                              }`}
+                            >{t}</button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sky-900 font-semibold text-xs uppercase tracking-wide">Flight Number</label>
+                        <input type="text" placeholder="e.g. BW103"
+                          value={flightNumber}
+                          onChange={e => setFlightNumber(e.target.value.toUpperCase())}
+                          className="w-full h-10 px-3 rounded-xl border-2 border-sky-200 bg-white text-sky-900 placeholder:text-sky-400 focus:border-sky-500 focus:outline-none text-sm font-mono tracking-wide"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sky-900 font-semibold text-xs uppercase tracking-wide">Terminal <span className="text-sky-400 font-normal normal-case">(optional)</span></label>
+                        <input type="text" placeholder="e.g. Terminal 1"
+                          value={terminal}
+                          onChange={e => setTerminal(e.target.value)}
+                          className="w-full h-10 px-3 rounded-xl border-2 border-sky-200 bg-white text-sky-900 placeholder:text-sky-400 focus:border-sky-500 focus:outline-none text-sm"
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {tripType === "round" && (
                     <div className="space-y-1.5">
                       <label className="text-teal-900 font-semibold flex items-center gap-2 text-sm">
@@ -1349,6 +1520,20 @@ export default function Home() {
                       onChange={e => { setPhone(e.target.value); setStepErrors(false); }}
                     />
                     {stepErrors && !phone.trim() && <p className="text-xs text-red-600 font-medium">Please enter your phone number.</p>}
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-teal-900 font-semibold text-sm flex items-center gap-2">
+                      <MessageCircle className="w-3.5 h-3.5 text-teal-600" />
+                      Special Requests <span className="text-teal-400 font-normal text-xs">(optional)</span>
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="e.g. Please arrive 10 mins early, we have large luggage, wheelchair accessible vehicle needed..."
+                      value={notes}
+                      onChange={e => setNotes(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-teal-100 bg-white text-teal-900 placeholder:text-teal-400 focus:border-teal-500 focus:outline-none text-sm resize-none leading-relaxed"
+                    />
                   </div>
 
                   <div className="bg-teal-50 border border-teal-100 rounded-xl px-4 py-3 flex gap-3 items-start">
@@ -1609,6 +1794,8 @@ export default function Home() {
       </section>
 
       <BookingLookup />
+
+      <FaqAccordion />
 
       <a
         href={waLink("Hi Maxi Hub TT, I'd like to enquire about booking a ride.")}
