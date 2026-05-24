@@ -1,0 +1,39 @@
+2026-05-24T10:33:56.731206929Z ==> Downloading cache...
+2026-05-24T10:33:56.852487819Z ==> Cloning from https://github.com/maxihubtt/MaxiHubTT
+2026-05-24T10:33:57.752870224Z ==> Checking out commit b7d3ee32ca8a4541eaa984b7611186b2d125e68d in branch main
+2026-05-24T10:34:07.450088983Z ==> Downloaded 276MB in 2s. Extraction took 9s.
+2026-05-24T10:34:16.980138382Z ==> Using Node.js version 24.14.1 (default)
+2026-05-24T10:34:16.980160202Z ==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+2026-05-24T10:34:17.065101127Z ==> Running build command 'npx --yes pnpm@9 install --no-frozen-lockfile --ignore-scripts && npx pnpm@9 rebuild esbuild && npx pnpm@9 --filter @workspace/db run migrate && npx pnpm@9 --filter @workspace/api-server run build'...
+2026-05-24T10:34:18.410499226Z (node:112) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-05-24T10:34:18.410526526Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-05-24T10:34:25.555105525Z (node:162) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-05-24T10:34:25.555132546Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-05-24T10:34:27.94148155Z 
+2026-05-24T10:34:27.94150938Z > @workspace/api-server@0.0.0 build /opt/render/project/src/artifacts/api-server
+2026-05-24T10:34:27.94151629Z > node ./build.mjs
+2026-05-24T10:34:27.94152019Z 
+2026-05-24T10:34:27.972950268Z node:internal/modules/package_json_reader:301
+2026-05-24T10:34:27.972971538Z   throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+2026-05-24T10:34:27.972976288Z         ^
+2026-05-24T10:34:27.972979458Z 
+2026-05-24T10:34:27.972983858Z Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'esbuild' imported from /opt/render/project/src/artifacts/api-server/build.mjs
+2026-05-24T10:34:27.972987949Z     at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+2026-05-24T10:34:27.972992149Z     at packageResolve (node:internal/modules/esm/resolve:768:81)
+2026-05-24T10:34:27.972995269Z     at moduleResolve (node:internal/modules/esm/resolve:859:18)
+2026-05-24T10:34:27.972998379Z     at defaultResolve (node:internal/modules/esm/resolve:991:11)
+2026-05-24T10:34:27.973001579Z     at #cachedDefaultResolve (node:internal/modules/esm/loader:719:20)
+2026-05-24T10:34:27.973004609Z     at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:736:38)
+2026-05-24T10:34:27.973007679Z     at ModuleLoader.resolveSync (node:internal/modules/esm/loader:765:52)
+2026-05-24T10:34:27.973010789Z     at #resolve (node:internal/modules/esm/loader:701:17)
+2026-05-24T10:34:27.973013879Z     at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:621:35)
+2026-05-24T10:34:27.973016899Z     at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33) {
+2026-05-24T10:34:27.973020719Z   code: 'ERR_MODULE_NOT_FOUND'
+2026-05-24T10:34:27.973023899Z }
+2026-05-24T10:34:27.973026869Z 
+2026-05-24T10:34:27.973029909Z Node.js v24.14.1
+2026-05-24T10:34:27.977498088Z /opt/render/project/src/artifacts/api-server:
+2026-05-24T10:34:27.977515059Z  ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/api-server@0.0.0 build: `node ./build.mjs`
+2026-05-24T10:34:27.977531659Z Exit status 1
+2026-05-24T10:34:28.042648029Z ==> Build failed 😞
+2026-05-24T10:34:28.042670229Z ==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
