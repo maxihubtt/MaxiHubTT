@@ -72,5 +72,16 @@ await client.query(`
 `);
 console.log("✓ push_subscriptions");
 
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS pickup_datetime TEXT`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS urgency TEXT NOT NULL DEFAULT 'standard'`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS deposit_amount INTEGER`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS rush_fee INTEGER NOT NULL DEFAULT 0`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS deposit_paid BOOLEAN NOT NULL DEFAULT false`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS notes TEXT`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS rating INTEGER`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS rating_comment TEXT`);
+console.log("✓ jobs columns");
+
 await client.end();
 console.log("Migrations complete.");

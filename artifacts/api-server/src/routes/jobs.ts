@@ -113,6 +113,7 @@ router.get("/driver/jobs/history", requireDriver, async (req, res) => {
       price: j.price,
       passengers: j.passengers,
       pickupDatetime: j.pickupDatetime ?? null,
+      rating: j.rating ?? null,
       createdAt: j.createdAt.toISOString(),
       updatedAt: j.updatedAt.toISOString(),
     }))
@@ -420,6 +421,8 @@ router.get("/jobs/:id", async (req, res) => {
     vehicleType: job.vehicleType,
     numberPlate: job.numberPlate,
     claimedBy: job.claimedBy,
+    rating: job.rating ?? null,
+    ratingComment: job.ratingComment ?? null,
     createdAt: job.createdAt.toISOString(),
     updatedAt: job.updatedAt.toISOString(),
   };
@@ -429,6 +432,38 @@ router.get("/jobs/:id", async (req, res) => {
   } else {
     res.json(base);
   }
+});
+
+// ── Customer: rate a completed job ────────────────────────────────────────────
+
+router.patch("/jobs/:id/rate", async (req, res) => {
+  const id = req.params["id"] as string;
+  const { rating, comment } = req.body as { rating?: unknown; comment?: string };
+
+  if (typeof rating !== "number" || !Number.isInteger(rating) || rating < 1 || rating > 5) {
+    res.status(400).json({ error: "rating must be an integer between 1 and 5" });
+    return;
+  }
+
+  const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
+  if (!job) { res.status(404).json({ error: "Job not found" }); return; }
+  if (job.status !== "completed") {
+    res.status(400).json({ error: "Only completed jobs can be rated" });
+    return;
+  }
+  if (job.rating !== null && job.rating !== undefined) {
+    res.status(409).json({ error: "This job has already been rated" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(jobsTable)
+    .set({ rating, ratingComment: comment?.trim() ?? null, updatedAt: new Date() })
+    .where(eq(jobsTable.id, id))
+    .returning();
+
+  req.log.info({ jobId: id, rating }, "Customer rated job");
+  res.json({ ok: true, rating: updated.rating, ratingComment: updated.ratingComment });
 });
 
 // ── Create job (customer booking or admin dispatch) ───────────────────────────

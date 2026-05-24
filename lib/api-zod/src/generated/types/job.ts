@@ -26,6 +26,8 @@ export interface Job {
   claimedBy?: string | null;
   vehicleType?: string | null;
   numberPlate?: string | null;
+  rating?: number | null;
+  ratingComment?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

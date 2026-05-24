@@ -23,6 +23,8 @@ export const jobsTable = pgTable("jobs", {
   depositPaid: boolean("deposit_paid").notNull().default(false),
   expiresAt: timestamp("expires_at"),
   notes: text("notes"),
+  rating: integer("rating"),
+  ratingComment: text("rating_comment"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

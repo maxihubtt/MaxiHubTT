@@ -28,6 +28,8 @@ interface DriverJob {
   claimedBy: string | null;
   name: string;
   phone: string;
+  vehicleType?: string | null;
+  numberPlate?: string | null;
   pickupDatetime: string | null;
   createdAt: string;
 }
@@ -41,6 +43,7 @@ interface HistoryJob {
   price: string;
   passengers: string | null;
   pickupDatetime: string | null;
+  rating?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -196,9 +199,10 @@ async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
 
 // ── JobCard ────────────────────────────────────────────────────────────────────
 
-function JobCard({ job, isMine, onClaim, claiming, onEnRoute, onComplete, enRouting, completing }: {
+function JobCard({ job, isMine, driverName, onClaim, claiming, onEnRoute, onComplete, enRouting, completing }: {
   job: DriverJob;
   isMine: boolean;
+  driverName?: string;
   onClaim: (id: string) => void;
   claiming: boolean;
   onEnRoute?: (id: string) => void;
@@ -207,7 +211,11 @@ function JobCard({ job, isMine, onClaim, claiming, onEnRoute, onComplete, enRout
   completing?: boolean;
 }) {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.pickup)}`;
-  const waUrl = `https://wa.me/${job.phone?.replace(/\D/g, "")}?text=${encodeURIComponent(`Hi, I'm your Maxi Hub TT driver. I've claimed your job (#${job.id}): ${job.pickup} → ${job.dropoff}. I'll be in touch shortly!`)}`;
+  const vehicleInfo = [job.vehicleType, job.numberPlate].filter(Boolean).join(" — ");
+  const waText = vehicleInfo
+    ? `Hi ${job.name}, I'm your Maxi Hub TT driver${driverName ? ` ${driverName}` : ""}. I've been assigned your booking #${job.id}: ${job.pickup} → ${job.dropoff}. I'll be arriving in a ${vehicleInfo}. Please have your deposit ready. See you soon!`
+    : `Hi ${job.name}, I'm your Maxi Hub TT driver${driverName ? ` ${driverName}` : ""}. I've been assigned your booking #${job.id}: ${job.pickup} → ${job.dropoff}. I'll be in touch shortly!`;
+  const waUrl = `https://wa.me/${job.phone?.replace(/\D/g, "")}?text=${encodeURIComponent(waText)}`;
   const isEnRoute = job.status === "driver_en_route";
 
   return (
@@ -293,23 +301,24 @@ function JobCard({ job, isMine, onClaim, claiming, onEnRoute, onComplete, enRout
               {job.phone}
             </a>
           </div>
-          {/* Contact row: Call + WhatsApp */}
-          <div className="grid grid-cols-2 gap-2">
-            <a
-              href={`tel:${job.phone}`}
-              className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-teal-900 font-black text-sm text-center transition-colors"
-            >
-              <Phone className="w-3.5 h-3.5" /> Call
-            </a>
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white font-black text-sm text-center transition-colors"
-            >
-              <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-            </a>
-          </div>
+          {/* Notify customer via WhatsApp — prominent CTA */}
+          <a
+            href={waUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 py-3 rounded-xl font-black text-sm text-center transition-all w-full"
+            style={{ background: "linear-gradient(135deg, #16a34a, #15803d)" }}
+          >
+            <MessageCircle className="w-4 h-4" />
+            WhatsApp Customer
+          </a>
+          {/* Contact row: Call */}
+          <a
+            href={`tel:${job.phone}`}
+            className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-black text-sm text-center transition-colors"
+          >
+            <Phone className="w-3.5 h-3.5" /> Call Customer
+          </a>
           {/* Maps navigate to pickup */}
           <a
             href={mapsUrl}
