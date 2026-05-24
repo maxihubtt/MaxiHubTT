@@ -391,8 +391,8 @@ const ROUTE_FARES: Record<string, [number,number,number,number,number, number,nu
   "west-south-far":    [         900, 1000, 1200, 1450, 1650,  1500, 1650, 2000, 2400, 2750],
   "west-south-deep":   [        1050, 1150, 1400, 1650, 1900,  1700, 1800, 2200, 2600, 3000],
   "central-crossing":  [         500,  700,  850, 1000, 1200,   800, 1000, 1250, 1500, 1750],
-  // ── Paramin premium (steep hill road — higher than standard intra-west) ──────
-  "paramin":           [         450,  550,  700,  850, 1000,   750,  900, 1150, 1400, 1650],
+  // ── Paramin premium (steep hill road — max 10 pax, higher than standard intra-west) ──
+  "paramin":           [         550,  650,  800,  950, 1100,   900, 1050, 1300, 1550, 1800],
   // ── Intra-zone (same zone, different areas) ─────────────────────────────────
   "intra-west":        [         180,  220,  280,  340,  400,   300,  360,  450,  540,  630],
   "intra-central":     [         160,  195,  245,  295,  350,   260,  315,  395,  475,  555],
@@ -847,6 +847,14 @@ export default function Home() {
   // Step 1 — Details
   const [tripType, setTripType]               = useState<"one-way" | "round" | null>(null);
   const [pax, setPax]                         = useState(8);
+  const maxPax = useMemo(() => {
+    const p = pickup.toLowerCase();
+    const d = dropoff.toLowerCase();
+    return (p.includes("paramin") || d.includes("paramin")) ? 10 : 24;
+  }, [pickup, dropoff]);
+  useEffect(() => {
+    if (pax > maxPax) setPax(maxPax);
+  }, [maxPax, pax]);
   const [pickupDatetime, setPickupDatetime]   = useState("");
   const [returnDatetime, setReturnDatetime]   = useState("");
   const [datetimeError, setDatetimeError]     = useState("");
@@ -1180,10 +1188,14 @@ export default function Home() {
                       <button type="button" onClick={() => setPax(p => Math.max(8, p - 1))}
                         className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 font-bold text-xl flex items-center justify-center hover:bg-teal-100 transition-colors shrink-0">−</button>
                       <span className="flex-1 text-center text-teal-900 font-black text-lg tabular-nums">{pax}</span>
-                      <button type="button" onClick={() => setPax(p => Math.min(24, p + 1))}
-                        className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 font-bold text-xl flex items-center justify-center hover:bg-teal-100 transition-colors shrink-0">+</button>
+                      <button type="button" onClick={() => setPax(p => Math.min(maxPax, p + 1))}
+                        disabled={pax >= maxPax}
+                        className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 font-bold text-xl flex items-center justify-center hover:bg-teal-100 transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">+</button>
                     </div>
                     <p className="text-xs text-teal-600/80 font-medium px-1">1 × {vehicleForPax(pax)}</p>
+                    {maxPax === 10 && (
+                      <p className="text-xs text-amber-700 font-semibold px-1">⚠ Paramin routes are limited to 10 passengers due to the steep hill road.</p>
+                    )}
                   </div>
 
                   <div className="space-y-1.5">
