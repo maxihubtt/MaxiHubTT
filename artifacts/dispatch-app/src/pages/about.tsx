@@ -33,6 +33,13 @@ export default function About() {
             <span>WhatsApp</span>
           </a>
         </div>
+        <div className="flex md:hidden items-center justify-center gap-2 px-6 py-2 border-t border-white/10" style={{ background: "rgba(0,0,0,0.1)" }}>
+          <Link href="/about" className="bg-white/20 px-3 py-1 rounded-full border border-white/40 text-xs font-bold text-white">About</Link>
+          <span className="text-amber-400 text-xs">✦</span>
+          <Link href="/pricing" className="bg-white/10 px-3 py-1 rounded-full border border-white/20 text-xs font-bold text-teal-100 hover:bg-white/20 transition-colors">Pricing</Link>
+          <span className="text-amber-400 text-xs">✦</span>
+          <Link href="/fleet" className="bg-white/10 px-3 py-1 rounded-full border border-white/20 text-xs font-bold text-teal-100 hover:bg-white/20 transition-colors">Fleet</Link>
+        </div>
         <div className="border-t border-white/10 py-2 text-center" style={{ background: "rgba(0,0,0,0.15)" }}>
           <p className="text-xs text-amber-200 font-medium tracking-widest uppercase">🌴 &nbsp; Safe. Smooth. On Time. That's How We Roll. &nbsp; 🌴</p>
         </div>
