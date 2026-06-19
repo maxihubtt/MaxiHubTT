@@ -4,7 +4,6 @@ import { MessageCircle, Info, ChevronRight, Users, Anchor } from "lucide-react";
 import { useState } from "react";
 
 const WA = "https://wa.me/18684818039?text=Hi%20Maxi%20Hub%20TT%2C%20I%27d%20like%20to%20get%20a%20quote.";
-const WA_ISLANDS = "https://wa.me/18684818039?text=Hi%20Maxi%20Hub%20TT%2C%20I%27d%20like%20to%20book%20a%20Down%20d%20Islands%20charter.";
 
 const PAX_TIERS = [
   { label: "≤12 pax", hint: "12-seater maxi" },
@@ -59,8 +58,7 @@ const ISLANDS_PACKAGES: {
   emoji: string;
   desc: string;
   includes: string[];
-  note: string;
-  fares: { tier: string; price: number }[];
+  waMsg: string;
 }[] = [
   {
     name: "Gaspar Grande Day Trip",
@@ -68,12 +66,7 @@ const ISLANDS_PACKAGES: {
     emoji: "⛵",
     desc: "The closest island — ideal for a relaxed half-day or full-day escape. Calm waters, a sea cave, and a quiet bay.",
     includes: ["Return maxi transfer to Carenage", "Return boat charter to Gaspar Grande", "Up to 8 hours on-island"],
-    note: "Fares are per vehicle/boat package.",
-    fares: [
-      { tier: "≤8 pax",   price: 1800 },
-      { tier: "9–12 pax", price: 2200 },
-      { tier: "13–15 pax", price: 2800 },
-    ],
+    waMsg: "Hi Maxi Hub TT, I'd like to book a Gaspar Grande Day Trip charter. Can you send me the details and pricing?",
   },
   {
     name: "Monos Island Full Day",
@@ -81,12 +74,7 @@ const ISLANDS_PACKAGES: {
     emoji: "🌊",
     desc: "The most popular islands charter — stunning villas, calm anchorages, and that iconic T&T island lime.",
     includes: ["Return maxi transfer to Carenage", "Return boat charter to Monos", "Up to 8 hours on-island", "Cooler storage on boat"],
-    note: "Fares are per vehicle/boat package.",
-    fares: [
-      { tier: "≤8 pax",   price: 2200 },
-      { tier: "9–12 pax", price: 2800 },
-      { tier: "13–15 pax", price: 3400 },
-    ],
+    waMsg: "Hi Maxi Hub TT, I'd like to book a Monos Island Full Day charter. Can you send me the details and pricing?",
   },
   {
     name: "Huevos & Chacachacare Cruise",
@@ -94,21 +82,15 @@ const ISLANDS_PACKAGES: {
     emoji: "🏝️",
     desc: "The full outer-islands experience — dramatic cliffs, crystal-clear waters, and ruins of the old leper colony.",
     includes: ["Return maxi transfer to Carenage", "Full-day boat charter with skipper", "Island hopping (Huevos + Chacachacare)", "Snorkelling stop"],
-    note: "Minimum 6 passengers. Fares are per group.",
-    fares: [
-      { tier: "6–8 pax",   price: 3200 },
-      { tier: "9–12 pax",  price: 3800 },
-      { tier: "13–15 pax", price: 4500 },
-    ],
+    waMsg: "Hi Maxi Hub TT, I'd like to book a Huevos & Chacachacare cruise. Can you send me the details and pricing?",
   },
   {
-    name: "Private Island Charter (Custom)",
+    name: "Private Island Charter",
     island: "Any island",
     emoji: "🗺️",
     desc: "Your crew, your itinerary. Choose your island(s), set your pace. Best for large groups, special occasions, and corporate events.",
     includes: ["Pickup from anywhere in T&T", "Dedicated maxi + skipper for the day", "Custom island itinerary", "Flexible timings"],
-    note: "Pricing on request — WhatsApp us with your group size and date.",
-    fares: [],
+    waMsg: "Hi Maxi Hub TT, I'd like to enquire about a private island charter. Can you send me the details and pricing?",
   },
 ];
 
@@ -352,53 +334,16 @@ export default function Pricing() {
                           ))}
                         </ul>
                       </div>
-
-                      {pkg.fares.length > 0 ? (
-                        <div>
-                          <p className="text-xs font-black text-teal-700 uppercase tracking-widest mb-2">Fares (TTD per group)</p>
-                          <div className="rounded-xl overflow-hidden border border-teal-100">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="bg-teal-50">
-                                  <th className="px-3 py-2 text-left text-xs font-bold text-teal-600">Group Size</th>
-                                  <th className="px-3 py-2 text-right text-xs font-bold text-teal-600">Total Fare</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {pkg.fares.map((f, fi) => (
-                                  <tr key={f.tier} className={`border-t border-teal-50 ${fi % 2 === 0 ? "bg-white" : "bg-teal-50/20"}`}>
-                                    <td className="px-3 py-2.5 font-semibold text-teal-800 text-xs">{f.tier}</td>
-                                    <td className="px-3 py-2.5 text-right font-mono font-black text-teal-900">{fmt(f.price)}</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                          <p className="text-xs text-teal-500 mt-1.5">{pkg.note}</p>
-                        </div>
-                      ) : (
-                        <div className="mt-auto">
-                          <p className="text-xs text-teal-500 mb-3">{pkg.note}</p>
-                          <a href={WA_ISLANDS} target="_blank" rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-black text-white transition-all hover:scale-105 active:scale-95"
-                            style={{ background: "#25D366" }}>
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            Get a Custom Quote
-                          </a>
-                        </div>
-                      )}
                     </div>
 
-                    {pkg.fares.length > 0 && (
-                      <div className="px-5 pb-4">
-                        <a href={WA_ISLANDS} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-black text-white transition-all hover:scale-105 active:scale-95"
-                          style={{ background: "#25D366" }}>
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          Book This Charter
-                        </a>
-                      </div>
-                    )}
+                    <div className="px-5 pb-4">
+                      <a href={`https://wa.me/18684818039?text=${encodeURIComponent(pkg.waMsg)}`} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-black text-white transition-all hover:scale-105 active:scale-95"
+                        style={{ background: "#25D366" }}>
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        WhatsApp for Pricing & Booking
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>
