@@ -1209,6 +1209,8 @@ export default function Home() {
   // passenger count and trip type. No external API involved.
   const displayFare = useMemo<number | null>(() => {
     if (!pickup.trim() || !dropoff.trim()) return null;
+    // Groups larger than 15 pax get a custom WhatsApp quote — no listed fare
+    if (pax > 15 && tripType) return null;
 
     // 1. Beach routes (exact fare with pax + tripType)
     if (tripType) {
@@ -1667,9 +1669,16 @@ export default function Home() {
                         </div>
                         {displayFare
                           ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtFare(displayFare)}</p>
-                          : <p className="text-sm font-semibold text-teal-600 shrink-0">WhatsApp us for a quote</p>}
+                          : pax > 15
+                            ? <a href={waLink(`Hi Maxi Hub TT, I'd like a custom quote for ${pax} passengers.\n\nPickup: ${pickup}\nDropoff: ${dropoff}\nTrip: ${tripType === "round" ? "Round trip" : "One way"}`)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-white bg-[#25D366] px-3 py-1.5 rounded-full shrink-0 hover:opacity-90 transition-opacity"><MessageCircle className="w-3.5 h-3.5" /> Get quote</a>
+                            : <p className="text-sm font-semibold text-teal-600 shrink-0">WhatsApp us for a quote</p>}
                       </div>
-                      {getBeachExactFare(pickup, dropoff, pax, tripType ?? "one-way") && (
+                      {pax > 15 && (
+                        <p className="text-xs text-teal-600 mt-2 border-t border-amber-200 pt-2">
+                          Groups over 15 passengers need a custom quote — tap the button above and we'll reply within minutes.
+                        </p>
+                      )}
+                      {pax <= 15 && getBeachExactFare(pickup, dropoff, pax, tripType ?? "one-way") && (
                         <p className="text-xs text-teal-500 mt-2 border-t border-amber-200 pt-2">
                           Beach trip · exact quote confirmed by WhatsApp after booking.
                         </p>

@@ -189,8 +189,10 @@ export default function Pricing() {
                     <tr className="text-teal-900 text-left" style={{ background: "linear-gradient(90deg, #0f3d2e, #1a5c42)" }}>
                       <th className="px-4 py-3 text-xs font-black uppercase tracking-wide text-white rounded-tl-2xl">Route</th>
                       <th className="px-3 py-3 text-xs font-black uppercase tracking-wide text-amber-300 text-center">Type</th>
-                      {PAX_TIERS.map(p => (
-                        <th key={p.label} className="px-3 py-3 text-xs font-black uppercase tracking-wide text-amber-300 text-right whitespace-nowrap">{p.label}</th>
+                      {PAX_TIERS.map((p, i) => (
+                        <th key={p.label} className={`px-3 py-3 text-xs font-black uppercase tracking-wide text-right whitespace-nowrap ${i < 2 ? "text-amber-300" : "text-green-300"}`}>
+                          {i < 2 ? p.label : <span className="flex items-center justify-end gap-1"><MessageCircle className="w-3 h-3" />{p.label}</span>}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -201,13 +203,21 @@ export default function Pricing() {
                           <td rowSpan={2} className="px-4 py-3 font-bold text-teal-900 align-middle border-r border-teal-100">{row.label}</td>
                           <td className="px-3 py-2 text-xs text-teal-500 font-semibold text-center whitespace-nowrap">One Way</td>
                           {row.ow.map((fare, fi) => (
-                            <td key={fi} className="px-3 py-2 text-right font-mono font-bold text-teal-900 whitespace-nowrap">{fmt(fare)}</td>
+                            <td key={fi} className="px-3 py-2 text-right whitespace-nowrap">
+                              {fi < 2
+                                ? <span className="font-mono font-bold text-teal-900">{fmt(fare)}</span>
+                                : <a href={WA} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 transition-colors"><MessageCircle className="w-3 h-3" />Quote</a>}
+                            </td>
                           ))}
                         </tr>
                         <tr className={`${i % 2 === 0 ? "bg-white" : "bg-teal-50/30"}`}>
                           <td className="px-3 py-2 text-xs text-amber-600 font-semibold text-center whitespace-nowrap border-b border-teal-50">Round Trip</td>
                           {row.rt.map((fare, fi) => (
-                            <td key={fi} className="px-3 py-2 text-right font-mono font-bold text-amber-700 whitespace-nowrap border-b border-teal-50">{fmt(fare)}</td>
+                            <td key={fi} className="px-3 py-2 text-right whitespace-nowrap border-b border-teal-50">
+                              {fi < 2
+                                ? <span className="font-mono font-bold text-amber-700">{fmt(fare)}</span>
+                                : <a href={WA} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 hover:text-emerald-900 transition-colors"><MessageCircle className="w-3 h-3" />Quote</a>}
+                            </td>
                           ))}
                         </tr>
                       </Fragment>
@@ -215,9 +225,10 @@ export default function Pricing() {
                   </tbody>
                 </table>
               </div>
-              <p className="mt-3 text-xs text-teal-500 text-center">
-                Don't see your route? <a href={WA} target="_blank" rel="noopener noreferrer" className="text-teal-700 font-bold underline">WhatsApp us for a custom quote.</a>
-              </p>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-teal-500">Don't see your route? <a href={WA} target="_blank" rel="noopener noreferrer" className="text-teal-700 font-bold underline">WhatsApp us for a custom quote.</a></p>
+                <p className="text-xs text-teal-500 flex items-center gap-1"><MessageCircle className="w-3 h-3 text-emerald-600" /> <span className="text-emerald-700 font-semibold">16+ passengers</span> — price confirmed via WhatsApp.</p>
+              </div>
             </div>
           )}
 
@@ -227,8 +238,8 @@ export default function Pricing() {
                 <Info className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
                 <p className="text-xs text-teal-700 leading-relaxed">
                   Beach fares are per vehicle and depend on your departure region. <strong>Lo fare</strong> = 12-seater maxi (≤12 pax).
-                  <strong> Hi fare</strong> = 14/15-seater (13–15 pax). Larger vehicles cost more — the booking form calculates it automatically.
-                  Round-trip fares cover same-day return.
+                  <strong> Hi fare</strong> = 14/15-seater (13–15 pax). Round-trip fares cover same-day return.
+                  For <strong>16+ passengers</strong>, <a href={WA} target="_blank" rel="noopener noreferrer" className="text-teal-800 font-bold underline">WhatsApp us</a> for a custom group quote.
                 </p>
               </div>
               <div className="space-y-6">
@@ -275,7 +286,7 @@ export default function Pricing() {
               <div className="mb-6 flex items-start gap-3 bg-sky-50 border border-sky-200 rounded-xl px-4 py-3">
                 <Info className="w-4 h-4 text-sky-600 mt-0.5 shrink-0" />
                 <p className="text-xs text-teal-700 leading-relaxed">
-                  Airport fares below are for a 12-seater maxi (≤12 passengers). Larger vehicles cost proportionally more.
+                  Airport fares below are for a 12-seater maxi (≤12 passengers). For 13–15 pax add ~30%; for <strong>16+ passengers</strong>, <a href={WA} target="_blank" rel="noopener noreferrer" className="text-teal-800 font-bold underline">WhatsApp us</a> for a group quote.
                   The exact fare is confirmed when you complete the booking form. We monitor your flight for delays.
                 </p>
               </div>
