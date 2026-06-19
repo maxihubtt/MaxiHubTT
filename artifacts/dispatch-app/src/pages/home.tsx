@@ -1971,6 +1971,61 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="py-16 px-6 md:px-12" style={{ background: "linear-gradient(135deg, #0a2e21 0%, #0f3d2e 60%, #0a2e21 100%)" }}>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="h-px flex-1 max-w-16 bg-white/20 rounded-full" />
+              <span className="text-amber-400 text-lg">⚓</span>
+              <div className="h-px flex-1 max-w-16 bg-white/20 rounded-full" />
+            </div>
+            <p className="text-amber-400 text-xs font-bold uppercase tracking-widest mb-2">In Partnership with Lucky 13 Island Tours</p>
+            <h2 className="text-3xl font-black text-white mb-3">Down d Islands</h2>
+            <p className="text-teal-300 text-sm max-w-lg mx-auto leading-relaxed">
+              We handle the ride — Lucky 13 handles the boat. Book your maxi transfer to Carenage and a full boat charter to the islands, all in one place.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {[
+              { emoji: "⛵", name: "Gaspar Grande", desc: "Half or full day. Sea caves, calm bay, easy escape closest to POS." },
+              { emoji: "🌊", name: "Monos Island",  desc: "T&T's favourite lime. Stunning anchorages, iconic vibes." },
+              { emoji: "🏝️", name: "Huevos & Chacachacare", desc: "Outer islands. Dramatic cliffs, crystal water, snorkelling." },
+              { emoji: "🗺️", name: "Private Charter", desc: "Your crew, your pace. Custom itinerary for any occasion." },
+            ].map(({ emoji, name, desc }) => (
+              <div key={name} className="rounded-2xl bg-white/5 border border-white/10 px-4 py-5 flex flex-col gap-2 hover:bg-white/10 transition-colors">
+                <span className="text-3xl">{emoji}</span>
+                <p className="font-black text-white text-sm leading-tight">{name}</p>
+                <p className="text-xs text-teal-300 leading-relaxed flex-1">{desc}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a
+              href="https://wa.me/18684818039?text=Hi%20Maxi%20Hub%20TT%2C%20I%27d%20like%20to%20book%20a%20Down%20d%20Islands%20charter%20with%20Lucky%2013.%20Can%20you%20help%3F"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-7 py-3 rounded-xl text-sm font-black text-white shadow-lg transition-all hover:scale-105 active:scale-95"
+              style={{ background: "#25D366" }}
+            >
+              <MessageCircle className="w-4 h-4" />
+              Book via WhatsApp
+            </a>
+            <a
+              href="/pricing"
+              className="flex items-center gap-2 px-7 py-3 rounded-xl text-sm font-black border border-white/30 text-white hover:bg-white/10 transition-colors"
+            >
+              See All Charter Options →
+            </a>
+          </div>
+
+          <p className="text-center text-xs text-teal-400/60 mt-5">
+            Maxi Hub TT is the official transport partner of Lucky 13 Island Tours.
+          </p>
+        </div>
+      </section>
+
       <section className="py-16 px-6 md:px-12 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">

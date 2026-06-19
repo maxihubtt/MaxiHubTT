@@ -354,7 +354,7 @@ export default function Pricing() {
                   We can coordinate multiple maxis and multiple boats for large corporate groups, birthday celebrations, and weddings.
                   WhatsApp us with your group size, preferred island, and date.
                 </p>
-                <a href={WA_ISLANDS} target="_blank" rel="noopener noreferrer"
+                <a href="https://wa.me/18684818039?text=Hi%20Maxi%20Hub%20TT%2C%20I%27d%20like%20to%20enquire%20about%20a%20group%20Down%20d%20Islands%20charter.%20Can%20you%20help%3F" target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black text-white transition-all hover:scale-105 active:scale-95"
                   style={{ background: "#25D366" }}>
                   <MessageCircle className="w-3.5 h-3.5" />
