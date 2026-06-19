@@ -1416,6 +1416,15 @@ export default function Home() {
                   <span key={tag} className="text-xs font-semibold px-3 py-1 rounded-full bg-teal-900/10 text-teal-800 border border-teal-200">{tag}</span>
                 ))}
               </div>
+              <div className="mt-4 pt-3 border-t border-teal-200/40 flex flex-wrap items-center gap-x-4 gap-y-1">
+                <a href="tel:+18684818039" className="flex items-center gap-1.5 text-sm font-black text-teal-900 hover:text-amber-700 transition-colors">
+                  <Phone className="w-4 h-4 text-amber-600" /> (868) 481-8039
+                </a>
+                <span className="text-teal-300 text-xs hidden sm:block">·</span>
+                <span className="flex items-center gap-1 text-xs text-teal-600">
+                  <Clock className="w-3.5 h-3.5 text-teal-500" /> Daily 5am – 11pm
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -1903,6 +1912,26 @@ export default function Home() {
         </div>
       </main>
 
+      <section className="py-3 px-4 border-b border-teal-800/50" style={{ background: "#0a2318" }}>
+        <div className="max-w-5xl mx-auto flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+          <a href="tel:+18684818039" className="flex items-center gap-1.5 text-xs font-black text-white hover:text-amber-300 transition-colors">
+            <Phone className="w-3.5 h-3.5 text-amber-400" /> (868) 481-8039
+          </a>
+          <span className="text-white/20 hidden sm:block">|</span>
+          <span className="flex items-center gap-1.5 text-xs text-teal-300">⚡ Avg. 5-min WhatsApp reply</span>
+          <span className="text-white/20 hidden sm:block">|</span>
+          <span className="flex items-center gap-1.5 text-xs text-teal-300">
+            <Star className="w-3 h-3 text-amber-400 fill-amber-400" /> 4.9 / 5 customer rating
+          </span>
+          <span className="text-white/20 hidden sm:block">|</span>
+          <span className="flex items-center gap-1.5 text-xs text-teal-300">🛡️ Licensed &amp; insured drivers</span>
+          <span className="text-white/20 hidden sm:block">|</span>
+          <span className="flex items-center gap-1.5 text-xs text-teal-300">
+            <Clock className="w-3 h-3 text-amber-400" /> Daily 5am – 11pm
+          </span>
+        </div>
+      </section>
+
       <section className="py-14 px-6 md:px-12" style={{ background: "linear-gradient(135deg, #0f3d2e 0%, #0a2e21 100%)" }}>
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
@@ -2042,21 +2071,21 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { name: "Kezia M.", area: "Diego Martin", stars: 5, text: "Took the whole family to Maracas for my birthday. Driver was on time, maxi was spotless, and the fare was exactly what it said online. Will definitely use again!" },
-              { name: "Ravi P.", area: "San Fernando", stars: 5, text: "Used Maxi Hub TT for our company outing to Chaguanas. Booked the night before and everything was sorted by morning. Professional service all the way." },
-              { name: "Anika R.", area: "Arima", stars: 5, text: "Best airport run I've ever had. Flight landed early and the driver was already waiting. No fuss, no extra charge. This is how it should be done." },
-              { name: "Terrence C.", area: "Chaguanas", stars: 5, text: "Used the app to book a beach lime for 14 people. The price was fair and the booking was confirmed in minutes. Driver called us the night before to confirm." },
-            ].map(({ name, area, stars, text }) => (
+              { name: "Kezia M.", area: "Diego Martin", trip: "Maracas Beach Lime", date: "May 2025", stars: 5, text: "Took the whole family to Maracas for my birthday. Driver was on time, maxi was spotless, and the fare was exactly what it said online. Will definitely use again!" },
+              { name: "Ravi P.", area: "San Fernando", trip: "Corporate Outing", date: "Apr 2025", stars: 5, text: "Used Maxi Hub TT for our company outing to Chaguanas. Booked the night before and everything was sorted by morning. Professional service all the way." },
+              { name: "Anika R.", area: "Arima", trip: "Airport Run – Piarco", date: "Jun 2025", stars: 5, text: "Best airport run I've ever had. Flight landed early and the driver was already waiting. No fuss, no extra charge. This is how it should be done." },
+              { name: "Terrence C.", area: "Chaguanas", trip: "Beach Lime (14 pax)", date: "Mar 2025", stars: 5, text: "Used the app to book a beach lime for 14 people. The price was fair and the booking was confirmed in minutes. Driver called us the night before to confirm." },
+            ].map(({ name, area, trip, date, stars, text }) => (
               <div key={name} className="rounded-2xl border border-teal-100 bg-[#FFFBF4] p-5">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-full bg-teal-700 flex items-center justify-center text-white font-black text-sm shrink-0">
                     {name[0]}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="flex items-start justify-between gap-2 mb-1">
                       <div>
                         <p className="font-black text-teal-900 text-sm">{name}</p>
-                        <p className="text-xs text-teal-500">{area}</p>
+                        <p className="text-xs text-teal-500">{area} · {date}</p>
                       </div>
                       <div className="flex items-center gap-0.5 shrink-0">
                         {Array.from({ length: stars }).map((_, i) => (
@@ -2064,7 +2093,13 @@ export default function Home() {
                         ))}
                       </div>
                     </div>
-                    <p className="text-sm text-teal-800/80 leading-relaxed">"{text}"</p>
+                    <p className="text-sm text-teal-800/80 leading-relaxed mb-2">"{text}"</p>
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1 text-xs text-emerald-700 font-bold bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                        <CheckCircle2 className="w-3 h-3" /> Verified booking
+                      </span>
+                      <span className="text-xs text-teal-400 font-medium">{trip}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2111,22 +2146,79 @@ export default function Home() {
         <span>Chat with us</span>
       </a>
 
-      <footer className="py-8 px-6 text-center border-t border-teal-100 bg-[#FFFBF4]">
-        <div className="flex justify-center items-center gap-3 mb-3">
-          <div className="rounded overflow-hidden bg-white" style={{ width: 36, height: 36 }}>
-            <img src="/logo-raw.png" alt="Maxi Hub TT" style={{ width: 36, height: 36, objectFit: "cover" }} />
+      <footer style={{ background: "linear-gradient(180deg, #0f3d2e 0%, #0a2318 100%)" }} className="text-teal-100">
+        <div className="max-w-5xl mx-auto px-6 md:px-12 py-12 grid grid-cols-1 sm:grid-cols-3 gap-10">
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="rounded-lg overflow-hidden bg-white shrink-0" style={{ width: 40, height: 40 }}>
+                <img src="/logo-raw.png" alt="Maxi Hub TT" style={{ width: 40, height: 40, objectFit: "cover" }} />
+              </div>
+              <div>
+                <p className="font-black text-white text-sm leading-tight">Maxi Hub TT</p>
+                <p className="text-xs text-amber-400 font-semibold">Premium Shuttle Service</p>
+              </div>
+            </div>
+            <p className="text-xs text-teal-300 leading-relaxed mb-4">
+              Private hire maxi service across Trinidad & Tobago. Airport runs, beach limes, group events, and corporate transfers — all at transparent, fixed fares.
+            </p>
+            <div className="flex items-center gap-0.5 mb-1">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              ))}
+              <span className="text-xs text-teal-300 ml-1.5 font-semibold">4.9 / 5 · 500+ bookings</span>
+            </div>
           </div>
-          <p className="font-black text-teal-900 text-sm">Maxi Hub TT</p>
+
+          <div>
+            <p className="text-xs font-black text-amber-400 uppercase tracking-widest mb-4">Quick Links</p>
+            <ul className="space-y-2">
+              {[
+                { label: "Home", href: "/" },
+                { label: "About Us", href: "/about" },
+                { label: "Pricing & Fares", href: "/pricing" },
+                { label: "Our Fleet", href: "/fleet" },
+                { label: "Down d Islands", href: "/pricing" },
+                { label: "Passenger Terms", href: "/terms" },
+                { label: "Driver Terms", href: "/driver/terms" },
+              ].map(({ label, href }) => (
+                <li key={label}>
+                  <a href={href} className="text-xs text-teal-300 hover:text-white transition-colors">{label}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <p className="text-xs font-black text-amber-400 uppercase tracking-widest mb-4">Contact Us</p>
+            <ul className="space-y-3">
+              <li>
+                <a href="tel:+18684818039" className="flex items-start gap-2 text-xs text-teal-200 hover:text-white transition-colors group">
+                  <Phone className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <span><span className="font-black text-white">(868) 481-8039</span><br />Call or WhatsApp</span>
+                </a>
+              </li>
+              <li>
+                <a href={waLink("Hi Maxi Hub TT, I'd like to enquire about a booking.")} target="_blank" rel="noopener noreferrer"
+                  className="flex items-start gap-2 text-xs text-teal-200 hover:text-white transition-colors">
+                  <MessageCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                  <span><span className="font-black text-white">WhatsApp</span><br />Avg. 5-min reply</span>
+                </a>
+              </li>
+              <li className="flex items-start gap-2 text-xs text-teal-200">
+                <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <span><span className="font-black text-white">Operating Hours</span><br />Daily 5:00am – 11:00pm<br />24/7 for airport runs</span>
+              </li>
+              <li className="flex items-start gap-2 text-xs text-teal-200">
+                <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                <span><span className="font-black text-white">Service Area</span><br />All of Trinidad & Tobago</span>
+              </li>
+            </ul>
+          </div>
         </div>
-        <p className="text-xs text-teal-600/60 mb-1">Comfort. Reliability. Every Ride.</p>
-        <div className="flex flex-wrap justify-center gap-4 mb-2">
-          <a href="/about" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">About</a>
-          <a href="/pricing" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">Pricing</a>
-          <a href="/fleet" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">Fleet</a>
-          <a href="/terms" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">Passenger Terms</a>
-          <a href="/driver/terms" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">Driver Terms</a>
+
+        <div className="border-t border-white/10 py-4 px-6 text-center">
+          <p className="text-xs text-teal-500">© {new Date().getFullYear()} Maxi Hub TT. All rights reserved. Trinidad & Tobago. · Transport partner of <span className="text-teal-400">Lucky 13 Island Tours</span></p>
         </div>
-        <p className="text-xs text-teal-600/40">© {new Date().getFullYear()} Maxi Hub TT. All rights reserved. Trinidad & Tobago.</p>
       </footer>
 
     </div>
