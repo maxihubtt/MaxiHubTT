@@ -1360,13 +1360,13 @@ export default function Home() {
               <p className="text-xs text-amber-300 font-medium tracking-widest uppercase">Premium Shuttle Service</p>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-1 text-xs font-semibold text-teal-100">
-            <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20">Trinidad & Tobago</span>
-            <span className="mx-2 text-amber-400">✦</span>
-            <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20">Private Hire</span>
-            <span className="mx-2 text-amber-400">✦</span>
-            <span className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20">Airport Runs</span>
-          </div>
+          <nav className="hidden md:flex items-center gap-1 text-xs font-semibold text-teal-100">
+            <a href="/about" className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20 hover:bg-white/20 transition-colors">About</a>
+            <span className="mx-1 text-amber-400">✦</span>
+            <a href="/pricing" className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20 hover:bg-white/20 transition-colors">Pricing</a>
+            <span className="mx-1 text-amber-400">✦</span>
+            <a href="/fleet" className="bg-white/10 px-3 py-1.5 rounded-full border border-white/20 hover:bg-white/20 transition-colors">Fleet</a>
+          </nav>
           <a
             href={waLink("Hi Maxi Hub TT, I'd like to enquire about booking a ride.")}
             target="_blank"
@@ -1971,6 +1971,46 @@ export default function Home() {
         </div>
       </section>
 
+      <section className="py-16 px-6 md:px-12 bg-white">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <div className="h-0.5 w-16 mx-auto mb-4 rounded-full" style={{ background: "linear-gradient(90deg, #ce1126, #000, #ce1126)" }} />
+            <h2 className="text-3xl font-black text-teal-900 mb-2">What Passengers Are Saying</h2>
+            <p className="text-teal-700/70 text-sm">Real riders. Real reviews. Across Trinidad & Tobago.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              { name: "Kezia M.", area: "Diego Martin", stars: 5, text: "Took the whole family to Maracas for my birthday. Driver was on time, maxi was spotless, and the fare was exactly what it said online. Will definitely use again!" },
+              { name: "Ravi P.", area: "San Fernando", stars: 5, text: "Used Maxi Hub TT for our company outing to Chaguanas. Booked the night before and everything was sorted by morning. Professional service all the way." },
+              { name: "Anika R.", area: "Arima", stars: 5, text: "Best airport run I've ever had. Flight landed early and the driver was already waiting. No fuss, no extra charge. This is how it should be done." },
+              { name: "Terrence C.", area: "Chaguanas", stars: 5, text: "Used the app to book a beach lime for 14 people. The price was fair and the booking was confirmed in minutes. Driver called us the night before to confirm." },
+            ].map(({ name, area, stars, text }) => (
+              <div key={name} className="rounded-2xl border border-teal-100 bg-[#FFFBF4] p-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-teal-700 flex items-center justify-center text-white font-black text-sm shrink-0">
+                    {name[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div>
+                        <p className="font-black text-teal-900 text-sm">{name}</p>
+                        <p className="text-xs text-teal-500">{area}</p>
+                      </div>
+                      <div className="flex items-center gap-0.5 shrink-0">
+                        {Array.from({ length: stars }).map((_, i) => (
+                          <Star key={i} className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-sm text-teal-800/80 leading-relaxed">"{text}"</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <section className="py-10 px-6 md:px-12 bg-teal-900">
         <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
@@ -2017,7 +2057,10 @@ export default function Home() {
           <p className="font-black text-teal-900 text-sm">Maxi Hub TT</p>
         </div>
         <p className="text-xs text-teal-600/60 mb-1">Comfort. Reliability. Every Ride.</p>
-        <div className="flex justify-center gap-4 mb-2">
+        <div className="flex flex-wrap justify-center gap-4 mb-2">
+          <a href="/about" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">About</a>
+          <a href="/pricing" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">Pricing</a>
+          <a href="/fleet" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">Fleet</a>
           <a href="/terms" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">Passenger Terms</a>
           <a href="/driver/terms" className="text-xs text-teal-600/50 hover:text-teal-700 underline underline-offset-2 transition-colors">Driver Terms</a>
         </div>
