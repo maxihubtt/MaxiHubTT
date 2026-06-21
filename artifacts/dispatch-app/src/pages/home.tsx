@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCreateJob, useGetJob, getGetJobQueryKey, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle, AlertTriangle, Star, Car, MessageSquare } from "lucide-react";
+import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle, AlertTriangle, Star, Car, MessageSquare, Mail } from "lucide-react";
 
 interface BookingConfig {
   deposit_pct: number;
@@ -1173,6 +1173,7 @@ export default function Home() {
   // Step 2 — Contact
   const [name, setName]   = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
 
   // Step 2b — Notes
   const [notes, setNotes] = useState("");
@@ -1182,9 +1183,10 @@ export default function Home() {
     try {
       const saved = localStorage.getItem("maxihub_contact");
       if (saved) {
-        const { name: n, phone: p } = JSON.parse(saved) as { name: string; phone: string };
+        const { name: n, phone: p, email: e } = JSON.parse(saved) as { name: string; phone: string; email?: string };
         if (n) setName(n);
         if (p) setPhone(p);
+        if (e) setEmail(e);
       }
     } catch {}
   }, []);
@@ -1302,7 +1304,7 @@ export default function Home() {
     if (!agreedToTerms) { setStepErrors(true); return; }
 
     // Save name/phone for future visits
-    try { localStorage.setItem("maxihub_contact", JSON.stringify({ name, phone })); } catch {}
+    try { localStorage.setItem("maxihub_contact", JSON.stringify({ name, phone, email })); } catch {}
 
     const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
     const passengerDesc = paxLabel(pax);
@@ -1317,7 +1319,7 @@ export default function Home() {
     const fullNotes = [airportNote, notes.trim()].filter(Boolean).join(" | ") || null;
 
     createJob.mutate(
-      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: passengerDesc, pickupDatetime: pickupDatetime || undefined, ...(fullNotes ? { notes: fullNotes } as never : {}) } },
+      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: passengerDesc, pickupDatetime: pickupDatetime || undefined, ...(email.trim() ? { email: email.trim() } as never : {}), ...(fullNotes ? { notes: fullNotes } as never : {}) } },
       {
         onSuccess: job => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
@@ -1335,7 +1337,7 @@ export default function Home() {
     setTripType(null); setPax(8);
     setPickupDatetime(""); setReturnDatetime(""); setDatetimeError(""); setReturnDatetimeError(""); setReturnDifferentDay(false);
     setFlightNumber(""); setArrDepType("arrival"); setTerminal("");
-    setName(""); setPhone("");
+    setName(""); setPhone(""); setEmail("");
     setNotes("");
     setAgreedToTerms(false);
     setBookedJob(null);
@@ -1749,6 +1751,20 @@ export default function Home() {
 
                   <div className="space-y-1.5">
                     <label className="text-teal-900 font-semibold text-sm flex items-center gap-2">
+                      <Mail className="w-3.5 h-3.5 text-teal-600" />
+                      Email Address <span className="text-teal-400 font-normal text-xs">(optional)</span>
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="e.g. kezia@example.com"
+                      className="w-full h-12 px-4 rounded-xl border-2 border-teal-100 bg-white text-teal-900 placeholder:text-teal-400 focus:border-teal-500 focus:outline-none text-sm transition-colors"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-teal-900 font-semibold text-sm flex items-center gap-2">
                       <MessageCircle className="w-3.5 h-3.5 text-teal-600" />
                       Special Requests <span className="text-teal-400 font-normal text-xs">(optional)</span>
                     </label>
@@ -1810,6 +1826,7 @@ export default function Home() {
                       <div>
                         <p className="text-xs text-teal-500 uppercase tracking-wider">Contact</p>
                         <p className="font-semibold text-teal-900">{name} · {phone}</p>
+                        {email && <p className="text-xs text-teal-600">{email}</p>}
                       </div>
                     </div>
                   </div>

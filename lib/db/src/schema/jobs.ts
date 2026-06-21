@@ -8,6 +8,7 @@ export const jobsTable = pgTable("jobs", {
   dropoff: text("dropoff").notNull(),
   name: text("name").notNull(),
   phone: text("phone").notNull(),
+  email: text("email"),
   price: text("price").notNull(),
   passengers: text("passengers"),
   status: text("status").notNull().default("pending"),

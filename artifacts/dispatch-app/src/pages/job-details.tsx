@@ -5,7 +5,7 @@ import { JobStatusBadge } from "@/components/job-status-badge";
 import { formatRelativeTime, formatTime } from "@/lib/format";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Phone, DollarSign, Hash, CheckCircle, Car, Save, StickyNote, MessageCircle, Calendar } from "lucide-react";
+import { ArrowLeft, User, Phone, DollarSign, Hash, CheckCircle, Car, Save, StickyNote, MessageCircle, Calendar, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { JobStatus } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -49,6 +49,7 @@ type ExtendedJob = {
   createdAt: string;
   updatedAt: string;
   notes?: string | null;
+  email?: string | null;
 };
 
 export default function JobDetails() {
@@ -259,6 +260,21 @@ export default function JobDetails() {
                         <MessageCircle className="h-3 w-3" /> WhatsApp
                       </a>
                     )}
+                  </div>
+                </div>
+              )}
+
+              {job.email && (
+                <div className="flex items-center gap-3">
+                  <div className="bg-muted p-2 rounded-md"><Mail className="h-4 w-4 text-muted-foreground" /></div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-mono">{job.email}</p>
+                    <a
+                      href={`mailto:${job.email}`}
+                      className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-md bg-purple-500/10 text-purple-700 hover:bg-purple-600 hover:text-white transition-all"
+                    >
+                      <Mail className="h-3 w-3" /> Email
+                    </a>
                   </div>
                 </div>
               )}
