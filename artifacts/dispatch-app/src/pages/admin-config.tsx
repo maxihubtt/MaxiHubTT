@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Settings, Save, RotateCcw, Bell, BellOff, Copy, Check } from "lucide-react";
+import { Settings, Save, RotateCcw, Bell, BellOff, Copy, Check, Send } from "lucide-react";
 
 interface ConfigData {
   min_booking_hours: string;
@@ -156,6 +156,57 @@ function VapidSetup() {
   );
 }
 
+type TestState = "idle" | "sending" | "ok" | "fail";
+
+function TelegramTest() {
+  const [state, setState] = useState<TestState>("idle");
+  const [message, setMessage] = useState<string | null>(null);
+
+  async function sendTest() {
+    setState("sending");
+    setMessage(null);
+    try {
+      const res = await fetch("/api/admin/telegram/test", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json() as { success: boolean; message: string };
+      setMessage(data.message);
+      setState(data.success ? "ok" : "fail");
+    } catch {
+      setMessage("Network error — could not reach the server.");
+      setState("fail");
+    }
+  }
+
+  return (
+    <Card className="p-6 space-y-4 bg-muted/20">
+      <div className="flex items-center gap-3">
+        <Send className="h-5 w-5 text-primary" />
+        <div>
+          <p className="text-sm font-semibold">Telegram Notifications</p>
+          <p className="text-xs text-muted-foreground">Send a test message to verify your Telegram group is connected.</p>
+        </div>
+      </div>
+
+      <button
+        onClick={sendTest}
+        disabled={state === "sending"}
+        className="flex items-center gap-2 h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 hover:opacity-90 transition-opacity"
+      >
+        <Send className="h-3.5 w-3.5" />
+        {state === "sending" ? "Sending…" : "Send Test Message"}
+      </button>
+
+      {message && (
+        <div className={`rounded-lg px-4 py-3 text-sm border ${state === "ok" ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+          {state === "ok" ? "✓ " : "✗ "}{message}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function AdminConfig() {
   const [config, setConfig] = useState<ConfigData | null>(null);
   const [draft, setDraft] = useState<ConfigData | null>(null);
@@ -290,6 +341,16 @@ export default function AdminConfig() {
         </div>
 
         <VapidSetup />
+
+        <div className="flex items-center gap-3 pt-2">
+          <Send className="h-6 w-6 text-primary" />
+          <div>
+            <h2 className="text-xl font-bold uppercase tracking-tight">Telegram</h2>
+            <p className="text-sm text-muted-foreground">Test that job alerts reach your Telegram group.</p>
+          </div>
+        </div>
+
+        <TelegramTest />
       </div>
     </Layout>
   );

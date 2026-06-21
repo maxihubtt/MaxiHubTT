@@ -3,6 +3,7 @@ import webpush from "web-push";
 import { db, adminConfigTable } from "@workspace/db";
 import { DEFAULT_CONFIG, type ConfigKey } from "@workspace/db";
 import { requireAdmin } from "../middleware/requireAdmin";
+import { sendJobToGroup } from "../lib/telegram";
 
 const router = Router();
 
@@ -72,6 +73,21 @@ router.put("/admin/config", requireAdmin, async (req, res) => {
     config[row.key] = row.value;
   }
   res.json(config);
+});
+
+router.post("/admin/telegram/test", requireAdmin, async (_req, res) => {
+  const ok = await sendJobToGroup({
+    id: "TEST-001",
+    pickup: "Port of Spain",
+    dropoff: "Piarco International Airport",
+    price: "TTD 250",
+    passengers: "2",
+  });
+  if (ok) {
+    res.json({ success: true, message: "Test message sent to Telegram group." });
+  } else {
+    res.status(500).json({ success: false, message: "Failed to send. Check that TELEGRAM_BOT_TOKEN and TELEGRAM_GROUP_ID are set correctly." });
+  }
 });
 
 export default router;
