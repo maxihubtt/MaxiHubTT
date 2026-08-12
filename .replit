@@ -1,4 +1,4 @@
-modules = ["nodejs-24"]
+modules = ["nodejs-24", "postgresql-16"]
 
 [deployment]
 router = "application"
@@ -84,3 +84,6 @@ externalPort = 3003
 
 [userenv.shared]
 TELEGRAM_GROUP_ID = "-1003402083882"
+
+[nix]
+channel = "stable-25_05"

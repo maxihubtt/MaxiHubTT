@@ -48,10 +48,15 @@ router.get("/admin/vapid", requireAdmin, (_req, res) => {
 });
 
 router.get("/admin/config", requireAdmin, async (_req, res) => {
-  const rows = await db.select().from(adminConfigTable);
   const config: Record<string, string> = { ...DEFAULT_CONFIG };
-  for (const row of rows) {
-    config[row.key] = row.value;
+  try {
+    const rows = await db.select().from(adminConfigTable);
+    for (const row of rows) {
+      config[row.key] = row.value;
+    }
+  } catch {
+    // Keep the admin page usable while a production database catches up with
+    // the current config-table schema.
   }
   res.json(config);
 });

@@ -30,9 +30,16 @@ function parseJobPrice(price: string): number {
 }
 
 async function getConfig(): Promise<Record<string, string>> {
-  const rows = await db.select().from(adminConfigTable);
   const config: Record<string, string> = { ...DEFAULT_CONFIG };
-  for (const row of rows) config[row.key] = row.value;
+  try {
+    const rows = await db.select().from(adminConfigTable);
+    for (const row of rows) config[row.key] = row.value;
+  } catch (err) {
+    // Booking must remain available if an older production database has not
+    // received the admin_config migration yet. Defaults are valid settings,
+    // so a config-table problem should not turn a customer booking into a 500.
+    logger.warn({ err }, "Failed to load admin config; using default booking settings");
+  }
   return config;
 }
 
