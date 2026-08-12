@@ -81,6 +81,7 @@ await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS expires_at TIMESTA
 await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS notes TEXT`);
 await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS rating INTEGER`);
 await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS rating_comment TEXT`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS email TEXT`);
 console.log("✓ jobs columns");
 
 await client.query(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS dp_expiry DATE`);
