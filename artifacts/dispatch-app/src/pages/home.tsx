@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCreateJob, useGetJob, getGetJobQueryKey, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle, AlertTriangle, Star, Car, MessageSquare, Mail } from "lucide-react";
-import { BUS_OPTIONS, LOCATION_SUGGESTIONS, busCapacity, calculateFare, formatMoney, hasSufficientBusCapacity, resolveLocation } from "@workspace/fare-engine";
+import { BUS_OPTIONS, LOCATION_SUGGESTIONS, busCapacity, calculateFare, formatMoney, hasSufficientBusCapacity, minimumBuses, resolveLocation } from "@workspace/fare-engine";
 
 interface BookingConfig {
   deposit_pct: number;
@@ -944,6 +944,9 @@ export default function Home() {
   const isAirportRoute = useMemo(() => {
     return resolveLocation(pickup).group === "airport" || resolveLocation(dropoff).group === "airport";
   }, [pickup, dropoff]);
+  const isParaminRoute = useMemo(() => {
+    return resolveLocation(pickup).group === "paramin" || resolveLocation(dropoff).group === "paramin";
+  }, [pickup, dropoff]);
 
   // Step 2 — Contact
   const [name, setName]   = useState("");
@@ -999,8 +1002,11 @@ export default function Home() {
   const displayFare = fareResult?.status === "approved" ? fareResult.totalFare : null;
   const deposit = fareResult?.status === "approved" ? fareResult.deposit : null;
   const urgencyTier = fareResult?.urgency ?? null;
-  const capacityError = !hasSufficientBusCapacity(pax, numberBuses)
-    ? "Not enough buses selected. Please select enough buses to accommodate all passengers."
+  const minimumBusCount = minimumBuses(pax, isParaminRoute ? "paramin" : "standard");
+  const capacityError = !hasSufficientBusCapacity(pax, numberBuses, isParaminRoute ? "paramin" : "standard")
+    ? isParaminRoute
+      ? "Not enough buses selected for Paramin. Paramin bookings are limited to a maximum of 10 passengers per bus due to the steep terrain."
+      : "Not enough buses selected. Please select enough buses to accommodate all passengers."
     : "";
 
   const validateDatetime = (value: string) => {
@@ -1300,7 +1306,10 @@ export default function Home() {
                          disabled={pax >= 100}
                         className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 font-bold text-xl flex items-center justify-center hover:bg-teal-100 transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">+</button>
                     </div>
-                     <p className="text-xs text-teal-600/80 font-medium px-1">{vehicleForPax(pax, numberBuses)} · capacity {numberBuses === 5 ? "5+ buses" : busCapacity(numberBuses)} passengers</p>
+                      <p className="text-xs text-teal-600/80 font-medium px-1">
+                        {vehicleForPax(pax, numberBuses)} · capacity up to {busCapacity(numberBuses, isParaminRoute ? "paramin" : "standard")} passengers
+                        {minimumBusCount > 1 && <span> · minimum {minimumBusCount} buses</span>}
+                      </p>
                   </div>
 
                    <div className="space-y-2">
@@ -1313,12 +1322,16 @@ export default function Home() {
                          <button
                            key={option.value}
                            type="button"
-                           onClick={() => setNumberBuses(option.value)}
-                           className={`h-10 rounded-xl border-2 text-xs font-bold transition-all ${
+                            onClick={() => setNumberBuses(option.value)}
+                            className={`h-10 rounded-xl border-2 text-xs font-bold transition-all ${
                              numberBuses === option.value
                                ? "border-amber-500 bg-amber-500 text-white"
-                               : "border-dashed border-teal-200 bg-white text-teal-700 hover:border-amber-300"
+                                : option.value < minimumBusCount
+                                  ? "border-dashed border-teal-100 bg-teal-50 text-teal-300"
+                                  : "border-dashed border-teal-200 bg-white text-teal-700 hover:border-amber-300"
                            }`}
+                            aria-disabled={option.value < minimumBusCount}
+                            disabled={option.value < minimumBusCount}
                          >
                            {option.label}
                          </button>
@@ -1326,8 +1339,12 @@ export default function Home() {
                      </div>
                      {capacityError && (
                        <p className="text-xs text-red-600 font-semibold px-1">
-                         <span className="block">Not enough buses selected</span>
-                         <span className="font-normal">Please select enough buses to accommodate all passengers.</span>
+                          <span className="block">Not enough buses selected{isParaminRoute ? " for Paramin" : ""}</span>
+                          <span className="font-normal">
+                            {isParaminRoute
+                              ? "Select enough buses for a maximum of 10 passengers per bus."
+                              : "Please select enough buses to accommodate all passengers."}
+                          </span>
                        </p>
                      )}
                    </div>
@@ -1452,7 +1469,21 @@ export default function Home() {
                            <span className="text-teal-600">Route</span><span className="text-right font-semibold text-teal-900">{fareResult.routeLabel}</span>
                            <span className="text-teal-600">Passengers / buses</span><span className="text-right font-semibold text-teal-900">{pax} / {numberBuses === 5 ? "5+" : numberBuses}</span>
                            <span className="text-teal-600">Trip</span><span className="text-right font-semibold text-teal-900">{tripType === "round" ? "Round trip" : "One-way"}</span>
-                           <span className="text-teal-600">Base fare</span><span className="text-right font-semibold text-teal-900">{fmtFare(fareResult.baseFare)}</span>
+                            <span className="text-teal-600">Fare per bus</span>
+                            <span className="text-right font-semibold text-teal-900">
+                              {fareResult.busBreakdown.every(item => item.fare === fareResult.busBreakdown[0]?.fare)
+                                ? `${numberBuses === 5 ? "5+" : numberBuses} × ${fmtFare(fareResult.busBreakdown[0]?.fare ?? 0)}`
+                                : "See bus breakdown below"}
+                            </span>
+                            <span className="text-teal-600">Base fare</span><span className="text-right font-semibold text-teal-900">{fmtFare(fareResult.baseFare)}</span>
+                            {!fareResult.busBreakdown.every(item => item.fare === fareResult.busBreakdown[0]?.fare) && (
+                              <>
+                                <span className="text-teal-600">Bus breakdown</span>
+                                <span className="text-right font-semibold text-teal-900">
+                                  {fareResult.busBreakdown.map(item => `Bus ${item.bus}: ${item.passengerCount} pax × ${fmtFare(item.fare)}`).join(" · ")}
+                                </span>
+                              </>
+                            )}
                            <span className="text-teal-600">Rush fee</span><span className={`text-right font-semibold ${fareResult.rushFee ? "text-red-600" : "text-teal-900"}`}>{fmtFare(fareResult.rushFee)}</span>
                            <span className="text-teal-900 font-bold pt-2 border-t border-amber-200">Total</span><span className="text-right font-black text-teal-900 pt-2 border-t border-amber-200">{fmtFare(fareResult.totalFare)}</span>
                            <span className="text-teal-900 font-bold">Deposit</span><span className="text-right font-black text-amber-700">{fmtFare(fareResult.deposit)}</span>

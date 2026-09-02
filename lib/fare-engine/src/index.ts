@@ -1,6 +1,7 @@
 export type TripType = "one-way" | "round";
 export type FareStatus = "approved" | "custom_quote" | "invalid";
 export type PassengerBracket = "1-12" | "13-15" | "16-18" | "19-25" | "26+";
+export type ParaminPassengerBracket = "1-10" | "11-20" | "21-30" | "31-40" | "41+";
 export type LocationGroup =
   | "pos"
   | "west-near"
@@ -28,6 +29,14 @@ export const PASSENGER_BRACKETS: readonly PassengerBracket[] = [
   "26+",
 ];
 
+export const PARAMIN_PASSENGER_BRACKETS: readonly ParaminPassengerBracket[] = [
+  "1-10",
+  "11-20",
+  "21-30",
+  "31-40",
+  "41+",
+];
+
 export const BUS_OPTIONS: readonly { value: BusCount; label: string }[] = [
   { value: 1, label: "1 Bus" },
   { value: 2, label: "2 Buses" },
@@ -43,33 +52,48 @@ export const DEFAULT_FARE_SETTINGS = {
   minBookingHours: 6,
 } as const;
 
-type FareTable = Record<TripType, Record<PassengerBracket, number | null>>;
+type StandardFareTable = Record<TripType, Record<PassengerBracket, number | null>>;
+type ParaminFareTable = Record<TripType, Record<ParaminPassengerBracket, number | null>>;
 
-type RouteFareRecord = {
+type StandardRouteFareRecord = {
   id: string;
   label: string;
   groups: readonly [LocationGroup, LocationGroup] | readonly [LocationGroup];
-  fares: FareTable;
-  busesByBracket: Record<PassengerBracket, BusCount | null>;
+  bracketScheme: "standard";
+  capacityPerBus: 15;
+  fares: StandardFareTable;
   active: boolean;
   notes?: string;
 };
 
+type ParaminRouteFareRecord = {
+  id: string;
+  label: string;
+  groups: readonly [LocationGroup];
+  bracketScheme: "paramin";
+  capacityPerBus: 10;
+  fares: ParaminFareTable;
+  active: boolean;
+  notes?: string;
+};
+
+type RouteFareRecord = StandardRouteFareRecord | ParaminRouteFareRecord;
+
 const table = (
   oneWay: [number | null, number | null, number | null, number | null, number | null],
   round: [number | null, number | null, number | null, number | null, number | null],
-): FareTable => ({
-  "one-way": Object.fromEntries(PASSENGER_BRACKETS.map((bracket, index) => [bracket, oneWay[index]])) as FareTable["one-way"],
-  round: Object.fromEntries(PASSENGER_BRACKETS.map((bracket, index) => [bracket, round[index]])) as FareTable["round"],
+): StandardFareTable => ({
+  "one-way": Object.fromEntries(PASSENGER_BRACKETS.map((bracket, index) => [bracket, oneWay[index]])) as StandardFareTable["one-way"],
+  round: Object.fromEntries(PASSENGER_BRACKETS.map((bracket, index) => [bracket, round[index]])) as StandardFareTable["round"],
 });
 
-const busesForStandardBrackets: Record<PassengerBracket, BusCount | null> = {
-  "1-12": 1,
-  "13-15": 1,
-  "16-18": 2,
-  "19-25": 2,
-  "26+": null,
-};
+const paraminTable = (
+  oneWay: [number | null, number | null, number | null, number | null, number | null],
+  round: [number | null, number | null, number | null, number | null, number | null],
+): ParaminFareTable => ({
+  "one-way": Object.fromEntries(PARAMIN_PASSENGER_BRACKETS.map((bracket, index) => [bracket, oneWay[index]])) as ParaminFareTable["one-way"],
+  round: Object.fromEntries(PARAMIN_PASSENGER_BRACKETS.map((bracket, index) => [bracket, round[index]])) as ParaminFareTable["round"],
+});
 
 const route = (
   id: string,
@@ -82,8 +106,26 @@ const route = (
   id,
   label,
   groups,
+  bracketScheme: "standard",
+  capacityPerBus: 15,
   fares: table(oneWay, round),
-  busesByBracket: { ...busesForStandardBrackets },
+  active: true,
+  notes,
+});
+
+const paraminRoute = (
+  id: string,
+  label: string,
+  oneWay: [number | null, number | null, number | null, number | null, number | null],
+  round: [number | null, number | null, number | null, number | null, number | null],
+  notes?: string,
+): ParaminRouteFareRecord => ({
+  id,
+  label,
+  groups: ["paramin"],
+  bracketScheme: "paramin",
+  capacityPerBus: 10,
+  fares: paraminTable(oneWay, round),
   active: true,
   notes,
 });
@@ -91,9 +133,9 @@ const route = (
 /**
  * The single approved fare source used by both the browser and the API.
  *
- * A fare record includes explicit bus requirements for each passenger bracket.
- * Multi-bus prices are not derived from single-bus prices. Adding a future
- * multi-bus fare means adding or editing a record here.
+ * Approved route prices are per bus. The fare engine allocates passengers
+ * across the selected buses, looks up the applicable per-bus bracket, and
+ * adds each bus fare without applying an automatic discount.
  */
 export const MASTER_FARE_CONFIG = {
   settings: DEFAULT_FARE_SETTINGS,
@@ -110,7 +152,7 @@ export const MASTER_FARE_CONFIG = {
     route("intra-central", "Intra-Central", ["central"], [200, 250, 350, 700, null], [350, 425, 550, 900, null]),
     route("intra-east", "Intra-East", ["east-near"], [225, 275, 375, 750, null], [400, 475, 600, 950, null], "Applies to all approved East subgroups."),
     route("intra-south", "Intra-South", ["south"], [225, 275, 375, 750, null], [400, 475, 600, 950, null]),
-    route("paramin", "Paramin", ["paramin"], [600, 700, 900, 1500, null], [1000, 1150, 1350, 2000, null], "Special route; do not treat Paramin as an ordinary West destination."),
+    paraminRoute("paramin", "Paramin", [600, 700, 900, 1500, null], [1000, 1150, 1350, 2000, null], "Special route; maximum 10 passengers per bus."),
     route("toco", "Toco", ["toco"], [1000, 1150, 1400, 2000, null], [1700, 1950, 2300, 2900, null], "Special destination with its own approved fares."),
   ],
   /**
@@ -122,8 +164,7 @@ export const MASTER_FARE_CONFIG = {
     id: string;
     originAliases: readonly string[];
     destinationAliases: readonly string[];
-    fares: FareTable;
-    busesByBracket: Record<PassengerBracket, BusCount | null>;
+     fares: StandardFareTable;
     active: boolean;
   }[],
   beachFares: [] as readonly unknown[],
@@ -215,13 +256,42 @@ export function passengerBracket(passengerCount: number): PassengerBracket | nul
   return "26+";
 }
 
-export function busCapacity(numberBuses: number): number {
-  if (numberBuses === 5) return Number.POSITIVE_INFINITY;
-  return numberBuses * 15;
+export function paraminPassengerBracket(passengerCount: number): ParaminPassengerBracket | null {
+  if (!Number.isInteger(passengerCount) || passengerCount < 1) return null;
+  if (passengerCount <= 10) return "1-10";
+  if (passengerCount <= 20) return "11-20";
+  if (passengerCount <= 30) return "21-30";
+  if (passengerCount <= 40) return "31-40";
+  return "41+";
 }
 
-export function hasSufficientBusCapacity(passengerCount: number, numberBuses: number): boolean {
-  return Number.isInteger(numberBuses) && numberBuses >= 1 && numberBuses <= 5 && passengerCount <= busCapacity(numberBuses);
+export function busCapacity(numberBuses: number, routeType: "standard" | "paramin" = "standard"): number {
+  if (!Number.isInteger(numberBuses) || numberBuses < 1 || numberBuses > 5) return 0;
+  return numberBuses * (routeType === "paramin" ? 10 : 15);
+}
+
+export function minimumBuses(passengerCount: number, routeType: "standard" | "paramin" = "standard"): number {
+  const capacity = routeType === "paramin" ? 10 : 15;
+  return Math.max(1, Math.ceil(passengerCount / capacity));
+}
+
+export function hasSufficientBusCapacity(
+  passengerCount: number,
+  numberBuses: number,
+  routeType: "standard" | "paramin" = "standard",
+): boolean {
+  return Number.isInteger(passengerCount)
+    && passengerCount >= 1
+    && Number.isInteger(numberBuses)
+    && numberBuses >= 1
+    && numberBuses <= 5
+    && passengerCount <= busCapacity(numberBuses, routeType);
+}
+
+function allocatePassengers(passengerCount: number, numberBuses: number): number[] {
+  const perBus = Math.floor(passengerCount / numberBuses);
+  const remainder = passengerCount % numberBuses;
+  return Array.from({ length: numberBuses }, (_, index) => perBus + (index < remainder ? 1 : 0));
 }
 
 export function classifyUrgency(
@@ -256,7 +326,13 @@ export type FareCalculation =
       message: null;
       routeId: string;
       routeLabel: string;
-      bracket: PassengerBracket;
+      bracket: PassengerBracket | ParaminPassengerBracket;
+      busBreakdown: readonly {
+        bus: number;
+        passengerCount: number;
+        bracket: PassengerBracket | ParaminPassengerBracket;
+        fare: number;
+      }[];
       baseFare: number;
       rushFee: number;
       totalFare: number;
@@ -268,7 +344,8 @@ export type FareCalculation =
       message: string;
       routeId: string | null;
       routeLabel: string | null;
-      bracket: PassengerBracket;
+      bracket: PassengerBracket | ParaminPassengerBracket;
+      busBreakdown: readonly [];
       rushFee: 0;
       totalFare: null;
       deposit: null;
@@ -279,7 +356,8 @@ export type FareCalculation =
       message: string;
       routeId: null;
       routeLabel: null;
-      bracket: PassengerBracket | null;
+      bracket: PassengerBracket | ParaminPassengerBracket | null;
+      busBreakdown: readonly [];
       rushFee: 0;
       totalFare: null;
       deposit: null;
@@ -313,9 +391,7 @@ function categoryRouteId(pickup: LocationGroup, dropoff: LocationGroup): string 
 function findExactSpecialFare(
   pickup: ResolvedLocation,
   dropoff: ResolvedLocation,
-  bracket: PassengerBracket,
   tripType: TripType,
-  numberBuses: number,
 ) {
   return MASTER_FARE_CONFIG.specialFares.find(record => {
     if (!record.active) return false;
@@ -323,15 +399,13 @@ function findExactSpecialFare(
     const dropoffMatches = record.destinationAliases.some(alias => dropoff.normalized.includes(normalizeForMatch(alias)));
     const reversePickupMatches = record.originAliases.some(alias => dropoff.normalized.includes(normalizeForMatch(alias)));
     const reverseDropoffMatches = record.destinationAliases.some(alias => pickup.normalized.includes(normalizeForMatch(alias)));
-    const fare = record.fares[tripType][bracket];
     return (pickupMatches && dropoffMatches) || (reversePickupMatches && reverseDropoffMatches)
-      ? fare !== null && record.busesByBracket[bracket] === numberBuses
+      ? Object.values(record.fares[tripType]).some(fare => fare !== null)
       : false;
   });
 }
 
 export function calculateFare(input: FareInput): FareCalculation {
-  const bracket = passengerBracket(input.passengerCount);
   const urgency = classifyUrgency(
     input.pickupDatetime,
     {
@@ -341,6 +415,13 @@ export function calculateFare(input: FareInput): FareCalculation {
     input.now,
   );
   const numberBuses = input.numberBuses;
+  const pickup = resolveLocation(input.pickup);
+  const dropoff = resolveLocation(input.dropoff);
+  const isParaminRoute = pickup.group === "paramin" || dropoff.group === "paramin";
+  const routeType = isParaminRoute ? "paramin" : "standard";
+  const bracket = isParaminRoute
+    ? paraminPassengerBracket(input.passengerCount)
+    : passengerBracket(input.passengerCount);
 
   if (!bracket) {
     return {
@@ -349,19 +430,23 @@ export function calculateFare(input: FareInput): FareCalculation {
       routeId: null,
       routeLabel: null,
       bracket: null,
+      busBreakdown: [],
       rushFee: 0,
       totalFare: null,
       deposit: null,
       urgency,
     };
   }
-  if (!hasSufficientBusCapacity(input.passengerCount, numberBuses)) {
+  if (!hasSufficientBusCapacity(input.passengerCount, numberBuses, routeType)) {
     return {
       status: "invalid",
-      message: "Not enough buses selected. Please select enough buses to accommodate all passengers.",
+      message: isParaminRoute
+        ? "Not enough buses selected for Paramin. Paramin bookings are limited to a maximum of 10 passengers per bus due to the steep terrain."
+        : "Not enough buses selected. Please select enough buses to accommodate all passengers.",
       routeId: null,
       routeLabel: null,
       bracket,
+      busBreakdown: [],
       rushFee: 0,
       totalFare: null,
       deposit: null,
@@ -369,8 +454,6 @@ export function calculateFare(input: FareInput): FareCalculation {
     };
   }
 
-  const pickup = resolveLocation(input.pickup);
-  const dropoff = resolveLocation(input.dropoff);
   if (pickup.ambiguous || dropoff.ambiguous || !pickup.group || !dropoff.group) {
     return {
       status: "custom_quote",
@@ -378,6 +461,7 @@ export function calculateFare(input: FareInput): FareCalculation {
       routeId: null,
       routeLabel: null,
       bracket,
+      busBreakdown: [],
       rushFee: 0,
       totalFare: null,
       deposit: null,
@@ -385,23 +469,46 @@ export function calculateFare(input: FareInput): FareCalculation {
     };
   }
 
-  const exactSpecial = findExactSpecialFare(pickup, dropoff, bracket, input.tripType, numberBuses);
+  const exactSpecial = findExactSpecialFare(pickup, dropoff, input.tripType);
   const routeId = exactSpecial?.id ?? categoryRouteId(pickup.group, dropoff.group);
   const routeRecord = routeId
     ? MASTER_FARE_CONFIG.routes.find(record => record.active && record.id === routeId)
     : undefined;
-  const baseFare = exactSpecial
-    ? exactSpecial.fares[input.tripType][bracket]
-    : routeRecord?.fares[input.tripType][bracket] ?? null;
-  const expectedBuses = exactSpecial?.busesByBracket[bracket] ?? routeRecord?.busesByBracket[bracket] ?? null;
+  const fareScheme = exactSpecial ? "standard" : routeRecord?.bracketScheme ?? "standard";
+  const allocations = allocatePassengers(input.passengerCount, numberBuses);
+  const busBreakdown = fareScheme === "paramin"
+    ? allocations.map((passengers, index) => ({
+        bus: index + 1,
+        passengerCount: passengers,
+        bracket: bracket as ParaminPassengerBracket,
+        fare: routeRecord?.bracketScheme === "paramin"
+          ? routeRecord.fares[input.tripType][bracket as ParaminPassengerBracket] ?? NaN
+          : NaN,
+      }))
+    : allocations.map((passengers, index) => {
+        const busBracket = passengerBracket(Math.max(1, passengers));
+        return {
+          bus: index + 1,
+          passengerCount: passengers,
+          bracket: busBracket as PassengerBracket,
+          fare: exactSpecial?.fares[input.tripType][busBracket as PassengerBracket]
+            ?? (routeRecord?.bracketScheme === "standard" && busBracket
+              ? routeRecord.fares[input.tripType][busBracket]
+              : null)
+            ?? NaN,
+        };
+      });
+  const hasMissingFare = busBreakdown.some(item => !Number.isFinite(item.fare));
+  const baseFare = hasMissingFare ? null : busBreakdown.reduce((sum, item) => sum + item.fare, 0);
 
-  if (baseFare === null || baseFare === undefined || expectedBuses !== numberBuses) {
+  if (baseFare === null || baseFare === undefined) {
     return {
       status: "custom_quote",
       message: CUSTOM_QUOTE_MESSAGE,
       routeId: routeId ?? null,
       routeLabel: routeRecord?.label ?? null,
       bracket,
+      busBreakdown: [],
       rushFee: 0,
       totalFare: null,
       deposit: null,
@@ -420,6 +527,7 @@ export function calculateFare(input: FareInput): FareCalculation {
     routeId: exactSpecial?.id ?? routeRecord!.id,
     routeLabel: exactSpecial ? exactSpecial.id : routeRecord!.label,
     bracket,
+    busBreakdown,
     baseFare,
     rushFee,
     totalFare,

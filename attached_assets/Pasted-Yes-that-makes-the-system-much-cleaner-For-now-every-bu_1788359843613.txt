@@ -1,0 +1,497 @@
+Yes — that makes the system much cleaner. For now, every bus is priced independently, so if the approved fare is $500 per bus and the customer needs 2 buses, the base fare is $1,000. You can manually apply discounts later.
+
+And we'll treat Paramin as a special-capacity route with a maximum of 10 passengers per bus, rather than the normal 15.
+
+I would update the Replit instructions with these rules:
+
+Maxi Hub TT — Final Fare & Multi-Bus Rules Update
+
+Apply the following changes to the Maxi Hub TT fare-system rebuild.
+
+1. MULTIPLE BUS PRICING
+
+For now, all approved fares are per bus.
+
+When a customer selects multiple buses:
+
+Total Base Fare = Approved Fare Per Bus × Number of Buses
+
+Example:
+
+Approved fare:
+
+POS → Diego Martin
+1–12 passengers
+One-way
+$350 per bus
+
+Customer selects:
+
+2 buses
+
+Calculation:
+
+$350 × 2 = $700
+
+Display:
+
+«Base fare: TTD $700
+2 buses × $350»
+
+Do NOT apply automatic group discounts.
+
+Do NOT reduce the price because multiple buses were selected.
+
+Do NOT create a special multi-bus discount formula.
+
+Maxi Hub TT will decide whether to offer a discount manually.
+
+---
+
+2. PASSENGER BRACKETS WITH MULTIPLE BUSES
+
+The fare bracket should be determined based on the number of passengers assigned to each bus, not simply the total passenger count.
+
+However, for the initial website implementation, use the following simple rule:
+
+Standard bus capacity
+
+Maximum:
+
+15 passengers per bus
+
+The customer selects the number of buses.
+
+Required minimum buses:
+
+"ceil(total passengers / 15)"
+
+Examples:
+
+12 passengers → 1 bus
+
+15 passengers → 1 bus
+
+16 passengers → minimum 2 buses
+
+25 passengers → minimum 2 buses
+
+30 passengers → 2 buses
+
+31 passengers → minimum 3 buses
+
+If the customer selects fewer buses than required:
+
+«Not enough buses selected»
+
+Do not allow the booking to continue.
+
+---
+
+3. FARE BRACKET CALCULATION
+
+For a single bus:
+
+1–12 passengers → use 1–12 fare
+
+13–15 passengers → use 13–15 fare
+
+16+ passengers cannot fit in one standard bus.
+
+For multiple buses, calculate the fare based on the applicable passenger allocation.
+
+Initially use an even/simple allocation where practical.
+
+Example:
+
+24 passengers / 2 buses
+
+→ 12 passengers per bus
+
+Therefore use the 1–12 fare for each bus.
+
+If the allocation causes different passenger brackets between buses, use the applicable fare for each bus and add them together.
+
+Example:
+
+28 passengers / 2 buses
+
+→ 14 passengers per bus
+
+Use the 13–15 fare × 2.
+
+Example:
+
+31 passengers / 3 buses
+
+→ approximately 10–11 passengers per bus
+
+Use the 1–12 fare × 3.
+
+The backend must perform this calculation independently.
+
+---
+
+4. PARAMIN SPECIAL CAPACITY
+
+Paramin is different from normal routes.
+
+Because of the steep hills and road conditions:
+
+Maximum capacity per bus for Paramin:
+
+10 passengers
+
+Do NOT allow 11–15 passengers in one bus for a Paramin booking.
+
+For Paramin:
+
+1–10 passengers → 1 bus
+
+11–20 passengers → minimum 2 buses
+
+21–30 passengers → minimum 3 buses
+
+31–40 passengers → minimum 4 buses
+
+etc.
+
+The system should calculate:
+
+"ceil(total passengers / 10)"
+
+as the minimum number of buses required for Paramin.
+
+If the customer selects fewer buses:
+
+«Not enough buses selected for Paramin.»
+
+«Paramin bookings are limited to a maximum of 10 passengers per bus due to the steep terrain.»
+
+Do not allow the booking to continue until sufficient buses are selected.
+
+---
+
+5. PARAMIN FARE BRACKETS
+
+Because Paramin has a 10-passenger maximum per bus, modify the normal passenger brackets for Paramin.
+
+Use:
+
+- 1–10 passengers
+- 11–20 passengers
+- 21–30 passengers
+- 31–40 passengers
+- 41+ passengers
+
+However, because each bus is priced independently, the system should calculate the required number of buses first and then use the appropriate per-bus Paramin fare.
+
+Do not allow the standard 1–12 / 13–15 passenger logic to incorrectly price a Paramin bus.
+
+If an appropriate Paramin fare does not exist:
+
+CUSTOM QUOTE REQUIRED
+
+---
+
+6. IMPORTANT: DO NOT DOUBLE-CHARGE BY ACCIDENT
+
+The system must clearly distinguish:
+
+Fare per bus
+
+from:
+
+Total booking fare
+
+Example:
+
+Route:
+
+POS → Central
+
+Passengers:
+
+20
+
+Buses:
+
+2
+
+Approved applicable fare:
+
+$800 per bus
+
+Calculation:
+
+"$800 × 2 = $1,600"
+
+Display:
+
+«2 Buses
+
+$800 per bus
+
+Base Fare: $1,600»
+
+Do not show $800 as the final booking total.
+
+---
+
+7. ROUND TRIP
+
+For round trips, use the approved round-trip fare per bus.
+
+Example:
+
+Approved:
+
+1–12 passengers
+Round trip:
+
+$800 per bus
+
+2 buses:
+
+"$800 × 2 = $1,600"
+
+Display:
+
+«2 buses × $800
+Base Fare: $1,600»
+
+Do not calculate round trip by simply multiplying the one-way fare by two unless the master fare explicitly says to do so.
+
+---
+
+8. RUSH FEE
+
+The current rush fee is:
+
+TTD $150
+
+Apply it consistently.
+
+Important question for implementation:
+
+The rush fee should currently be applied once per booking, not once per bus.
+
+Example:
+
+2 buses:
+
+Base fare = $1,600
+
+Rush fee = $150
+
+Total:
+
+$1,750
+
+Do NOT calculate:
+
+$150 × 2 buses.
+
+Keep the rush fee as a booking-level charge unless a future business setting changes this.
+
+---
+
+9. DEPOSIT
+
+Default deposit:
+
+25% of final booking total
+
+Example:
+
+Base fare = $1,600
+
+Rush fee = $150
+
+Final total = $1,750
+
+Deposit:
+
+25% × $1,750 = $437.50
+
+The frontend and backend must display the same:
+
+Total: $1,750
+
+Deposit: $437.50
+
+There must never be a situation where the frontend displays 25% of the base fare while the backend calculates 25% of the fare plus rush fee.
+
+---
+
+10. CUSTOM QUOTES
+
+If the system cannot determine an approved fare:
+
+DO NOT:
+
+- estimate
+- calculate by distance
+- use a default price
+- round a calculated price
+- guess based on another route
+
+Instead show:
+
+CUSTOM QUOTE REQUIRED
+
+«We don't currently have a fixed online fare for this route and booking combination. Please contact Maxi Hub TT for a customized quote.»
+
+---
+
+11. NUMBER OF BUSES FORM FIELD
+
+Make this a prominent booking-form field:
+
+Number of Buses
+
+[ 1 Bus ▼ ]
+
+The available options should depend on the passenger count.
+
+For normal routes:
+
+1 bus → maximum 15 passengers
+
+2 buses → maximum 30
+
+3 buses → maximum 45
+
+4 buses → maximum 60
+
+5 buses → maximum 75
+
+For Paramin:
+
+1 bus → maximum 10
+
+2 buses → maximum 20
+
+3 buses → maximum 30
+
+4 buses → maximum 40
+
+5 buses → maximum 50
+
+Show the customer the available capacity.
+
+Example:
+
+«2 Buses
+
+Capacity: up to 30 passengers»
+
+---
+
+12. ADMIN/CONFIGURATION
+
+Make the following configurable without rewriting the fare engine:
+
+- fare per bus
+- passenger brackets
+- standard bus capacity
+- Paramin bus capacity
+- rush fee
+- deposit percentage
+- route
+- destination
+- trip type
+
+This allows Maxi Hub TT to adjust pricing later.
+
+---
+
+13. FUTURE DISCOUNTS
+
+Do NOT implement automatic discounts yet.
+
+The fare engine should be structured so that discounts can be added later.
+
+For now:
+
+Number of buses × approved fare per bus = base fare
+
+No automatic discount.
+
+---
+
+14. TEST THESE CASES
+
+Add tests for:
+
+Normal route
+
+12 passengers / 1 bus
+
+15 passengers / 1 bus
+
+16 passengers / 2 buses
+
+20 passengers / 2 buses
+
+25 passengers / 2 buses
+
+30 passengers / 2 buses
+
+31 passengers / 3 buses
+
+Paramin
+
+10 passengers / 1 bus → valid
+
+11 passengers / 1 bus → invalid
+
+11 passengers / 2 buses → valid
+
+20 passengers / 2 buses → valid
+
+21 passengers / 2 buses → invalid
+
+21 passengers / 3 buses → valid
+
+Pricing
+
+Verify:
+
+fare per bus × number of buses
+
+Verify round-trip fare × number of buses
+
+Verify rush fee is added once per booking
+
+Verify deposit is 25% of the final total
+
+Verify frontend and backend produce identical totals
+
+Verify browser-submitted price cannot override backend pricing.
+
+---
+
+FINAL RULE
+
+Maxi Hub TT does NOT use distance calculations to invent fares.
+
+Maxi Hub TT does NOT automatically discount multiple buses.
+
+Maxi Hub TT does NOT automatically estimate unknown routes.
+
+Maxi Hub TT DOES use approved fares stored in one master source of truth.
+
+For multiple buses:
+
+Approved per-bus fare × number of buses = base fare
+
+For Paramin:
+
+Maximum 10 passengers per bus.
+
+For unknown routes:
+
+CUSTOM QUOTE REQUIRED.I think this is a much better model for your business. It lets you control the actual pricing while still giving customers instant quotes for routes you've approved.
+
+One thing I'd flag: the 16–18 and 19–25 brackets become a little awkward once we're charging per bus, because 16 passengers technically requires 2 buses. We can clean that up when we build the final master fare table so the customer never sees a confusing price calculation.
