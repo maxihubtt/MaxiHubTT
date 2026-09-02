@@ -5,6 +5,7 @@
  * Job dispatch API for transport booking and driver claims
  * OpenAPI spec version: 0.1.0
  */
+import type { CreateJobBodyTripType } from './createJobBodyTripType';
 
 export interface CreateJobBody {
   pickup: string;
@@ -13,6 +14,19 @@ export interface CreateJobBody {
   phone: string;
   price: string;
   passengers?: string;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  passengerCount?: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  numberBuses?: number;
+  tripType?: CreateJobBodyTripType;
   /** ISO datetime string of desired pickup time (used for urgency classification) */
   pickupDatetime?: string;
+  email?: string;
+  notes?: string;
 }

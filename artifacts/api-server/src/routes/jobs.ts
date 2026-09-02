@@ -8,6 +8,7 @@ import { logger } from "../lib/logger";
 import { requireAdmin } from "../middleware/requireAdmin";
 import { requireDriver } from "../middleware/requireDriver";
 import { sendPushToAllDrivers } from "../lib/push";
+import { calculateFare, formatMoney } from "@workspace/fare-engine";
 
 const router = Router();
 
@@ -88,6 +89,13 @@ router.get("/driver/jobs", requireDriver, async (req, res) => {
           depositPaid: j.depositPaid,
           price: j.price,
           passengers: j.passengers,
+          passengerCount: j.passengerCount,
+          numberBuses: j.numberBuses,
+          tripType: j.tripType,
+          fareStatus: j.fareStatus,
+          fareRouteId: j.fareRouteId,
+          baseFare: j.baseFare,
+          totalFare: j.totalFare,
           vehicleType: j.vehicleType,
           numberPlate: j.numberPlate,
           claimedBy: j.claimedBy,
@@ -119,6 +127,13 @@ router.get("/driver/jobs/history", requireDriver, async (req, res) => {
       urgency: j.urgency,
       price: j.price,
       passengers: j.passengers,
+      passengerCount: j.passengerCount,
+      numberBuses: j.numberBuses,
+      tripType: j.tripType,
+      fareStatus: j.fareStatus,
+      fareRouteId: j.fareRouteId,
+      baseFare: j.baseFare,
+      totalFare: j.totalFare,
       pickupDatetime: j.pickupDatetime ?? null,
       rating: j.rating ?? null,
       createdAt: j.createdAt.toISOString(),
@@ -339,7 +354,7 @@ router.patch("/jobs/:id/status", requireAdmin, async (req, res) => {
 
 router.get("/jobs/export", requireAdmin, async (req, res) => {
   const jobs = await db.select().from(jobsTable).orderBy(desc(jobsTable.createdAt));
-  const headers = ["id","pickup","dropoff","name","phone","price","passengers","status","urgency","depositAmount","depositPaid","rushFee","pickupDatetime","claimedBy","vehicleType","numberPlate","notes","createdAt","updatedAt"];
+  const headers = ["id","pickup","dropoff","name","phone","email","price","passengers","passengerCount","numberBuses","tripType","fareStatus","fareRouteId","baseFare","totalFare","status","urgency","depositAmount","depositPaid","rushFee","pickupDatetime","claimedBy","vehicleType","numberPlate","notes","createdAt","updatedAt"];
   const escape = (v: unknown) => {
     if (v == null) return "";
     const s = String(v);
@@ -347,7 +362,7 @@ router.get("/jobs/export", requireAdmin, async (req, res) => {
     return s;
   };
   const rows = [headers.join(","), ...jobs.map(j =>
-    [j.id,j.pickup,j.dropoff,j.name,j.phone,j.price,j.passengers,j.status,j.urgency,j.depositAmount,j.depositPaid,j.rushFee,j.pickupDatetime,j.claimedBy,j.vehicleType,j.numberPlate,j.notes,j.createdAt.toISOString(),j.updatedAt.toISOString()].map(escape).join(",")
+    [j.id,j.pickup,j.dropoff,j.name,j.phone,j.email,j.price,j.passengers,j.passengerCount,j.numberBuses,j.tripType,j.fareStatus,j.fareRouteId,j.baseFare,j.totalFare,j.status,j.urgency,j.depositAmount,j.depositPaid,j.rushFee,j.pickupDatetime,j.claimedBy,j.vehicleType,j.numberPlate,j.notes,j.createdAt.toISOString(),j.updatedAt.toISOString()].map(escape).join(",")
   )];
   const today = new Date().toISOString().slice(0, 10);
   res.setHeader("Content-Type", "text/csv");
@@ -425,6 +440,13 @@ router.get("/jobs/:id", async (req, res) => {
     pickupDatetime: job.pickupDatetime,
     price: job.price,
     passengers: job.passengers,
+    passengerCount: job.passengerCount,
+    numberBuses: job.numberBuses,
+    tripType: job.tripType,
+    fareStatus: job.fareStatus,
+    fareRouteId: job.fareRouteId,
+    baseFare: job.baseFare,
+    totalFare: job.totalFare,
     vehicleType: job.vehicleType,
     numberPlate: job.numberPlate,
     claimedBy: job.claimedBy,
@@ -435,7 +457,7 @@ router.get("/jobs/:id", async (req, res) => {
   };
 
   if (req.session?.admin) {
-    res.json({ ...base, name: job.name, phone: job.phone });
+    res.json({ ...base, name: job.name, phone: job.phone, email: job.email, notes: job.notes });
   } else {
     res.json(base);
   }
@@ -483,10 +505,10 @@ router.post("/jobs", async (req, res) => {
     return;
   }
 
-  const { pickup, dropoff, name, phone, price, passengers } = parsed.data;
-  const pickupDatetime = (req.body as { pickupDatetime?: string }).pickupDatetime ?? null;
-  const notes = (req.body as { notes?: string }).notes?.trim() ?? null;
-  const email = (req.body as { email?: string }).email?.trim() ?? null;
+  const { pickup, dropoff, name, phone, price: submittedPrice, passengers } = parsed.data;
+  const pickupDatetime = parsed.data.pickupDatetime ?? null;
+  const notes = parsed.data.notes?.trim() ?? null;
+  const email = parsed.data.email?.trim() ?? null;
   const isAdmin = req.session?.admin === true;
 
   let urgency: "standard" | "same_day" | "urgent" = "standard";
@@ -494,8 +516,20 @@ router.post("/jobs", async (req, res) => {
   let rushFee = 0;
   let expiresAt: Date | null = null;
   let status = "pending";
+  let passengerCount: number | null = parsed.data.passengerCount ?? null;
+  let numberBuses = parsed.data.numberBuses ?? 1;
+  let tripType = parsed.data.tripType ?? "one-way";
+  let fareStatus: "approved" | "custom_quote" = "custom_quote";
+  let fareRouteId: string | null = null;
+  let baseFare: number | null = null;
+  let totalFare: number | null = null;
+  let price = submittedPrice?.trim() ?? "";
 
   if (!isAdmin) {
+    if (passengerCount == null || parsed.data.numberBuses == null || !parsed.data.tripType) {
+      res.status(400).json({ error: "passengerCount, numberBuses, and tripType are required for customer bookings" });
+      return;
+    }
     const config = await getConfig();
     const sameDayMinHours = parseFloat(config["same_day_min_hours"] ?? DEFAULT_CONFIG.same_day_min_hours);
     const minBookingHours = parseFloat(config["min_booking_hours"] ?? DEFAULT_CONFIG.min_booking_hours);
@@ -503,20 +537,38 @@ router.post("/jobs", async (req, res) => {
     const rushFeeConfig = parseInt(config["rush_fee"] ?? DEFAULT_CONFIG.rush_fee);
     const depositExpiryMins = parseInt(config["deposit_expiry_mins"] ?? DEFAULT_CONFIG.deposit_expiry_mins);
 
-    urgency = classifyUrgency(pickupDatetime, sameDayMinHours, minBookingHours);
-
-    const fare = parseJobPrice(price);
-    if (fare > 0) {
-      if (urgency === "urgent") {
-        rushFee = rushFeeConfig;
-        depositAmount = fare + rushFee;
-      } else {
-        depositAmount = Math.ceil(fare * depositPct);
-      }
+    const fare = calculateFare({
+      pickup,
+      dropoff,
+      tripType: parsed.data.tripType,
+      passengerCount,
+      numberBuses: parsed.data.numberBuses,
+      pickupDatetime,
+      depositPct: depositPct * 100,
+      rushFee: rushFeeConfig,
+      sameDayMinHours,
+      minBookingHours,
+    });
+    if (fare.status === "invalid") {
+      res.status(400).json({ error: fare.message });
+      return;
     }
 
+    urgency = fare.urgency;
+    fareStatus = fare.status;
+    fareRouteId = fare.routeId;
+    baseFare = fare.status === "approved" ? fare.baseFare : null;
+    totalFare = fare.status === "approved" ? fare.totalFare : null;
+    rushFee = fare.status === "approved" ? fare.rushFee : 0;
+    depositAmount = fare.status === "approved" ? fare.deposit : null;
+    price = fare.status === "approved"
+      ? `TTD ${formatMoney(fare.totalFare)} (Base fare: TTD ${formatMoney(fare.baseFare)}; Rush fee: TTD ${formatMoney(fare.rushFee)})`
+      : "CUSTOM QUOTE REQUIRED";
     expiresAt = new Date(Date.now() + depositExpiryMins * 60 * 1000);
     status = "pending_deposit";
+  } else if (!price) {
+    res.status(400).json({ error: "Price is required for admin-dispatched jobs" });
+    return;
   }
 
   let job: typeof jobsTable.$inferSelect;
@@ -530,6 +582,13 @@ router.post("/jobs", async (req, res) => {
       phone,
       price,
       passengers: passengers ?? null,
+      passengerCount,
+      numberBuses,
+      tripType,
+      fareStatus,
+      fareRouteId,
+      baseFare,
+      totalFare,
       status,
       urgency,
       depositAmount,

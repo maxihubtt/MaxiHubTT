@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCreateJob, useGetJob, getGetJobQueryKey, getListJobsQueryKey, getGetJobStatsQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Calendar, Users, ArrowLeftRight, Plane, Waves, Briefcase, Copy, Check, ChevronRight, ChevronLeft, MessageCircle, AlertTriangle, Star, Car, MessageSquare, Mail } from "lucide-react";
+import { BUS_OPTIONS, LOCATION_SUGGESTIONS, busCapacity, calculateFare, formatMoney, hasSufficientBusCapacity, resolveLocation } from "@workspace/fare-engine";
 
 interface BookingConfig {
   deposit_pct: number;
@@ -31,23 +32,6 @@ async function fetchBookingConfig(): Promise<BookingConfig> {
 
 const WA_BASE = "https://wa.me/18684818039?text=";
 const waLink = (msg: string) => WA_BASE + encodeURIComponent(msg);
-
-// ── Fare calculation helpers ─────────────────────────────────────────────────
-
-type FareRange = [number, number];
-
-// Normalize user input before zone matching: strip punctuation, expand abbreviations
-function normalizeLoc(raw: string): string {
-  return raw
-    .toLowerCase()
-    .replace(/[.,'\u2018\u2019\u201b`]/g, "")   // strip . , ' ' ` etc.
-    .replace(/\bmt\b/g, "mount")                  // mt → mount
-    .replace(/\bst\b/g, "saint")                  // st → saint (handles "saint james", "saint joseph")
-    .replace(/\bsf\b/g, "san fernando")           // sf → san fernando
-    .replace(/\bpos\b/g, "port of spain")         // pos → port of spain
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 function isWest(loc: string): boolean {
   return [
@@ -328,204 +312,8 @@ function isSouth(loc: string): boolean {
   ].some(k => loc.includes(k));
 }
 
-// Approximate zone center coordinates [lat, lon]
-const ZONE_COORDS: Record<ZoneKey, [number, number]> = {
-  west:    [10.657, -61.502],
-  central: [10.520, -61.414],
-  east:    [10.638, -61.284],
-  south:   [10.280, -61.468],
-};
-
-function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
-  const toRad = (d: number) => d * Math.PI / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat / 2) ** 2
-    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-// Estimate a maxi fare for any two detected zones using road-distance approximation
-function estimateFareFromZones(pickup: string, dropoff: string): number | null {
-  const pZone = getZone(pickup);
-  const dZone = getZone(dropoff);
-  if (!pZone || !dZone || pZone === dZone) return null;
-  const [pLat, pLon] = ZONE_COORDS[pZone];
-  const [dLat, dLon] = ZONE_COORDS[dZone];
-  const straightKm = haversineKm(pLat, pLon, dLat, dLon);
-  const roadKm = straightKm * 1.4; // road vs straight-line factor for TT
-  let fare = 25 + roadKm * 8;
-  if (roadKm > 25) fare += 20;
-  if (roadKm > 50) fare += 40;
-  return Math.round(fare / 50) * 50;
-}
-function eastSubzone(loc: string): "near" | "mid" | "far" | "toco" {
-  const n = normalizeLoc(loc);
-  if (["toco", "matelot", "balandra", "saline", "salybia", "brasso seco"].some(k => n.includes(k))) return "toco";
-  if (["valencia", "demerara", "sangre grande", "guaico", "tumpuna", "cumana"].some(k => n.includes(k))) return "far";
-  if (["san juan", "saint joseph", "curepe", "valsayn", "mount lambert"].some(k => n.includes(k))) return "near";
-  return "mid";
-}
-function southSubzone(loc: string): "close" | "mid" | "far" | "deep" {
-  const n = normalizeLoc(loc);
-  if (["cedros", "moruga", "icacos", "columbus bay"].some(k => n.includes(k))) return "deep";
-  if (["point fortin", "la brea"].some(k => n.includes(k))) return "far";
-  if (["penal", "siparia", "fyzabad", "barrackpore", "princes town", "prince town", "rio claro", "debe", "naparima", "williamsville", "tableland"].some(k => n.includes(k))) return "mid";
-  return "close";
-}
-type ZoneKey = "west" | "central" | "east" | "south";
-function getZone(loc: string): ZoneKey | null {
-  const n = normalizeLoc(loc);
-  if (isSouth(n)) return "south";
-  if (isEast(n)) return "east";
-  if (isCentral(n)) return "central";
-  if (isWest(n)) return "west";
-  return null;
-}
-
-type BeachKey = "maracas" | "las_cuevas" | "blanchisseuse" | "manzanilla" | "mayaro" | "vessigny" | "icacos";
-type RegionKey = "west" | "east" | "central" | "south";
-// [owLo, owHi, rtLo, rtHi]
-const BEACH_RATES: Record<BeachKey, Record<RegionKey, [number, number, number, number]>> = {
-  maracas:       { west: [650, 800, 1000, 1200],   east: [750, 900, 1200, 1400],   central: [850, 1050, 1400, 1600],  south: [1200, 1500, 2000, 2400] },
-  las_cuevas:    { west: [750, 950, 1200, 1400],   east: [850, 1050, 1400, 1600],  central: [950, 1150, 1600, 1800],  south: [1300, 1600, 2200, 2600] },
-  blanchisseuse: { west: [900, 1100, 1500, 1800],  east: [600, 800, 1000, 1200],   central: [1100, 1350, 1800, 2100], south: [1600, 2000, 2600, 3000] },
-  manzanilla:    { west: [1200, 1500, 2000, 2400], east: [600, 800, 1000, 1200],   central: [900, 1100, 1500, 1800],  south: [900, 1100, 1500, 1800]  },
-  mayaro:        { west: [750,  950, 1300, 1550],  east: [550,  700,  950, 1150],  central: [650,  800, 1100, 1350], south: [350, 450,  620,  780]   },
-  vessigny:      { west: [1100, 1400, 1800, 2100], east: [1300, 1600, 2200, 2600], central: [800, 1000, 1400, 1600],  south: [500, 650, 900, 1100]    },
-  icacos:        { west: [1600, 2000, 2600, 3000], east: [1500, 1900, 2600, 3000], central: [1400, 1800, 2400, 2800], south: [800, 1000, 1400, 1600]  },
-};
-function identifyBeach(loc: string): BeachKey | null {
-  const n = normalizeLoc(loc);
-  if (n.includes("maracas") || n.includes("tyrico") || n.includes("coral cove") || n.includes("maqueripe beach")) return "maracas";
-  if (n.includes("las cuevas") || n.includes("richard bay") || n.includes("richards bay") || n.includes("rincon")) return "las_cuevas";
-  if (n.includes("blanchisseuse") || n.includes("paria") || n.includes("marianne river")) return "blanchisseuse";
-  if (n.includes("manzanilla") || n.includes("sans souci") || n.includes("saline bay") || n.includes("toco beach") || n.includes("toco bay") || n.includes("toco village") || n.includes("matura beach") || n.includes("balandra bay") || n.includes("grande riviere") || n.includes("salybia") || n.includes("galera") || n.includes("rampanalgas beach")) return "manzanilla";
-  if (n.includes("mayaro") || n.includes("guayaguayare beach") || n.includes("cocos bay")) return "mayaro";
-  if (n.includes("vessigny") || n.includes("quinam beach") || n.includes("quinam bay")) return "vessigny";
-  if (n.includes("icacos") || n.includes("columbus bay") || n.includes("soldado")) return "icacos";
-  return null;
-}
-function identifyRegion(loc: string): RegionKey {
-  const n = normalizeLoc(loc);
-  if (isSouth(n)) return "south";
-  if (isEast(n)) return "east";
-  if (isCentral(n)) return "central";
-  return "west";
-}
-
-const round50 = (n: number) => Math.round(n / 50) * 50;
-
-function getBeachFareRange(pickup: string, dropoff: string, tripType: string): FareRange | null {
-  const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
-  if (!beach) return null;
-  const origin = identifyBeach(dropoff) !== null ? pickup : dropoff;
-  const r = BEACH_RATES[beach][identifyRegion(origin)];
-  const rt = tripType === "round";
-  const lo = rt ? r[2] : r[0];
-  const hi = rt ? r[3] : r[1];
-  return [lo, round50(hi * 1.75)]; 
-}
-
-function getBeachExactFare(pickup: string, dropoff: string, pax: number, tripType: string): number | null {
-  const beach = identifyBeach(dropoff) ?? identifyBeach(pickup);
-  if (!beach) return null;
-  const origin = identifyBeach(dropoff) !== null ? pickup : dropoff;
-  const r = BEACH_RATES[beach][identifyRegion(origin)];
-  const rt = tripType === "round";
-  const lo = rt ? r[2] : r[0];
-  const hi = rt ? r[3] : r[1];
-  if (pax <= 12) return lo;
-  if (pax <= 15) return hi;
-  if (pax <= 18) return round50(hi * 1.25);
-  if (pax <= 22) return round50(hi * 1.50);
-  return round50(hi * 1.75); 
-}
-
-const ROUTE_FARES: Record<string, [number,number,number,number,number, number,number,number,number,number]> = {
-  // ── Cross-zone ──────────────────────────────────────────────────────────────
-  "west-central":      [         480,  650,  800,  950, 1100,   800, 1000, 1250, 1500, 1750],
-  "west-east-near":    [         350,  400,  500,  600,  700,   600,  700,  850, 1000, 1150],
-  "west-east-mid":     [         480,  520,  650,  800,  950,   800,  900, 1100, 1300, 1500],
-  "west-east-far":     [         600,  650,  800,  950, 1100,  1000, 1100, 1350, 1600, 1850],
-  "west-east-toco":    [         900, 1000, 1200, 1450, 1650,  1500, 1650, 2000, 2400, 2750],
-  "west-south-close":  [         500,  600,  750,  900, 1050,   900, 1000, 1250, 1500, 1750],
-  "west-south-mid":    [         650,  800, 1000, 1200, 1400,  1100, 1300, 1600, 1900, 2200],
-  "west-south-far":    [         900, 1000, 1200, 1450, 1650,  1500, 1650, 2000, 2400, 2750],
-  "west-south-deep":   [        1050, 1150, 1400, 1650, 1900,  1700, 1800, 2200, 2600, 3000],
-  "central-crossing":  [         500,  700,  850, 1000, 1200,   800, 1000, 1250, 1500, 1750],
-  // ── Paramin premium (steep hill road — max 10 pax, higher than standard intra-west) ──
-  "paramin":           [         550,  650,  800,  950, 1100,   900, 1050, 1300, 1550, 1800],
-  // ── Intra-zone (same zone, different areas) ─────────────────────────────────
-  "intra-west":        [         180,  220,  280,  340,  400,   300,  360,  450,  540,  630],
-  "intra-central":     [         160,  195,  245,  295,  350,   260,  315,  395,  475,  555],
-  "intra-east":        [         200,  245,  305,  370,  435,   330,  400,  500,  600,  700],
-  "intra-south":       [         180,  220,  275,  335,  395,   295,  360,  450,  540,  630],
-};
-
-function getFareTableKey(pickup: string, dropoff: string): string | null {
-  const p = pickup.toLowerCase();
-  const d = dropoff.toLowerCase();
-
-  const beach = identifyBeach(d) ?? identifyBeach(p);
-  if (beach !== null) return null;
-
-  // Paramin override — steep winding hill road commands a premium over standard intra-west
-  if (p.includes("paramin") || d.includes("paramin")) return "paramin";
-
-  const pZone = getZone(p);
-  const dZone = getZone(d);
-  if (!pZone || !dZone) return null;
-
-  // Same-zone intra-zone routes (e.g. Diego Martin → POS, SF → Penal)
-  if (pZone === dZone) return `intra-${pZone}`;
-
-  if ((pZone === "west" && dZone === "central") || (pZone === "central" && dZone === "west")) {
-    return "west-central";
-  }
-  if ((pZone === "west" && dZone === "east") || (pZone === "east" && dZone === "west")) {
-    const sub = eastSubzone(pZone === "east" ? p : d);
-    return `west-east-${sub}`;
-  }
-  if ((pZone === "west" && dZone === "south") || (pZone === "south" && dZone === "west")) {
-    const sub = southSubzone(pZone === "south" ? p : d);
-    return `west-south-${sub}`;
-  }
-  if (
-    (pZone === "central" && (dZone === "east" || dZone === "south")) ||
-    ((pZone === "east" || pZone === "south") && dZone === "central") ||
-    (pZone === "east" && dZone === "south") ||
-    (pZone === "south" && dZone === "east")
-  ) {
-    return "central-crossing";
-  }
-  return null;
-}
-
-function getFareFromTable(key: string, pax: number, tripType: string): number | null {
-  const t = ROUTE_FARES[key];
-  if (!t) return null;
-  const off = tripType === "round" ? 5 : 0;
-  if (pax <= 12) return t[off];
-  if (pax <= 15) return t[off + 1];
-  if (pax <= 18) return t[off + 2];
-  if (pax <= 22) return t[off + 3];
-  return t[off + 4]; 
-}
-
-function getRouteDisplayRange(key: string): FareRange | null {
-  const t = ROUTE_FARES[key];
-  if (!t) return null;
-  return [t[0], t[4]]; 
-}
-
 function fmtFare(amount: number): string {
-  return `TTD ${amount.toLocaleString("en-TT")}`;
-}
-function fmtRange([lo, hi]: FareRange): string {
-  if (lo === hi) return `TTD ${lo.toLocaleString("en-TT")}`;
-  return `TTD ${lo.toLocaleString("en-TT")} – ${hi.toLocaleString("en-TT")}`;
+  return `TTD ${formatMoney(amount)}`;
 }
 function getMinDatetime(): string {
   const now = new Date();
@@ -534,16 +322,12 @@ function getMinDatetime(): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:00`;
 }
-function vehicleForPax(pax: number): string {
-  if (pax <= 12) return "12-Seater Maxi";
-  if (pax <= 14) return "14-Seater Maxi";
-  if (pax <= 15) return "15-Seater Maxi";
-  if (pax <= 18) return "18-Seater Maxi";
-  if (pax <= 22) return "22-Seater Maxi";
-  return "25-Seater Maxi";
+function vehicleForPax(pax: number, numberBuses = 1): string {
+  if (numberBuses > 1) return `${numberBuses === 5 ? "5+" : numberBuses} × 15-Seater Maxi`;
+  return pax <= 12 ? "12-Seater Maxi" : "15-Seater Maxi";
 }
-function paxLabel(pax: number): string {
-  return `${pax} passenger${pax !== 1 ? "s" : ""} · 1 × ${vehicleForPax(pax)}`;
+function paxLabel(pax: number, numberBuses = 1): string {
+  return `${pax} passenger${pax !== 1 ? "s" : ""} · ${vehicleForPax(pax, numberBuses)}`;
 }
 function fmtDt(dt: string) {
   return new Date(dt).toLocaleString("en-TT", {
@@ -1145,14 +929,7 @@ export default function Home() {
   // Step 1 — Details
   const [tripType, setTripType]               = useState<"one-way" | "round" | null>(null);
   const [pax, setPax]                         = useState(8);
-  const maxPax = useMemo(() => {
-    const p = pickup.toLowerCase();
-    const d = dropoff.toLowerCase();
-    return (p.includes("paramin") || d.includes("paramin")) ? 10 : 24;
-  }, [pickup, dropoff]);
-  useEffect(() => {
-    if (pax > maxPax) setPax(maxPax);
-  }, [maxPax, pax]);
+  const [numberBuses, setNumberBuses]         = useState<1 | 2 | 3 | 4 | 5>(1);
   const [pickupDatetime, setPickupDatetime]   = useState("");
   const [returnDatetime, setReturnDatetime]   = useState("");
   const [datetimeError, setDatetimeError]     = useState("");
@@ -1165,9 +942,7 @@ export default function Home() {
   const [terminal, setTerminal]         = useState("");
 
   const isAirportRoute = useMemo(() => {
-    const p = pickup.toLowerCase();
-    const d = dropoff.toLowerCase();
-    return p.includes("airport") || p.includes("piarco") || d.includes("airport") || d.includes("piarco");
+    return resolveLocation(pickup).group === "airport" || resolveLocation(dropoff).group === "airport";
   }, [pickup, dropoff]);
 
   // Step 2 — Contact
@@ -1206,52 +981,27 @@ export default function Home() {
   const queryClient = useQueryClient();
   const createJob   = useCreateJob();
 
-  // ── LOCAL FARE CALCULATOR ──
-  // Computes the correct fare from the built-in tables, accounting for
-  // passenger count and trip type. No external API involved.
-  const displayFare = useMemo<number | null>(() => {
-    if (!pickup.trim() || !dropoff.trim()) return null;
-    // Groups larger than 15 pax get a custom WhatsApp quote — no listed fare
-    if (pax > 15 && tripType) return null;
-
-    // 1. Beach routes (exact fare with pax + tripType)
-    if (tripType) {
-      const beachFare = getBeachExactFare(pickup, dropoff, pax, tripType);
-      if (beachFare) return beachFare;
-    } else {
-      // Step 0 preview: show the 12-seater one-way minimum as a starting price
-      const beachPreview = getBeachExactFare(pickup, dropoff, 12, "one-way");
-      if (beachPreview) return beachPreview;
-    }
-
-    // 2. Exact fare table (with pax + tripType when available)
-    const key = getFareTableKey(pickup, dropoff);
-    if (key) {
-      if (tripType) {
-        const fare = getFareFromTable(key, pax, tripType);
-        if (fare) return fare;
-      } else {
-        // Step 0: show the range start (12-seater one-way) as a preview
-        const range = getRouteDisplayRange(key);
-        if (range) return range[0];
-      }
-    }
-
-    // 3. Zone-distance estimate fallback
-    return estimateFareFromZones(pickup, dropoff);
-  }, [pickup, dropoff, pax, tripType]);
-
-  const urgencyTier = useMemo(() => {
-    if (!pickupDatetime) return null;
-    const hoursUntil = (new Date(pickupDatetime).getTime() - Date.now()) / (1000 * 60 * 60);
-    if (hoursUntil < bookingConfig.same_day_min_hours) return "urgent";
-    if (hoursUntil < bookingConfig.min_booking_hours) return "same_day";
-    return "standard";
-  }, [pickupDatetime, bookingConfig.same_day_min_hours, bookingConfig.min_booking_hours]);
-
-  const deposit = displayFare
-    ? Math.ceil(displayFare * (bookingConfig.deposit_pct / 100))
-    : null;
+  const fareResult = useMemo(() => {
+    if (!pickup.trim() || !dropoff.trim() || !tripType) return null;
+    return calculateFare({
+      pickup,
+      dropoff,
+      tripType,
+      passengerCount: pax,
+      numberBuses,
+      pickupDatetime: pickupDatetime || null,
+      depositPct: bookingConfig.deposit_pct,
+      rushFee: bookingConfig.rush_fee,
+      sameDayMinHours: bookingConfig.same_day_min_hours,
+      minBookingHours: bookingConfig.min_booking_hours,
+    });
+  }, [pickup, dropoff, tripType, pax, numberBuses, pickupDatetime, bookingConfig]);
+  const displayFare = fareResult?.status === "approved" ? fareResult.totalFare : null;
+  const deposit = fareResult?.status === "approved" ? fareResult.deposit : null;
+  const urgencyTier = fareResult?.urgency ?? null;
+  const capacityError = !hasSufficientBusCapacity(pax, numberBuses)
+    ? "Not enough buses selected. Please select enough buses to accommodate all passengers."
+    : "";
 
   const validateDatetime = (value: string) => {
     if (!value) { setDatetimeError(""); return; }
@@ -1286,6 +1036,7 @@ export default function Home() {
     tripType !== null &&
     pickupDatetime !== "" &&
     !datetimeError &&
+    !capacityError &&
     (tripType !== "round" || (returnDatetime !== "" && !returnDatetimeError && !returnDifferentDay));
   const canAdvanceStep2 = name.trim() !== "" && phone.trim() !== "";
   const isReadyToSubmit = canAdvanceStep0 && canAdvanceStep1 && canAdvanceStep2;
@@ -1307,9 +1058,9 @@ export default function Home() {
     try { localStorage.setItem("maxihub_contact", JSON.stringify({ name, phone, email })); } catch {}
 
     const tripLabel = tripType === "round" ? "Round Trip" : "One Way";
-    const passengerDesc = paxLabel(pax);
+    const passengerDesc = paxLabel(pax, numberBuses);
     const returnNote = tripType === "round" && returnDatetime ? ` | Return: ${returnDatetime}` : "";
-    const fareLabel = displayFare ? fmtFare(displayFare) : "Quote on request";
+    const fareLabel = fareResult?.status === "approved" ? fmtFare(fareResult.totalFare) : "CUSTOM QUOTE REQUIRED";
     const priceNote = `${fareLabel} (${tripLabel}, ${passengerDesc}) — Pickup: ${pickupDatetime}${returnNote}`;
 
     // Build notes string — combine airport info + freeform notes
@@ -1319,13 +1070,13 @@ export default function Home() {
     const fullNotes = [airportNote, notes.trim()].filter(Boolean).join(" | ") || null;
 
     createJob.mutate(
-      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: passengerDesc, pickupDatetime: pickupDatetime || undefined, ...(email.trim() ? { email: email.trim() } as never : {}), ...(fullNotes ? { notes: fullNotes } as never : {}) } },
+      { data: { pickup, dropoff, name, phone, price: priceNote, passengers: passengerDesc, passengerCount: pax, numberBuses, tripType, pickupDatetime: pickupDatetime || undefined, ...(email.trim() ? { email: email.trim() } : {}), ...(fullNotes ? { notes: fullNotes } : {}) } },
       {
         onSuccess: job => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
           const jobAny = job as typeof job & { expiresAt?: string | null; urgency?: string };
-          setBookedJob({ id: job.id, name, phone, pickup, dropoff, fare: displayFare ?? 0, deposit: deposit ?? 0, pickupDatetime, returnDatetime, tripType, expiresAt: jobAny.expiresAt ?? null, urgency: jobAny.urgency ?? "standard" });
+          setBookedJob({ id: job.id, name, phone, pickup, dropoff, fare: Number(jobAny.totalFare ?? displayFare ?? 0), deposit: Number(jobAny.depositAmount ?? deposit ?? 0), pickupDatetime, returnDatetime, tripType, expiresAt: jobAny.expiresAt ?? null, urgency: jobAny.urgency ?? "standard" });
         },
       }
     );
@@ -1334,7 +1085,7 @@ export default function Home() {
   function resetAll() {
     setStep(0);
     setPickup(""); setDropoff("");
-    setTripType(null); setPax(8);
+    setTripType(null); setPax(8); setNumberBuses(1);
     setPickupDatetime(""); setReturnDatetime(""); setDatetimeError(""); setReturnDatetimeError(""); setReturnDifferentDay(false);
     setFlightNumber(""); setArrDepType("arrival"); setTerminal("");
     setName(""); setPhone(""); setEmail("");
@@ -1456,6 +1207,7 @@ export default function Home() {
                       <input
                         type="text"
                         data-testid="input-pickup"
+                         list="location-suggestions"
                         placeholder="e.g. Maracas Bay, POS, Piarco Airport..."
                         className={`w-full h-12 px-4 rounded-xl border-2 bg-white text-teal-900 placeholder:text-teal-400 focus:border-teal-500 focus:outline-none text-sm transition-colors ${stepErrors && !pickup.trim() ? "border-red-400" : "border-teal-100"}`}
                         value={pickup}
@@ -1472,12 +1224,16 @@ export default function Home() {
                       <input
                         type="text"
                         data-testid="input-dropoff"
+                         list="location-suggestions"
                         placeholder="e.g. San Fernando, Chaguanas, Las Cuevas..."
                         className={`w-full h-12 px-4 rounded-xl border-2 bg-white text-teal-900 placeholder:text-teal-400 focus:border-teal-500 focus:outline-none text-sm transition-colors ${stepErrors && !dropoff.trim() ? "border-red-400" : "border-teal-100"}`}
                         value={dropoff}
                         onChange={e => { setDropoff(e.target.value); setStepErrors(false); }}
                       />
                       {stepErrors && !dropoff.trim() && <p className="text-xs text-red-600 font-medium">Please enter a dropoff location.</p>}
+                       <datalist id="location-suggestions">
+                         {LOCATION_SUGGESTIONS.map(location => <option key={location} value={location} />)}
+                       </datalist>
                     </div>
                   </div>
 
@@ -1537,18 +1293,44 @@ export default function Home() {
                       Passengers
                     </label>
                     <div className="flex items-center gap-3 rounded-xl border-2 border-teal-100 bg-white px-4 h-12">
-                      <button type="button" onClick={() => setPax(p => Math.max(8, p - 1))}
+                       <button type="button" onClick={() => setPax(p => Math.max(1, p - 1))}
                         className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 font-bold text-xl flex items-center justify-center hover:bg-teal-100 transition-colors shrink-0">−</button>
                       <span className="flex-1 text-center text-teal-900 font-black text-lg tabular-nums">{pax}</span>
-                      <button type="button" onClick={() => setPax(p => Math.min(maxPax, p + 1))}
-                        disabled={pax >= maxPax}
+                       <button type="button" onClick={() => setPax(p => Math.min(100, p + 1))}
+                         disabled={pax >= 100}
                         className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 text-teal-700 font-bold text-xl flex items-center justify-center hover:bg-teal-100 transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed">+</button>
                     </div>
-                    <p className="text-xs text-teal-600/80 font-medium px-1">1 × {vehicleForPax(pax)}</p>
-                    {maxPax === 10 && (
-                      <p className="text-xs text-amber-700 font-semibold px-1">⚠ Paramin routes are limited to 10 passengers due to the steep hill road.</p>
-                    )}
+                     <p className="text-xs text-teal-600/80 font-medium px-1">{vehicleForPax(pax, numberBuses)} · capacity {numberBuses === 5 ? "5+ buses" : busCapacity(numberBuses)} passengers</p>
                   </div>
+
+                   <div className="space-y-2">
+                     <label className="text-teal-900 font-semibold flex items-center gap-2 text-sm">
+                       <Briefcase className="w-3.5 h-3.5 text-amber-600" />
+                       Number of Buses
+                     </label>
+                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                       {BUS_OPTIONS.map(option => (
+                         <button
+                           key={option.value}
+                           type="button"
+                           onClick={() => setNumberBuses(option.value)}
+                           className={`h-10 rounded-xl border-2 text-xs font-bold transition-all ${
+                             numberBuses === option.value
+                               ? "border-amber-500 bg-amber-500 text-white"
+                               : "border-dashed border-teal-200 bg-white text-teal-700 hover:border-amber-300"
+                           }`}
+                         >
+                           {option.label}
+                         </button>
+                       ))}
+                     </div>
+                     {capacityError && (
+                       <p className="text-xs text-red-600 font-semibold px-1">
+                         <span className="block">Not enough buses selected</span>
+                         <span className="font-normal">Please select enough buses to accommodate all passengers.</span>
+                       </p>
+                     )}
+                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-teal-900 font-semibold flex items-center gap-2 text-sm">
@@ -1662,31 +1444,35 @@ export default function Home() {
                     </div>
                   )}
 
-                  {tripType && (
-                    <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3">
-                      <div className="flex justify-between items-center gap-3">
-                        <div className="min-w-0">
-                          <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">Fare</p>
-                          <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
-                        </div>
-                        {displayFare
-                          ? <p className="text-xl font-black text-teal-900 shrink-0">{fmtFare(displayFare)}</p>
-                          : pax > 15
-                            ? <a href={waLink(`Hi Maxi Hub TT, I'd like a custom quote for ${pax} passengers.\n\nPickup: ${pickup}\nDropoff: ${dropoff}\nTrip: ${tripType === "round" ? "Round trip" : "One way"}`)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-sm font-bold text-white bg-[#25D366] px-3 py-1.5 rounded-full shrink-0 hover:opacity-90 transition-opacity"><MessageCircle className="w-3.5 h-3.5" /> Get quote</a>
-                            : <p className="text-sm font-semibold text-teal-600 shrink-0">WhatsApp us for a quote</p>}
-                      </div>
-                      {pax > 15 && (
-                        <p className="text-xs text-teal-600 mt-2 border-t border-amber-200 pt-2">
-                          Groups over 15 passengers need a custom quote — tap the button above and we'll reply within minutes.
-                        </p>
-                      )}
-                      {pax <= 15 && getBeachExactFare(pickup, dropoff, pax, tripType ?? "one-way") && (
-                        <p className="text-xs text-teal-500 mt-2 border-t border-amber-200 pt-2">
-                          Beach trip · exact quote confirmed by WhatsApp after booking.
-                        </p>
-                      )}
-                    </div>
-                  )}
+                   {fareResult && (
+                     fareResult.status === "approved" ? (
+                       <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-4 space-y-2">
+                         <p className="text-xs text-teal-500 uppercase tracking-wider font-bold">Your Maxi Hub TT Fare</p>
+                         <div className="grid grid-cols-2 gap-y-1 text-sm">
+                           <span className="text-teal-600">Route</span><span className="text-right font-semibold text-teal-900">{fareResult.routeLabel}</span>
+                           <span className="text-teal-600">Passengers / buses</span><span className="text-right font-semibold text-teal-900">{pax} / {numberBuses === 5 ? "5+" : numberBuses}</span>
+                           <span className="text-teal-600">Trip</span><span className="text-right font-semibold text-teal-900">{tripType === "round" ? "Round trip" : "One-way"}</span>
+                           <span className="text-teal-600">Base fare</span><span className="text-right font-semibold text-teal-900">{fmtFare(fareResult.baseFare)}</span>
+                           <span className="text-teal-600">Rush fee</span><span className={`text-right font-semibold ${fareResult.rushFee ? "text-red-600" : "text-teal-900"}`}>{fmtFare(fareResult.rushFee)}</span>
+                           <span className="text-teal-900 font-bold pt-2 border-t border-amber-200">Total</span><span className="text-right font-black text-teal-900 pt-2 border-t border-amber-200">{fmtFare(fareResult.totalFare)}</span>
+                           <span className="text-teal-900 font-bold">Deposit</span><span className="text-right font-black text-amber-700">{fmtFare(fareResult.deposit)}</span>
+                         </div>
+                       </div>
+                     ) : fareResult.status === "invalid" ? (
+                       <div className="rounded-xl border-2 border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700 font-semibold">{fareResult.message}</div>
+                     ) : (
+                       <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 px-4 py-4 space-y-3">
+                         <div>
+                           <p className="text-sm font-black text-teal-900 uppercase tracking-wide">Custom Quote Required</p>
+                           <p className="text-xs text-teal-700 mt-1 leading-relaxed">{fareResult.message}</p>
+                         </div>
+                         <a href={waLink(`Hi Maxi Hub TT, I'd like a customized quote.\n\nPickup: ${pickup}\nDropoff: ${dropoff}\nPassengers: ${pax}\nBuses: ${numberBuses === 5 ? "5+" : numberBuses}\nTrip: ${tripType === "round" ? "Round trip" : "One way"}`)} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full h-10 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90" style={{ background: "#25D366" }}>
+                           <MessageCircle className="w-4 h-4" /> Request Quote on WhatsApp
+                         </a>
+                         <p className="text-[11px] text-teal-600 text-center">You can continue below and submit a quote request for our team to follow up.</p>
+                       </div>
+                     )
+                   )}
 
                   {/* Urgency tier banner */}
                   {urgencyTier === "urgent" && pickupDatetime && (
@@ -1805,7 +1591,8 @@ export default function Home() {
                       <ArrowLeftRight className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
                       <div>
                         <p className="text-xs text-teal-500 uppercase tracking-wider">Trip</p>
-                        <p className="font-semibold text-teal-900">{tripType === "round" ? "Round Trip" : "One Way"} · {pax} passenger{pax !== 1 ? "s" : ""} · {vehicleForPax(pax)}</p>
+                        <p className="font-semibold text-teal-900">{tripType === "round" ? "Round Trip" : "One Way"} · {pax} passenger{pax !== 1 ? "s" : ""} · {vehicleForPax(pax, numberBuses)}</p>
+                        <p className="text-xs text-teal-600 mt-1">Buses: {numberBuses === 5 ? "5+" : numberBuses}</p>
                       </div>
                     </div>
                     <div className="px-4 py-3 flex gap-3 items-start">
@@ -1831,32 +1618,31 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 space-y-3">
-                    <div className="flex justify-between items-center gap-3">
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-teal-800">Final Fare</p>
-                        <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax)}</p>
-                      </div>
-                      {displayFare
-                        ? <p className="text-2xl font-black text-teal-900 shrink-0">{fmtFare(displayFare)}</p>
-                        : <p className="text-sm font-semibold text-teal-500 shrink-0">Quote on request</p>}
-                    </div>
-                    <div className="bg-white/70 border border-amber-100 rounded-xl px-3 py-2.5 flex gap-3 items-start">
-                      <Info className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                      <div>
-                        {deposit
-                          ? <>
-                              <p className="text-sm font-bold text-teal-900">{bookingConfig.deposit_pct}% Deposit: TTD {deposit.toLocaleString("en-TT")}</p>
-                              <p className="text-xs text-teal-700/80 mt-0.5">Balance of TTD {((displayFare ?? 0) - deposit).toLocaleString("en-TT")} paid to your driver on the day.</p>
-                              {urgencyTier === "urgent" && bookingConfig.rush_fee > 0 && (
-                                <p className="text-xs text-red-600 font-semibold mt-1">⚡ Rush fee: TTD {bookingConfig.rush_fee.toLocaleString("en-TT")} (added for urgent bookings)</p>
-                              )}
-                            </>
-                          : <p className="text-sm text-teal-700">Our team will confirm your exact fare and deposit by WhatsApp after booking.</p>
-                        }
-                      </div>
-                    </div>
-                  </div>
+                   <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 space-y-3">
+                     {fareResult?.status === "approved" ? (
+                       <>
+                         <div className="flex justify-between items-center gap-3">
+                           <div className="min-w-0">
+                             <p className="text-sm font-semibold text-teal-800">Final Fare</p>
+                             <p className="text-xs text-teal-600">{tripType === "round" ? "Round trip" : "One way"} · {paxLabel(pax, numberBuses)}</p>
+                           </div>
+                           <p className="text-2xl font-black text-teal-900 shrink-0">{fmtFare(fareResult.totalFare)}</p>
+                         </div>
+                         <div className="bg-white/70 border border-amber-100 rounded-xl px-3 py-2.5 flex gap-3 items-start">
+                           <Info className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                           <div>
+                             <p className="text-sm font-bold text-teal-900">{bookingConfig.deposit_pct}% Deposit: {fmtFare(fareResult.deposit)}</p>
+                             <p className="text-xs text-teal-700/80 mt-0.5">Base fare {fmtFare(fareResult.baseFare)} + rush fee {fmtFare(fareResult.rushFee)} = total {fmtFare(fareResult.totalFare)}. Balance of {fmtFare(fareResult.totalFare - fareResult.deposit)} is paid to your driver on the day.</p>
+                           </div>
+                         </div>
+                       </>
+                     ) : (
+                       <div>
+                         <p className="text-sm font-black text-teal-900">Custom Quote Required</p>
+                         <p className="text-xs text-teal-700 mt-1 leading-relaxed">{fareResult?.message ?? "Our team will confirm your exact fare and deposit by WhatsApp after booking."}</p>
+                       </div>
+                     )}
+                   </div>
 
                   <label className={`flex items-start gap-3 rounded-xl border-2 px-4 py-3 cursor-pointer transition-colors ${agreedToTerms ? "border-teal-400 bg-teal-50/60" : stepErrors && !agreedToTerms ? "border-red-400 bg-red-50/40" : "border-teal-100 bg-white"}`}>
                     <input
@@ -1904,9 +1690,9 @@ export default function Home() {
                   >
                     {createJob.isPending
                       ? <><Loader2 className="w-5 h-5 animate-spin" /> Confirming...</>
-                      : deposit
-                      ? <><CheckCircle2 className="w-5 h-5" /> Confirm Booking &mdash; TTD {deposit.toLocaleString("en-TT")} deposit</>
-                      : <><CheckCircle2 className="w-5 h-5" /> Confirm Booking</>}
+                       : deposit
+                       ? <><CheckCircle2 className="w-5 h-5" /> Confirm Booking &mdash; {fmtFare(deposit)} deposit</>
+                       : <><MessageCircle className="w-5 h-5" /> Continue With Quote Request</>}
                   </button>
                 </div>
               )}

@@ -5,7 +5,9 @@
  * Job dispatch API for transport booking and driver claims
  * OpenAPI spec version: 0.1.0
  */
+import type { JobFareStatus } from './jobFareStatus';
 import type { JobStatus } from './jobStatus';
+import type { JobTripType } from './jobTripType';
 import type { JobUrgency } from './jobUrgency';
 
 export interface Job {
@@ -16,6 +18,21 @@ export interface Job {
   phone: string;
   price: string;
   passengers?: string | null;
+  passengerCount?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  numberBuses?: number;
+  tripType?: JobTripType;
+  fareStatus?: JobFareStatus;
+  fareRouteId?: string | null;
+  baseFare?: number | null;
+  totalFare?: number | null;
+  email?: string | null;
+  notes?: string | null;
+  rating?: number | null;
+  ratingComment?: string | null;
   status: JobStatus;
   urgency: JobUrgency;
   depositAmount?: number | null;
@@ -26,8 +43,6 @@ export interface Job {
   claimedBy?: string | null;
   vehicleType?: string | null;
   numberPlate?: string | null;
-  rating?: number | null;
-  ratingComment?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -1,0 +1,916 @@
+Maxi Hub TT — Rebuild Fare System & Booking Form
+
+I need you to completely restructure the Maxi Hub TT private transportation fare system.
+
+IMPORTANT: Core rule
+
+The website must STOP using automatic distance-based fare calculations.
+
+Do NOT use:
+
+- straight-line distance
+- road-distance multipliers
+- "$25 + distance × $8"
+- automatic rounding
+- guessed fares
+- fallback mathematical formulas
+- silently generated prices
+
+A fare must only be displayed if it exists in the approved Maxi Hub TT fare database.
+
+If an exact approved fare does not exist, display:
+
+CUSTOM QUOTE REQUIRED
+
+«We don't currently have a fixed online fare for this route and booking combination. Please contact Maxi Hub TT for a customized quote.»
+
+Never invent or estimate a price.
+
+---
+
+1. SINGLE SOURCE OF TRUTH
+
+Create ONE master fare configuration/database that contains all approved fares.
+
+The frontend and backend MUST use the same source of truth.
+
+Do not maintain separate frontend and backend fare tables.
+
+The browser may request/display a fare, but the backend MUST independently validate/recalculate the final fare from the master fare configuration before creating a booking.
+
+Never trust a price submitted by the browser.
+
+If the browser sends:
+
+"price: 500"
+
+the backend must ignore that value and calculate the approved price from:
+
+- pickup
+- drop-off
+- route
+- trip type
+- passenger count
+- number of buses
+
+---
+
+2. PASSENGER BRACKETS
+
+Use these brackets:
+
+- 1–12 passengers
+- 13–15 passengers
+- 16–18 passengers
+- 19–25 passengers
+- 26+ passengers
+
+For 26+ passengers, default to:
+
+CUSTOM QUOTE REQUIRED
+
+unless an explicitly approved fare is later added.
+
+Do not extrapolate or calculate a 26+ fare automatically.
+
+---
+
+3. NUMBER OF BUSES
+
+Add a required field to the booking form:
+
+Number of Buses
+
+Options:
+
+- 1 Bus
+- 2 Buses
+- 3 Buses
+- 4 Buses
+- 5+ Buses
+
+The booking form should also collect:
+
+Number of Passengers
+
+The system must validate passenger capacity.
+
+Initial capacity rule:
+
+- 1 bus = maximum 15 passengers
+- 2 buses = maximum 30 passengers
+- 3 buses = maximum 45 passengers
+- 4 buses = maximum 60 passengers
+
+If the passenger count exceeds the selected capacity, show:
+
+«Not enough buses selected
+
+Please select enough buses to accommodate all passengers.»
+
+Do not allow the booking to continue until capacity is sufficient.
+
+IMPORTANT: Do not automatically multiply a single-bus fare by the number of buses unless the fare record explicitly says that the fare is calculated that way.
+
+The fare database must be capable of storing multi-bus/group pricing explicitly.
+
+---
+
+4. LOCATION STRUCTURE
+
+Do not treat the entire island as only West/Central/East/South.
+
+Create more useful destination groups.
+
+At minimum support:
+
+POS / Port of Spain
+
+Examples:
+
+- Port of Spain
+- Downtown
+- Woodbrook
+- St. Ann's
+
+WEST
+
+Examples:
+
+- St. James
+- Cocorite
+- Diego Martin
+- Petit Valley
+- Maraval
+- Westmoorings
+- Carenage
+- Chaguaramas
+
+EAST NEAR
+
+Examples:
+
+- Laventille
+- Barataria
+- San Juan
+
+EAST MID
+
+Examples:
+
+- El Socorro
+- Tunapuna
+- Trincity
+
+EAST FAR
+
+Examples:
+
+- Arouca
+- Arima
+- other approved eastern destinations
+
+CENTRAL
+
+Examples:
+
+- Chaguanas
+- Cunupia
+- Couva
+- other approved Central destinations
+
+SOUTH
+
+Examples:
+
+- San Fernando
+- Princes Town
+- Point Fortin
+- other approved southern destinations
+
+SPECIAL LOCATIONS
+
+Maintain separate exact location records for:
+
+- Beaches
+- Airports
+- Paramin
+- Toco
+- Other special destinations
+
+The location system should use aliases/keywords so customers can type common names.
+
+Example:
+
+"Diego Martin"
+
+"Diego Martin, Trinidad"
+
+"Diego Martin Valley"
+
+can all resolve to the same approved destination if appropriate.
+
+Do NOT use fuzzy matching to select a random destination if there is ambiguity.
+
+If the system cannot confidently identify a destination:
+
+CUSTOM QUOTE REQUIRED
+
+---
+
+5. INITIAL APPROVED FARE STRUCTURE
+
+Use the following as the initial proposed fare table.
+
+These are starting prices and should be stored centrally so they can easily be changed later.
+
+POS ↔ CENTRAL
+
+One-way
+
+- 1–12: $500
+- 13–15: $600
+- 16–18: $800
+- 19–25: $1,500
+
+Round trip
+
+- 1–12: $800
+- 13–15: $900
+- 16–18: $1,000
+- 19–25: $2,000
+
+---
+
+6. POS ↔ EAST NEAR
+
+Examples:
+Laventille, Barataria, San Juan
+
+One-way
+
+- 1–12: $300
+- 13–15: $400
+- 16–18: $550
+- 19–25: $1,000
+
+Round trip
+
+- 1–12: $500
+- 13–15: $600
+- 16–18: $750
+- 19–25: $1,400
+
+---
+
+7. POS ↔ EAST MID
+
+Examples:
+El Socorro, Tunapuna, Trincity
+
+One-way
+
+- 1–12: $400
+- 13–15: $500
+- 16–18: $700
+- 19–25: $1,200
+
+Round trip
+
+- 1–12: $700
+- 13–15: $800
+- 16–18: $950
+- 19–25: $1,600
+
+---
+
+8. POS ↔ EAST FAR
+
+Examples:
+Arouca, Arima
+
+One-way
+
+- 1–12: $550
+- 13–15: $650
+- 16–18: $850
+- 19–25: $1,400
+
+Round trip
+
+- 1–12: $900
+- 13–15: $1,050
+- 16–18: $1,250
+- 19–25: $1,900
+
+---
+
+9. POS ↔ WEST NEAR
+
+Examples:
+St. James, Cocorite, Diego Martin
+
+One-way
+
+- 1–12: $350
+- 13–15: $450
+- 16–18: $600
+- 19–25: $1,100
+
+Round trip
+
+- 1–12: $600
+- 13–15: $700
+- 16–18: $850
+- 19–25: $1,500
+
+---
+
+10. POS ↔ WEST MID
+
+Examples:
+Petit Valley, Maraval, Westmoorings and other approved locations
+
+One-way
+
+- 1–12: $450
+- 13–15: $550
+- 16–18: $700
+- 19–25: $1,250
+
+Round trip
+
+- 1–12: $750
+- 13–15: $850
+- 16–18: $1,000
+- 19–25: $1,700
+
+---
+
+11. POS ↔ WEST FAR
+
+Examples:
+Carenage, Chaguaramas
+
+One-way
+
+- 1–12: $600
+- 13–15: $700
+- 16–18: $900
+- 19–25: $1,400
+
+Round trip
+
+- 1–12: $1,000
+- 13–15: $1,150
+- 16–18: $1,350
+- 19–25: $1,900
+
+---
+
+12. WEST ↔ CENTRAL
+
+Use this confirmed Maxi Hub TT pricing:
+
+One-way
+
+- 1–12: $500
+- 13–15: $600
+- 16–18: $800
+- 19–25: $1,500
+
+Round trip
+
+- 1–12: $800
+- 13–15: $900
+- 16–18: $1,000
+- 19–25: $2,000
+
+---
+
+13. INTRA-WEST
+
+One-way
+
+- 1–12: $200
+- 13–15: $250
+- 16–18: $350
+- 19–25: $700
+
+Round trip
+
+- 1–12: $350
+- 13–15: $425
+- 16–18: $550
+- 19–25: $900
+
+---
+
+14. INTRA-CENTRAL
+
+One-way
+
+- 1–12: $200
+- 13–15: $250
+- 16–18: $350
+- 19–25: $700
+
+Round trip
+
+- 1–12: $350
+- 13–15: $425
+- 16–18: $550
+- 19–25: $900
+
+---
+
+15. INTRA-EAST
+
+One-way
+
+- 1–12: $225
+- 13–15: $275
+- 16–18: $375
+- 19–25: $750
+
+Round trip
+
+- 1–12: $400
+- 13–15: $475
+- 16–18: $600
+- 19–25: $950
+
+---
+
+16. INTRA-SOUTH
+
+One-way
+
+- 1–12: $225
+- 13–15: $275
+- 16–18: $375
+- 19–25: $750
+
+Round trip
+
+- 1–12: $400
+- 13–15: $475
+- 16–18: $600
+- 19–25: $950
+
+---
+
+17. PARAMIN
+
+Keep Paramin as a special route rather than treating it as an ordinary West destination.
+
+One-way
+
+- 1–12: $600
+- 13–15: $700
+- 16–18: $900
+- 19–25: $1,500
+
+Round trip
+
+- 1–12: $1,000
+- 13–15: $1,150
+- 16–18: $1,350
+- 19–25: $2,000
+
+---
+
+18. TOCO
+
+Treat Toco as a special destination.
+
+One-way
+
+- 1–12: $1,000
+- 13–15: $1,150
+- 16–18: $1,400
+- 19–25: $2,000
+
+Round trip
+
+- 1–12: $1,700
+- 13–15: $1,950
+- 16–18: $2,300
+- 19–25: $2,900
+
+---
+
+19. BEACH FARES
+
+Beach destinations must NOT use the general route fare system.
+
+Create a dedicated beach fare table.
+
+Each beach should have its own explicit records.
+
+Each record must support:
+
+- beach
+- pickup region/location
+- passenger bracket
+- number of buses
+- one-way/round trip
+- price
+
+If a beach does not have an approved price:
+
+CUSTOM QUOTE REQUIRED
+
+Do not estimate the beach fare from distance.
+
+---
+
+20. AIRPORT FARES
+
+Airports must have their own fare records.
+
+At minimum support:
+
+- Piarco International Airport
+- approved pickup zones
+- passenger bracket
+- number of buses
+- one-way
+- round trip
+
+Do not calculate airport prices from distance.
+
+If an airport route is not explicitly configured:
+
+CUSTOM QUOTE REQUIRED
+
+---
+
+21. SPECIAL LOCATIONS
+
+The system must support special exact-price routes for locations such as:
+
+- hotels
+- churches
+- event venues
+- airports
+- beaches
+- schools
+- attractions
+- private residences
+- corporate locations
+
+These should be able to override a general zone route.
+
+Example:
+
+If:
+
+"POS → Chaguaramas"
+
+has a general fare of $600,
+
+but:
+
+"POS → Specific Event Venue"
+
+has an approved fare of $750,
+
+the exact special-location fare must win.
+
+Priority:
+
+1. Exact special route
+2. Exact beach/airport/special fare
+3. Approved route category fare
+4. Custom Quote Required
+
+There must be NO mathematical fallback.
+
+---
+
+22. URGENT / RUSH BOOKINGS
+
+Current booking timing:
+
+- Standard: more than 6 hours ahead
+- Same-day: 2–6 hours ahead
+- Urgent: less than 2 hours ahead
+
+Current rush fee:
+
+$150 TTD
+
+Apply the $150 rush fee consistently.
+
+Do NOT allow the frontend and backend to calculate different deposits.
+
+The final calculation must be:
+
+"base fare + applicable rush fee = booking total"
+
+Then calculate the deposit from the final booking total according to the configured deposit percentage.
+
+The frontend must display exactly the same total and deposit that the backend calculates.
+
+Never make an urgent deposit equal to the entire fare unless that is explicitly configured as the business rule.
+
+---
+
+23. CURRENT DEPOSIT
+
+Keep the default deposit at:
+
+25%
+
+Make this a configurable setting in the master configuration.
+
+Example:
+
+Base fare: $500
+
+Rush fee: $150
+
+Total: $650
+
+25% deposit:
+
+$162.50
+
+The frontend and backend must both display:
+
+Total: $650
+
+Deposit: $162.50
+
+---
+
+24. BOOKING FORM
+
+Update the booking form to include:
+
+Pickup Location
+
+Search/autocomplete
+
+Drop-off Location
+
+Search/autocomplete
+
+Trip Type
+
+- One-way
+- Round trip
+
+Date
+
+Pickup Time
+
+Number of Passengers
+
+Number of Buses
+
+Customer Name
+
+Phone / WhatsApp
+
+Email
+
+Additional Notes
+
+The fare result should update after the relevant fields are completed.
+
+---
+
+25. FARE RESULT UI
+
+For an approved fare show:
+
+Your Maxi Hub TT Fare
+
+Route:
+"POS → Diego Martin"
+
+Passengers:
+"12"
+
+Buses:
+"1"
+
+Trip:
+"One-way"
+
+Base fare:
+TTD $350
+
+Rush fee:
+TTD $0
+
+Total:
+TTD $350
+
+Deposit:
+TTD $87.50
+
+Then provide:
+
+Continue Booking
+
+For an urgent booking, show the $150 rush fee clearly.
+
+---
+
+26. CUSTOM QUOTE UI
+
+When there is no approved fare:
+
+Custom Quote Required
+
+«We don't currently have a fixed online fare for this route and booking combination. Please contact Maxi Hub TT for a customized quote.»
+
+Buttons:
+
+Request Quote on WhatsApp
+
+and
+
+Continue With Quote Request
+
+Do NOT show "$0".
+
+Do NOT show an estimated price.
+
+Do NOT show a distance calculation.
+
+Do NOT round or guess a price.
+
+---
+
+27. MORE THAN 15 PASSENGERS
+
+Do NOT automatically send every booking above 15 passengers to WhatsApp.
+
+The website should support the approved 16–18 and 19–25 brackets.
+
+For 26+ passengers:
+
+Custom Quote Required
+
+If a future approved fare is added for 26+, the system should be capable of using it.
+
+---
+
+28. FARE ADMINISTRATION
+
+Create a clean structure that allows Maxi Hub TT to change fares without modifying multiple parts of the application.
+
+Ideally the fare record should contain:
+
+- route ID
+- origin
+- destination
+- route category
+- passenger minimum
+- passenger maximum
+- bus minimum/maximum if applicable
+- trip type
+- base fare
+- active/inactive
+- notes
+
+Do not duplicate fare values across components.
+
+---
+
+29. TESTING
+
+Create automated tests for EVERY configured route and EVERY passenger bracket.
+
+For each route test:
+
+- 1 passenger
+- 12 passengers
+- 13 passengers
+- 15 passengers
+- 16 passengers
+- 18 passengers
+- 19 passengers
+- 25 passengers
+- 26 passengers
+
+Test:
+
+- one-way
+- round trip
+- normal booking
+- urgent booking
+- correct rush fee
+- correct deposit
+- correct bus capacity
+- unknown route
+- unknown destination
+- ambiguous destination
+
+Also test that:
+
+frontend fare === backend fare
+
+for every valid fare combination.
+
+Test that changing the browser-submitted price does NOT change the backend-approved price.
+
+Test that an unknown route NEVER produces a mathematical fallback fare.
+
+---
+
+30. DO NOT BREAK EXISTING BOOKING FEATURES
+
+Before making changes:
+
+1. Inspect the existing codebase.
+2. Identify the current fare calculation logic.
+3. Identify all frontend fare calculations.
+4. Identify all backend fare calculations.
+5. Identify the current booking/payment/deposit logic.
+6. Identify the current location matching system.
+7. Identify the existing beach fare system.
+8. Identify existing airport/special-location logic.
+
+Then refactor carefully.
+
+Do not blindly delete working booking functionality.
+
+Preserve existing UI styling and branding where practical.
+
+---
+
+31. REQUIRED FINAL BEHAVIOR
+
+The final system must follow this decision tree:
+
+A. Exact approved fare exists
+
+→ Show the approved fare.
+
+B. Exact special fare exists
+
+→ Use the special fare.
+
+C. Approved route category fare exists
+
+→ Use the approved route fare.
+
+D. No approved fare exists
+
+→ CUSTOM QUOTE REQUIRED
+
+There must NEVER be:
+
+«"Let's estimate it."»
+
+There must NEVER be:
+
+«"Let's calculate based on distance."»
+
+There must NEVER be:
+
+«"Let's round it to the nearest $50."»
+
+There must NEVER be a silently invented fare.
+
+---
+
+32. IMPORTANT BUSINESS REQUIREMENT
+
+Maxi Hub TT is a private transportation service.
+
+The purpose of this system is NOT to find the mathematically cheapest transportation price.
+
+The purpose is to display the exact price that Maxi Hub TT has approved for that service.
+
+Therefore, if there is uncertainty, the system must favor:
+
+CUSTOM QUOTE REQUIRED
+
+over guessing.
+
+---
+
+33. AFTER IMPLEMENTATION
+
+When finished, report:
+
+1. Where the master fare configuration is located.
+2. How the frontend obtains fares.
+3. How the backend validates fares.
+4. How locations are matched.
+5. How special locations override general routes.
+6. How beach fares work.
+7. How airport fares work.
+8. How bus capacity works.
+9. How deposits are calculated.
+10. How rush fees are calculated.
+11. What tests were added.
+12. Any existing code that was removed or replaced.
+
+Do not claim the implementation is complete until the tests pass.

@@ -175,6 +175,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
+      '@workspace/fare-engine':
+        specifier: workspace:*
+        version: link:../../lib/fare-engine
       axios:
         specifier: ^1.11.0
         version: 1.16.1
@@ -357,6 +360,9 @@ importers:
       '@workspace/api-client-react':
         specifier: workspace:*
         version: link:../../lib/api-client-react
+      '@workspace/fare-engine':
+        specifier: workspace:*
+        version: link:../../lib/fare-engine
       class-variance-authority:
         specifier: 'catalog:'
         version: 0.7.1
@@ -630,6 +636,10 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 3.25.76
+    devDependencies:
+      '@workspace/fare-engine':
+        specifier: workspace:*
+        version: link:../fare-engine
 
   lib/db:
     dependencies:
@@ -655,6 +665,15 @@ importers:
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
+
+  lib/fare-engine:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.6.2
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
 
   scripts:
     devDependencies:

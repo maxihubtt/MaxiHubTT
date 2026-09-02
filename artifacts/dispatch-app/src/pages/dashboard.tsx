@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useListJobs, useGetJobStats } from "@workspace/api-client-react";
+import { useListJobs, useGetJobStats, getListJobsQueryKey } from "@workspace/api-client-react";
 import { Layout } from "@/components/layout";
 import { JobCard } from "@/components/job-card";
 import { Card } from "@/components/ui/card";
@@ -63,7 +63,7 @@ const DONE_STATUSES = new Set(["completed", "cancelled", "expired"]);
 
 export default function Dashboard() {
   const { data: jobs, isLoading: isJobsLoading } = useListJobs({
-    query: { refetchInterval: 10_000 },
+    query: { queryKey: getListJobsQueryKey(), refetchInterval: 10_000 },
   });
   const { data: stats, isLoading: isStatsLoading } = useGetJobStats();
   const { data: analytics, isLoading: isAnalyticsLoading } = useQuery({

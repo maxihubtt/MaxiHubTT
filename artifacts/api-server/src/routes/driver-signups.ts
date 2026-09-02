@@ -31,7 +31,7 @@ router.get("/admin/driver-signups", requireAdmin, async (req, res) => {
 });
 
 router.post("/admin/driver-signups/:id/approve", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params["id"] as string;
 
   try {
     const [signup] = await db
@@ -76,7 +76,7 @@ router.post("/admin/driver-signups/:id/approve", requireAdmin, async (req, res) 
 });
 
 router.post("/admin/driver-signups/:id/reject", requireAdmin, async (req, res) => {
-  const { id } = req.params;
+  const id = req.params["id"] as string;
 
   const [signup] = await db
     .select()

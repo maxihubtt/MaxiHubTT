@@ -9,6 +9,22 @@ export interface HealthStatus {
   status: string;
 }
 
+export type JobTripType = typeof JobTripType[keyof typeof JobTripType];
+
+
+export const JobTripType = {
+  'one-way': 'one-way',
+  round: 'round',
+} as const;
+
+export type JobFareStatus = typeof JobFareStatus[keyof typeof JobFareStatus];
+
+
+export const JobFareStatus = {
+  approved: 'approved',
+  custom_quote: 'custom_quote',
+} as const;
+
 export type JobStatus = typeof JobStatus[keyof typeof JobStatus];
 
 
@@ -41,6 +57,21 @@ export interface Job {
   phone: string;
   price: string;
   passengers?: string | null;
+  passengerCount?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  numberBuses?: number;
+  tripType?: JobTripType;
+  fareStatus?: JobFareStatus;
+  fareRouteId?: string | null;
+  baseFare?: number | null;
+  totalFare?: number | null;
+  email?: string | null;
+  notes?: string | null;
+  rating?: number | null;
+  ratingComment?: string | null;
   status: JobStatus;
   urgency: JobUrgency;
   depositAmount?: number | null;
@@ -55,6 +86,14 @@ export interface Job {
   updatedAt: string;
 }
 
+export type CreateJobBodyTripType = typeof CreateJobBodyTripType[keyof typeof CreateJobBodyTripType];
+
+
+export const CreateJobBodyTripType = {
+  'one-way': 'one-way',
+  round: 'round',
+} as const;
+
 export interface CreateJobBody {
   pickup: string;
   dropoff: string;
@@ -62,8 +101,21 @@ export interface CreateJobBody {
   phone: string;
   price: string;
   passengers?: string;
+  /**
+     * @minimum 1
+     * @maximum 100
+     */
+  passengerCount?: number;
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  numberBuses?: number;
+  tripType?: CreateJobBodyTripType;
   /** ISO datetime string of desired pickup time (used for urgency classification) */
   pickupDatetime?: string;
+  email?: string;
+  notes?: string;
 }
 
 export interface JobStats {

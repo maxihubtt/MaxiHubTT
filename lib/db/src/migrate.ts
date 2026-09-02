@@ -82,6 +82,14 @@ await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS notes TEXT`);
 await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS rating INTEGER`);
 await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS rating_comment TEXT`);
 await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS email TEXT`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS passenger_count INTEGER`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS number_buses INTEGER NOT NULL DEFAULT 1`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS trip_type TEXT NOT NULL DEFAULT 'one-way'`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS fare_status TEXT NOT NULL DEFAULT 'custom_quote'`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS fare_route_id TEXT`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS base_fare NUMERIC(10,2)`);
+await client.query(`ALTER TABLE jobs ADD COLUMN IF NOT EXISTS total_fare NUMERIC(10,2)`);
+await client.query(`ALTER TABLE jobs ALTER COLUMN deposit_amount TYPE NUMERIC(10,2) USING deposit_amount::numeric`);
 console.log("✓ jobs columns");
 
 await client.query(`ALTER TABLE drivers ADD COLUMN IF NOT EXISTS dp_expiry DATE`);

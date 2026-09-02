@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, boolean, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -11,6 +11,13 @@ export const jobsTable = pgTable("jobs", {
   email: text("email"),
   price: text("price").notNull(),
   passengers: text("passengers"),
+  passengerCount: integer("passenger_count"),
+  numberBuses: integer("number_buses").notNull().default(1),
+  tripType: text("trip_type").notNull().default("one-way"),
+  fareStatus: text("fare_status").notNull().default("custom_quote"),
+  fareRouteId: text("fare_route_id"),
+  baseFare: numeric("base_fare", { precision: 10, scale: 2, mode: "number" }),
+  totalFare: numeric("total_fare", { precision: 10, scale: 2, mode: "number" }),
   status: text("status").notNull().default("pending"),
   claimedBy: text("claimed_by"),
   vehicleType: text("vehicle_type"),
@@ -19,7 +26,7 @@ export const jobsTable = pgTable("jobs", {
   pickupDatetime: text("pickup_datetime"),
   urgency: text("urgency").notNull().default("standard"),
   // Deposit tracking
-  depositAmount: integer("deposit_amount"),
+  depositAmount: numeric("deposit_amount", { precision: 10, scale: 2, mode: "number" }),
   rushFee: integer("rush_fee").notNull().default(0),
   depositPaid: boolean("deposit_paid").notNull().default(false),
   expiresAt: timestamp("expires_at"),

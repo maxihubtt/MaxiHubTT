@@ -327,6 +327,43 @@ components:
         passengers:
           type: string
           nullable: true
+        passengerCount:
+          type: integer
+          nullable: true
+        numberBuses:
+          type: integer
+          minimum: 1
+          maximum: 5
+          default: 1
+        tripType:
+          type: string
+          enum: [one-way, round]
+          default: one-way
+        fareStatus:
+          type: string
+          enum: [approved, custom_quote]
+        fareRouteId:
+          type: string
+          nullable: true
+        baseFare:
+          type: number
+          nullable: true
+        totalFare:
+          type: number
+          nullable: true
+        email:
+          type: string
+          format: email
+          nullable: true
+        notes:
+          type: string
+          nullable: true
+        rating:
+          type: integer
+          nullable: true
+        ratingComment:
+          type: string
+          nullable: true
         status:
           type: string
           enum:
@@ -403,9 +440,25 @@ components:
           type: string
         passengers:
           type: string
+        passengerCount:
+          type: integer
+          minimum: 1
+          maximum: 100
+        numberBuses:
+          type: integer
+          minimum: 1
+          maximum: 5
+        tripType:
+          type: string
+          enum: [one-way, round]
         pickupDatetime:
           type: string
           description: ISO datetime string of desired pickup time (used for urgency classification)
+        email:
+          type: string
+          format: email
+        notes:
+          type: string
       required:
         - pickup
         - dropoff

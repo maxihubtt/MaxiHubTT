@@ -21,6 +21,10 @@ export const HealthCheckResponse = zod.object({
  * Returns all unclaimed jobs
  * @summary List all active jobs
  */
+export const listJobsResponseNumberBusesDefault = 1;
+export const listJobsResponseNumberBusesMax = 5;
+
+export const listJobsResponseTripTypeDefault = `one-way`;
 export const listJobsResponseUrgencyDefault = `standard`;
 export const listJobsResponseRushFeeDefault = 0;
 export const listJobsResponseDepositPaidDefault = false;
@@ -33,6 +37,17 @@ export const ListJobsResponseItem = zod.object({
   "phone": zod.string(),
   "price": zod.string(),
   "passengers": zod.string().nullish(),
+  "passengerCount": zod.number().nullish(),
+  "numberBuses": zod.number().min(1).max(listJobsResponseNumberBusesMax).default(listJobsResponseNumberBusesDefault),
+  "tripType": zod.enum(['one-way', 'round']).default(listJobsResponseTripTypeDefault),
+  "fareStatus": zod.enum(['approved', 'custom_quote']).optional(),
+  "fareRouteId": zod.string().nullish(),
+  "baseFare": zod.number().nullish(),
+  "totalFare": zod.number().nullish(),
+  "email": zod.string().email().nullish(),
+  "notes": zod.string().nullish(),
+  "rating": zod.number().nullish(),
+  "ratingComment": zod.string().nullish(),
   "status": zod.enum(['pending', 'pending_deposit', 'deposit_received', 'driver_assigned', 'driver_en_route', 'claimed', 'completed', 'cancelled', 'expired']),
   "urgency": zod.enum(['standard', 'same_day', 'urgent']).default(listJobsResponseUrgencyDefault),
   "depositAmount": zod.number().nullish(),
@@ -53,6 +68,12 @@ export const ListJobsResponse = zod.array(ListJobsResponseItem)
  * Posts a new job to the Telegram group for drivers to claim
  * @summary Create and dispatch a new job
  */
+export const createJobBodyPassengerCountMax = 100;
+
+export const createJobBodyNumberBusesMax = 5;
+
+
+
 export const CreateJobBody = zod.object({
   "pickup": zod.string(),
   "dropoff": zod.string(),
@@ -60,7 +81,12 @@ export const CreateJobBody = zod.object({
   "phone": zod.string(),
   "price": zod.string(),
   "passengers": zod.string().optional(),
-  "pickupDatetime": zod.string().optional().describe('ISO datetime string of desired pickup time (used for urgency classification)')
+  "passengerCount": zod.number().min(1).max(createJobBodyPassengerCountMax).optional(),
+  "numberBuses": zod.number().min(1).max(createJobBodyNumberBusesMax).optional(),
+  "tripType": zod.enum(['one-way', 'round']).optional(),
+  "pickupDatetime": zod.string().optional().describe('ISO datetime string of desired pickup time (used for urgency classification)'),
+  "email": zod.string().email().optional(),
+  "notes": zod.string().optional()
 })
 
 
@@ -92,6 +118,10 @@ export const UpdateDriverInfoBody = zod.object({
   "numberPlate": zod.string().optional()
 })
 
+export const updateDriverInfoResponseNumberBusesDefault = 1;
+export const updateDriverInfoResponseNumberBusesMax = 5;
+
+export const updateDriverInfoResponseTripTypeDefault = `one-way`;
 export const updateDriverInfoResponseUrgencyDefault = `standard`;
 export const updateDriverInfoResponseRushFeeDefault = 0;
 export const updateDriverInfoResponseDepositPaidDefault = false;
@@ -104,6 +134,17 @@ export const UpdateDriverInfoResponse = zod.object({
   "phone": zod.string(),
   "price": zod.string(),
   "passengers": zod.string().nullish(),
+  "passengerCount": zod.number().nullish(),
+  "numberBuses": zod.number().min(1).max(updateDriverInfoResponseNumberBusesMax).default(updateDriverInfoResponseNumberBusesDefault),
+  "tripType": zod.enum(['one-way', 'round']).default(updateDriverInfoResponseTripTypeDefault),
+  "fareStatus": zod.enum(['approved', 'custom_quote']).optional(),
+  "fareRouteId": zod.string().nullish(),
+  "baseFare": zod.number().nullish(),
+  "totalFare": zod.number().nullish(),
+  "email": zod.string().email().nullish(),
+  "notes": zod.string().nullish(),
+  "rating": zod.number().nullish(),
+  "ratingComment": zod.string().nullish(),
   "status": zod.enum(['pending', 'pending_deposit', 'deposit_received', 'driver_assigned', 'driver_en_route', 'claimed', 'completed', 'cancelled', 'expired']),
   "urgency": zod.enum(['standard', 'same_day', 'urgent']).default(updateDriverInfoResponseUrgencyDefault),
   "depositAmount": zod.number().nullish(),
@@ -130,6 +171,10 @@ export const ClaimJobBody = zod.object({
   "driverName": zod.string().optional().describe('Deprecated — driver identity is resolved from session. Field ignored if provided.')
 })
 
+export const claimJobResponseNumberBusesDefault = 1;
+export const claimJobResponseNumberBusesMax = 5;
+
+export const claimJobResponseTripTypeDefault = `one-way`;
 export const claimJobResponseUrgencyDefault = `standard`;
 export const claimJobResponseRushFeeDefault = 0;
 export const claimJobResponseDepositPaidDefault = false;
@@ -142,6 +187,17 @@ export const ClaimJobResponse = zod.object({
   "phone": zod.string(),
   "price": zod.string(),
   "passengers": zod.string().nullish(),
+  "passengerCount": zod.number().nullish(),
+  "numberBuses": zod.number().min(1).max(claimJobResponseNumberBusesMax).default(claimJobResponseNumberBusesDefault),
+  "tripType": zod.enum(['one-way', 'round']).default(claimJobResponseTripTypeDefault),
+  "fareStatus": zod.enum(['approved', 'custom_quote']).optional(),
+  "fareRouteId": zod.string().nullish(),
+  "baseFare": zod.number().nullish(),
+  "totalFare": zod.number().nullish(),
+  "email": zod.string().email().nullish(),
+  "notes": zod.string().nullish(),
+  "rating": zod.number().nullish(),
+  "ratingComment": zod.string().nullish(),
   "status": zod.enum(['pending', 'pending_deposit', 'deposit_received', 'driver_assigned', 'driver_en_route', 'claimed', 'completed', 'cancelled', 'expired']),
   "urgency": zod.enum(['standard', 'same_day', 'urgent']).default(claimJobResponseUrgencyDefault),
   "depositAmount": zod.number().nullish(),
@@ -164,6 +220,10 @@ export const CompleteJobParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const completeJobResponseNumberBusesDefault = 1;
+export const completeJobResponseNumberBusesMax = 5;
+
+export const completeJobResponseTripTypeDefault = `one-way`;
 export const completeJobResponseUrgencyDefault = `standard`;
 export const completeJobResponseRushFeeDefault = 0;
 export const completeJobResponseDepositPaidDefault = false;
@@ -176,6 +236,17 @@ export const CompleteJobResponse = zod.object({
   "phone": zod.string(),
   "price": zod.string(),
   "passengers": zod.string().nullish(),
+  "passengerCount": zod.number().nullish(),
+  "numberBuses": zod.number().min(1).max(completeJobResponseNumberBusesMax).default(completeJobResponseNumberBusesDefault),
+  "tripType": zod.enum(['one-way', 'round']).default(completeJobResponseTripTypeDefault),
+  "fareStatus": zod.enum(['approved', 'custom_quote']).optional(),
+  "fareRouteId": zod.string().nullish(),
+  "baseFare": zod.number().nullish(),
+  "totalFare": zod.number().nullish(),
+  "email": zod.string().email().nullish(),
+  "notes": zod.string().nullish(),
+  "rating": zod.number().nullish(),
+  "ratingComment": zod.string().nullish(),
   "status": zod.enum(['pending', 'pending_deposit', 'deposit_received', 'driver_assigned', 'driver_en_route', 'claimed', 'completed', 'cancelled', 'expired']),
   "urgency": zod.enum(['standard', 'same_day', 'urgent']).default(completeJobResponseUrgencyDefault),
   "depositAmount": zod.number().nullish(),
@@ -198,6 +269,10 @@ export const MarkDepositPaidParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const markDepositPaidResponseNumberBusesDefault = 1;
+export const markDepositPaidResponseNumberBusesMax = 5;
+
+export const markDepositPaidResponseTripTypeDefault = `one-way`;
 export const markDepositPaidResponseUrgencyDefault = `standard`;
 export const markDepositPaidResponseRushFeeDefault = 0;
 export const markDepositPaidResponseDepositPaidDefault = false;
@@ -210,6 +285,17 @@ export const MarkDepositPaidResponse = zod.object({
   "phone": zod.string(),
   "price": zod.string(),
   "passengers": zod.string().nullish(),
+  "passengerCount": zod.number().nullish(),
+  "numberBuses": zod.number().min(1).max(markDepositPaidResponseNumberBusesMax).default(markDepositPaidResponseNumberBusesDefault),
+  "tripType": zod.enum(['one-way', 'round']).default(markDepositPaidResponseTripTypeDefault),
+  "fareStatus": zod.enum(['approved', 'custom_quote']).optional(),
+  "fareRouteId": zod.string().nullish(),
+  "baseFare": zod.number().nullish(),
+  "totalFare": zod.number().nullish(),
+  "email": zod.string().email().nullish(),
+  "notes": zod.string().nullish(),
+  "rating": zod.number().nullish(),
+  "ratingComment": zod.string().nullish(),
   "status": zod.enum(['pending', 'pending_deposit', 'deposit_received', 'driver_assigned', 'driver_en_route', 'claimed', 'completed', 'cancelled', 'expired']),
   "urgency": zod.enum(['standard', 'same_day', 'urgent']).default(markDepositPaidResponseUrgencyDefault),
   "depositAmount": zod.number().nullish(),
@@ -236,6 +322,10 @@ export const UpdateJobStatusBody = zod.object({
   "status": zod.enum(['pending', 'pending_deposit', 'deposit_received', 'driver_assigned', 'driver_en_route', 'claimed', 'completed', 'cancelled', 'expired'])
 })
 
+export const updateJobStatusResponseNumberBusesDefault = 1;
+export const updateJobStatusResponseNumberBusesMax = 5;
+
+export const updateJobStatusResponseTripTypeDefault = `one-way`;
 export const updateJobStatusResponseUrgencyDefault = `standard`;
 export const updateJobStatusResponseRushFeeDefault = 0;
 export const updateJobStatusResponseDepositPaidDefault = false;
@@ -248,6 +338,17 @@ export const UpdateJobStatusResponse = zod.object({
   "phone": zod.string(),
   "price": zod.string(),
   "passengers": zod.string().nullish(),
+  "passengerCount": zod.number().nullish(),
+  "numberBuses": zod.number().min(1).max(updateJobStatusResponseNumberBusesMax).default(updateJobStatusResponseNumberBusesDefault),
+  "tripType": zod.enum(['one-way', 'round']).default(updateJobStatusResponseTripTypeDefault),
+  "fareStatus": zod.enum(['approved', 'custom_quote']).optional(),
+  "fareRouteId": zod.string().nullish(),
+  "baseFare": zod.number().nullish(),
+  "totalFare": zod.number().nullish(),
+  "email": zod.string().email().nullish(),
+  "notes": zod.string().nullish(),
+  "rating": zod.number().nullish(),
+  "ratingComment": zod.string().nullish(),
   "status": zod.enum(['pending', 'pending_deposit', 'deposit_received', 'driver_assigned', 'driver_en_route', 'claimed', 'completed', 'cancelled', 'expired']),
   "urgency": zod.enum(['standard', 'same_day', 'urgent']).default(updateJobStatusResponseUrgencyDefault),
   "depositAmount": zod.number().nullish(),
@@ -270,6 +371,10 @@ export const GetJobParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const getJobResponseNumberBusesDefault = 1;
+export const getJobResponseNumberBusesMax = 5;
+
+export const getJobResponseTripTypeDefault = `one-way`;
 export const getJobResponseUrgencyDefault = `standard`;
 export const getJobResponseRushFeeDefault = 0;
 export const getJobResponseDepositPaidDefault = false;
@@ -282,6 +387,17 @@ export const GetJobResponse = zod.object({
   "phone": zod.string(),
   "price": zod.string(),
   "passengers": zod.string().nullish(),
+  "passengerCount": zod.number().nullish(),
+  "numberBuses": zod.number().min(1).max(getJobResponseNumberBusesMax).default(getJobResponseNumberBusesDefault),
+  "tripType": zod.enum(['one-way', 'round']).default(getJobResponseTripTypeDefault),
+  "fareStatus": zod.enum(['approved', 'custom_quote']).optional(),
+  "fareRouteId": zod.string().nullish(),
+  "baseFare": zod.number().nullish(),
+  "totalFare": zod.number().nullish(),
+  "email": zod.string().email().nullish(),
+  "notes": zod.string().nullish(),
+  "rating": zod.number().nullish(),
+  "ratingComment": zod.string().nullish(),
   "status": zod.enum(['pending', 'pending_deposit', 'deposit_received', 'driver_assigned', 'driver_en_route', 'claimed', 'completed', 'cancelled', 'expired']),
   "urgency": zod.enum(['standard', 'same_day', 'urgent']).default(getJobResponseUrgencyDefault),
   "depositAmount": zod.number().nullish(),

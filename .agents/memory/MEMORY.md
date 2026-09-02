@@ -1,0 +1,1 @@
+- [Workspace package linking](workspace-package-linking.md) — refresh nested pnpm workspace links offline when dependencies are already in the store.
