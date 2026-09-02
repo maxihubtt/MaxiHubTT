@@ -1,0 +1,1711 @@
+Absolutely. The key is to tell Replit Agent not to rebuild your backend or booking logic, but to treat the existing booking system as the source of truth and redesign the operational interfaces around it.
+
+Here’s one large copy-paste prompt:
+
+MaxiHubTT — COMPLETE ADMIN + DRIVER DASHBOARD REDESIGN
+
+You are working on the existing MaxiHubTT transportation booking/dispatch application.
+
+I want you to completely redesign and improve BOTH the Admin Dashboard and Driver Dashboard into a professional transportation dispatch system.
+
+⚠️ CRITICAL RULE — DO NOT BREAK THE EXISTING BOOKING SYSTEM
+
+Before making changes:
+
+1. Inspect the entire existing application.
+2. Understand the current booking flow, database/schema, APIs, authentication, fare calculation, booking statuses, driver system, Telegram dispatch, payment/deposit logic, notifications, and existing routes.
+3. DO NOT replace or rewrite the existing booking system unnecessarily.
+4. DO NOT remove existing functionality.
+5. DO NOT change existing customer-facing booking behavior unless absolutely required to integrate the new admin/driver functionality.
+6. Preserve all existing API contracts wherever possible.
+7. Preserve the existing database structure unless a small additive change is genuinely required.
+8. Do not delete existing fields because they appear unused.
+9. Do not create a second competing fare-calculation system.
+10. The existing master fare configuration must remain the single source of truth.
+11. If something already works, keep it working.
+12. Build the new Admin and Driver interfaces around the existing backend rather than rebuilding the backend from scratch.
+
+Before coding, inspect the existing codebase and identify:
+
+- Frontend framework
+- Backend framework
+- Database
+- Authentication
+- Booking APIs
+- Driver APIs
+- Admin APIs
+- Fare calculation logic
+- Booking statuses
+- Payment/deposit logic
+- Telegram integration
+- Push notifications
+- Existing admin routes
+- Existing driver routes
+- Existing customer booking routes
+
+Then implement the redesign using the existing architecture.
+
+---
+
+PART 1 — ADMIN DASHBOARD
+
+The Admin side should become a professional transportation dispatch command center.
+
+Primary admin routes should be structured around:
+
+- "/admin"
+- "/admin/dispatch"
+- "/admin/calendar"
+- "/admin/jobs"
+- "/admin/drivers"
+- "/admin/payments"
+- "/admin/customers"
+- "/admin/reports"
+- "/admin/config"
+- "/admin/new-job"
+
+Do NOT create duplicate routes if equivalent routes already exist. Reuse existing routes where appropriate.
+
+---
+
+ADMIN DESIGN STYLE
+
+Create a polished, modern transportation operations interface.
+
+Desktop-first but fully responsive for tablets and phones.
+
+Visual direction:
+
+- Dark professional dashboard
+- MaxiHubTT branding
+- Strong lime/green primary accent
+- Amber/orange for urgent items
+- Red for critical/expired issues
+- Green for completed/paid/available
+- Blue for informational states
+- White/gray readable typography
+- Clean cards
+- Clear spacing
+- Professional tables
+- Status badges
+- Monospace styling for job IDs and timestamps where appropriate
+
+Do NOT make it look like a generic SaaS template.
+
+It should feel like a real fleet dispatch center.
+
+---
+
+ADMIN HEADER
+
+Create a persistent admin header containing:
+
+- MaxiHubTT logo/branding
+- Current page name
+- Live date/time
+- Admin profile
+- Notification indicator
+- Sign out
+
+Navigation:
+
+Dashboard
+Dispatch
+Calendar
+Jobs
+Drivers
+Payments
+Customers
+Reports
+Settings
+
+On smaller screens, convert navigation into a responsive menu.
+
+---
+
+ADMIN DASHBOARD — MAIN OVERVIEW
+
+The "/admin" dashboard should prioritize OPERATIONS over analytics.
+
+At the top create a "Needs Attention" section.
+
+NEEDS ATTENTION
+
+Automatically surface:
+
+🔴 Urgent Jobs
+
+Bookings marked urgent/rush.
+
+Display:
+
+- Job ID
+- Pickup time
+- Pickup
+- Dropoff
+- Customer
+- Passenger count
+- Number of buses
+- Driver
+- Fare
+- Deposit
+- Status
+
+🟠 Deposits Awaiting Payment
+
+Show bookings where deposit is required but has not been confirmed.
+
+🔴 Unassigned Jobs
+
+Bookings that have been confirmed but have no driver.
+
+🟡 Jobs Starting Soon
+
+Show jobs beginning within the next 2 hours.
+
+🔴 Expired Deposits
+
+Bookings where the deposit deadline has passed.
+
+🟠 Driver Issues
+
+Show:
+
+- Offline drivers
+- Expiring DP
+- Expiring insurance
+- Incomplete driver documentation
+
+🟢 Ready to Dispatch
+
+Jobs where:
+
+- booking is confirmed
+- deposit requirement is satisfied
+- no driver has been assigned
+
+Make each alert clickable and take the admin directly to the relevant job.
+
+---
+
+TODAY'S DISPATCH BOARD
+
+This should be the MAIN operational component of the admin dashboard.
+
+Create a "Today's Dispatch" board/table.
+
+Columns:
+
+- Time
+- Job ID
+- Customer
+- Pickup
+- Dropoff
+- Passengers
+- Buses
+- Driver
+- Payment
+- Status
+- Actions
+
+Example:
+
+10:00 AM
+MH-1024
+John Smith
+POS
+Glencoe
+24 passengers
+2 buses
+Driver A / Driver B
+Deposit Paid
+Claimed
+
+Jobs should be sorted chronologically.
+
+Use visual status indicators.
+
+Allow the admin to quickly:
+
+- Open job
+- Assign driver
+- Reassign driver
+- Mark deposit paid
+- Call customer
+- WhatsApp customer
+- Redispatch job
+- Edit allowed administrative fields
+- Cancel
+- Complete
+
+---
+
+DISPATCH BOARD STATUS
+
+Support the existing booking statuses.
+
+Where compatible, display statuses such as:
+
+- Pending
+- Awaiting Deposit
+- Deposit Received
+- Ready to Dispatch
+- Broadcast
+- Claimed
+- En Route
+- Completed
+- Cancelled
+- Expired
+
+Do NOT rename backend statuses if doing so would break existing functionality.
+
+Create a frontend display-label mapping if necessary.
+
+---
+
+JOB CARDS
+
+Create a detailed job view.
+
+Every job should clearly show:
+
+BOOKING
+
+- Job ID
+- Created date/time
+- Pickup date
+- Pickup time
+- Pickup location
+- Dropoff location
+- One-way / Round trip
+- Passenger count
+- Number of buses
+- Capacity
+- Special instructions
+
+CUSTOMER
+
+- Customer name
+- Phone
+- Email if available
+- Call button
+- WhatsApp button
+
+PAYMENT
+
+- Base fare
+- Rush fee
+- Final total
+- Deposit required
+- Deposit received
+- Balance remaining
+- Payment status
+
+DISPATCH
+
+- Assigned driver(s)
+- Driver status
+- Vehicle/plate if available
+- Claim status
+- En Route status
+- Completion status
+
+TIMELINE
+
+Create a chronological job timeline:
+
+Booking Created
+↓
+Deposit Requested
+↓
+Deposit Received
+↓
+Ready to Dispatch
+↓
+Broadcast
+↓
+Driver Claimed
+↓
+Driver En Route
+↓
+Completed
+
+Use existing timestamps/data if available.
+
+If the backend doesn't currently store every event, implement an additive audit/event structure without breaking existing jobs.
+
+---
+
+MULTI-BUS SUPPORT
+
+The booking system must support multiple buses.
+
+Display prominently:
+
+24 passengers • 2 buses • Capacity 30
+
+For standard routes:
+
+- Maximum 15 passengers per bus.
+
+For Paramin:
+
+- Maximum 10 passengers per bus.
+
+The admin should clearly see how many buses are required.
+
+Example:
+
+24 passengers
+2 buses required
+Capacity: 30
+
+If multiple buses are required, allow the admin to assign different drivers to different buses.
+
+Example:
+
+BUS 1 → Driver A
+BUS 2 → Driver B
+
+Each assigned driver should only see the information relevant to their assignment where possible.
+
+Do NOT automatically apply discounts for multiple buses.
+
+The fare remains:
+
+APPROVED FARE PER BUS × NUMBER OF BUSES
+
+The admin can manually adjust the price only through existing authorized admin functionality.
+
+---
+
+ADMIN DRIVER AVAILABILITY
+
+Create a clear fleet availability panel.
+
+Drivers should have statuses:
+
+🟢 ONLINE — AVAILABLE
+
+🔵 ONLINE — ON JOB
+
+⚫ OFFLINE
+
+For each driver display:
+
+- Name
+- Username
+- Phone
+- Vehicle
+- Plate
+- Current status
+- Current job
+- Number of jobs today
+- Today's earnings
+- Documentation warnings
+
+Clicking a driver opens their profile.
+
+---
+
+DRIVER MANAGEMENT
+
+Improve "/admin/drivers".
+
+Separate:
+
+PENDING APPLICATIONS
+
+Display:
+
+- Name
+- Username
+- Phone
+- Plate
+- DP number
+- Taxi badge
+- Application date
+- Application status
+
+Actions:
+
+- View
+- Approve
+- Reject
+
+ACTIVE DRIVERS
+
+Display:
+
+- Name
+- Status
+- Vehicle
+- Plate
+- Phone
+- DP expiry
+- Insurance expiry
+- Jobs today
+- Earnings today
+
+Actions:
+
+- View
+- Edit documents
+- Reset password
+- Remove/deactivate driver
+
+Do not delete driver records if existing historical jobs depend on them.
+
+Prefer deactivation/soft-delete if appropriate.
+
+---
+
+DRIVER DOCUMENT EXPIRY MONITORING
+
+Create warnings for:
+
+- DP expiring soon
+- Insurance expiring soon
+- Taxi badge expiring soon
+- Missing documents
+
+Use configurable warning periods where possible.
+
+Example:
+
+30 days → warning
+7 days → urgent
+Expired → critical
+
+Do not block drivers automatically unless existing business logic already requires it.
+
+---
+
+ADMIN CALENDAR
+
+Create "/admin/calendar".
+
+Provide:
+
+- Day view
+- Week view
+- Month view
+
+Show every booking based on pickup date/time.
+
+Color/status-code bookings by:
+
+- Unassigned
+- Assigned
+- Deposit pending
+- Urgent
+- Completed
+
+Clicking an event opens the job.
+
+Include filters:
+
+- Driver
+- Status
+- Date
+- Urgent
+- Payment
+
+---
+
+ADMIN JOBS PAGE
+
+Create a searchable jobs database.
+
+Search by:
+
+- Job ID
+- Customer
+- Phone
+- Pickup
+- Dropoff
+- Driver
+
+Filters:
+
+- Date
+- Status
+- Driver
+- Payment
+- Urgent
+- Number of buses
+
+Allow sorting.
+
+Provide pagination for large datasets.
+
+Add CSV export using existing/export-safe functionality.
+
+---
+
+ADMIN PAYMENTS PAGE
+
+Create "/admin/payments".
+
+Show:
+
+- Job ID
+- Customer
+- Total
+- Deposit required
+- Deposit received
+- Balance
+- Payment status
+- Booking date
+- Pickup date
+
+Filters:
+
+- Paid
+- Deposit pending
+- Balance outstanding
+- Expired
+
+Admin should be able to mark a deposit/payment as received if the existing permission model allows this.
+
+Do not modify the customer's actual payment without confirmation.
+
+---
+
+ADMIN CUSTOMERS PAGE
+
+Create "/admin/customers".
+
+Show customers with:
+
+- Name
+- Phone
+- Email
+- Number of bookings
+- Total booking value
+- Last booking
+- Upcoming booking
+
+Click customer to view booking history.
+
+---
+
+ADMIN REPORTS
+
+Create "/admin/reports".
+
+Include:
+
+Revenue
+
+- Today
+- This week
+- This month
+- Custom date range
+
+Jobs
+
+- Total bookings
+- Completed
+- Cancelled
+- Expired
+- Pending
+
+Fleet
+
+- Jobs per driver
+- Driver earnings
+- Utilization
+- Available vs unavailable
+
+Routes
+
+Show most frequently booked routes.
+
+Do not invent financial data.
+
+Use actual database records.
+
+---
+
+ADMIN MANUAL BOOKING
+
+Improve "/admin/new-job".
+
+Allow admin to manually create:
+
+- Customer name
+- Phone
+- Email
+- Pickup
+- Dropoff
+- Date
+- Time
+- Passenger count
+- Number of buses
+- Trip type
+- Special instructions
+- Urgent/rush status
+- Fare/payment information where permitted
+
+The fare must use the SAME existing master fare calculation used by customer bookings.
+
+Never create a second fare calculator.
+
+---
+
+FARE SYSTEM PROTECTION
+
+This is extremely important.
+
+The Admin and Driver interfaces must NOT create their own fare rules.
+
+There must be ONE source of truth for approved fares.
+
+The system should support:
+
+- 1–12 passengers
+- 13–15 passengers
+- 16–18 passengers
+- 19–25 passengers
+- 26+ = custom quote unless specifically configured
+
+Multiple buses:
+
+Approved fare per bus × number of buses.
+
+No automatic multi-bus discount.
+
+Rush fee:
+
+TTD $150 ONCE per booking.
+
+Do NOT charge $150 per bus.
+
+Deposit:
+
+25% of the FINAL TOTAL.
+
+Final total includes applicable rush fee.
+
+Example:
+
+Base fare = $1,000
+Rush fee = $150
+Final = $1,150
+Deposit = $287.50
+
+The frontend and backend must agree exactly.
+
+Never trust a price sent from the browser.
+
+The backend must calculate/validate the authoritative price.
+
+---
+
+UNKNOWN ROUTES
+
+If there is no approved fare for a route:
+
+DO NOT:
+
+- calculate distance
+- estimate price
+- use old distance fallback
+- round a guessed price
+- return $0
+- silently choose a nearby route
+
+Instead display:
+
+CUSTOM QUOTE REQUIRED
+
+Then provide:
+
+- Request Quote
+- WhatsApp
+- Contact MaxiHubTT
+
+The admin should also clearly see that the booking requires a custom quote.
+
+---
+
+REMOVE/ISOLATE DISTANCE FALLBACK
+
+If the existing system still contains a fallback such as:
+
+straight-line distance × road factor
+or
+distance × rate
+or
+automatic rounding
+
+DO NOT use it for customer pricing.
+
+Remove it from the active booking calculation or isolate it so it cannot silently generate customer fares.
+
+Only approved fares should automatically generate prices.
+
+---
+
+DRIVER DASHBOARD
+
+Redesign "/driver" into a professional mobile-first dispatch application.
+
+This is the driver's working app, so it must be extremely simple.
+
+Do not overload it with admin features.
+
+Primary driver navigation:
+
+- Available Jobs
+- My Jobs
+- History
+- Earnings
+- Profile
+
+---
+
+DRIVER DESIGN
+
+Mobile-first.
+
+It should feel like a professional fleet/driver app.
+
+Use:
+
+- Dark teal/dark background
+- White text
+- Teal secondary elements
+- Green for available/completed
+- Amber/orange for urgent
+- Red for critical
+- Large touch-friendly buttons
+- Rounded cards
+- High contrast
+- Minimal typing
+
+Drivers may be using the app while working, so important information must be immediately visible.
+
+---
+
+DRIVER HEADER
+
+Display:
+
+- MaxiHubTT branding
+- Driver name
+- Online/Offline status
+- Notification indicator
+- Refresh status
+- Sign out
+
+---
+
+DRIVER AVAILABILITY
+
+At the top:
+
+DRIVER STATUS
+
+🟢 AVAILABLE
+
+or
+
+⚫ OFFLINE
+
+Provide a large toggle/button:
+
+GO ONLINE
+
+GO OFFLINE
+
+When online, the driver can receive available jobs.
+
+Also include:
+
+- Push notification status
+- Enable/disable alerts
+- PWA install prompt if supported
+
+Do not allow the driver to claim jobs while offline if existing backend rules prevent this.
+
+---
+
+AVAILABLE JOBS
+
+This is the most important driver screen.
+
+Show jobs that the driver can actually claim.
+
+Each job card should display:
+
+JOB ID
+
+MH-1024
+
+TIME
+
+Today — 3:00 PM
+
+ROUTE
+
+Pickup:
+West End Christian Fellowship
+
+Dropoff:
+Glencoe
+
+PASSENGERS
+
+24 passengers
+
+BUSES
+
+2 buses
+
+FARE
+
+$2,000
+
+DEPOSIT
+
+PAID
+
+URGENCY
+
+NORMAL / URGENT
+
+ACTION
+
+CLAIM JOB
+
+Make the Claim Job button large and obvious.
+
+---
+
+DRIVER CLAIMING
+
+When a driver clicks Claim Job:
+
+- Send claim request through existing backend API.
+- Backend must verify job is still available.
+- Prevent two drivers from claiming the exact same assignment.
+- Show success/failure immediately.
+
+If the job was already claimed:
+
+Display:
+
+JOB NO LONGER AVAILABLE
+
+Do not rely only on frontend state.
+
+---
+
+MULTI-BUS JOBS
+
+For jobs requiring multiple buses:
+
+Example:
+
+24 passengers
+2 buses required
+
+Display:
+
+BUS 1
+Driver assigned: John
+
+BUS 2
+Driver assigned: Michael
+
+A driver should clearly know which bus they are responsible for.
+
+If the backend currently supports one driver per job only, extend it safely so multi-driver/multi-bus assignments can be supported without breaking existing single-driver jobs.
+
+Existing single-bus jobs must continue to work exactly as before.
+
+---
+
+DRIVER MY JOBS
+
+Create a clean "My Jobs" screen.
+
+Separate:
+
+NEXT JOB
+
+Make the next upcoming job visually dominant.
+
+Display:
+
+- Time
+- Pickup
+- Dropoff
+- Passenger count
+- Number of buses
+- Customer
+- Phone
+- Fare
+- Deposit status
+- Special instructions
+
+Large buttons:
+
+NAVIGATE
+
+CALL
+
+WHATSAPP
+
+EN ROUTE
+
+COMPLETE
+
+---
+
+DRIVER NAVIGATION
+
+The Navigate button should open the appropriate mapping application using the pickup/dropoff location.
+
+Use the existing map integration if present.
+
+Do not hard-code addresses.
+
+---
+
+DRIVER CUSTOMER CONTACT
+
+Provide:
+
+CALL CUSTOMER
+
+WHATSAPP CUSTOMER
+
+Use the stored customer phone number.
+
+Do not expose unnecessary customer information.
+
+---
+
+DRIVER JOB STATUS
+
+Driver should be able to update permitted statuses:
+
+Claimed
+→ En Route
+→ Completed
+
+If "Arrived" already exists in the backend, support it.
+
+Do not allow drivers to:
+
+- Change fare
+- Change deposit
+- Change customer payment
+- Edit approved pricing
+- Modify another driver's job
+- Assign themselves to unavailable jobs
+
+---
+
+DRIVER JOB NOTES
+
+Allow drivers to add notes where appropriate.
+
+Examples:
+
+- Customer requested extra pickup
+- Passenger count changed
+- Vehicle issue
+- Delay
+- Customer unavailable
+
+Notes should be timestamped and associated with the job.
+
+---
+
+DRIVER HISTORY
+
+Create "/driver/history".
+
+Show:
+
+- Job ID
+- Date
+- Route
+- Passenger count
+- Fare
+- Status
+- Customer rating if available
+
+Allow filters:
+
+- This week
+- This month
+- All time
+
+---
+
+DRIVER EARNINGS
+
+Create "/driver/earnings".
+
+Show:
+
+TODAY
+
+Completed jobs
+Total earnings
+
+THIS WEEK
+
+Completed jobs
+Total earnings
+
+THIS MONTH
+
+Completed jobs
+Total earnings
+
+Do not calculate fake earnings.
+
+Use completed jobs and actual stored amounts.
+
+If the existing system distinguishes driver payout from customer fare, use the driver payout field rather than assuming the customer fare is the driver's earnings.
+
+---
+
+DRIVER PROFILE
+
+Create "/driver/profile".
+
+Display:
+
+- Name
+- Username
+- Phone
+- Vehicle
+- Plate
+- DP
+- Taxi badge
+- Insurance
+- Document expiry dates
+
+Allow only appropriate editable fields.
+
+Sensitive documents should not be editable by the driver unless the existing permission model permits it.
+
+---
+
+DRIVER NOTIFICATIONS
+
+Improve notifications.
+
+When a new suitable job becomes available:
+
+- Push notification if supported
+- In-app notification
+- Optional sound alert
+
+Do not create excessive notifications.
+
+If push notifications are already implemented, preserve the existing implementation.
+
+Polling may remain as a fallback.
+
+Do not break existing Telegram notifications.
+
+---
+
+REAL-TIME JOB UPDATES
+
+Driver available jobs should update automatically.
+
+Use the existing real-time/polling infrastructure if available.
+
+If polling is currently used:
+
+- Maintain it
+- Optimize it
+- Avoid duplicate requests
+- Handle connection errors gracefully
+
+Target approximately 5–10 second refresh for active dispatch screens where appropriate.
+
+Do not hammer the backend.
+
+---
+
+ADMIN ↔ DRIVER SYNC
+
+When an admin:
+
+- assigns a driver
+- reassigns a driver
+- cancels a job
+- marks payment received
+- updates a job
+
+the driver interface should reflect the change.
+
+When a driver:
+
+- claims a job
+- goes en route
+- completes a job
+
+the admin interface should update.
+
+Use existing APIs/realtime systems where possible.
+
+---
+
+AUDIT TRAIL
+
+Implement a job activity timeline.
+
+Record important events:
+
+- Booking created
+- Fare calculated
+- Deposit requested
+- Deposit received
+- Job dispatched
+- Job broadcast
+- Driver claimed
+- Driver assigned
+- Driver reassigned
+- Driver en route
+- Job completed
+- Job cancelled
+- Admin modification
+
+Each event should contain:
+
+- Timestamp
+- Actor
+- Action
+- Relevant details
+
+Do not destroy historical events when a job changes status.
+
+---
+
+SECURITY / PERMISSIONS
+
+Strictly separate Admin and Driver permissions.
+
+ADMIN can:
+
+- View all jobs
+- View all drivers
+- Assign drivers
+- Reassign drivers
+- View payments
+- Manage configuration
+- Manage drivers
+- Create manual jobs
+- Cancel jobs
+- Complete jobs
+- Perform authorized administrative corrections
+
+DRIVER can:
+
+- View available jobs
+- Claim available jobs
+- View their assigned jobs
+- Contact customers
+- Navigate
+- Mark en route
+- Complete jobs
+- Add permitted notes
+- View their history
+- View their earnings
+- Change availability
+
+DRIVER CANNOT:
+
+- Change fares
+- Change deposits
+- Change customer payment
+- Change master fare configuration
+- View unrelated drivers' private information
+- Modify another driver's jobs
+- Access admin pages
+
+Enforce permissions on the backend, not just by hiding buttons.
+
+---
+
+RESPONSIVE DESIGN
+
+ADMIN:
+
+Desktop-first.
+
+Must still work on:
+
+- Laptop
+- Tablet
+- Mobile
+
+DRIVER:
+
+Mobile-first.
+
+Must work especially well on:
+
+- Android phones
+- iPhones
+- Small screens
+
+Buttons must be large enough to use quickly.
+
+Do not create horizontal scrolling wherever avoidable.
+
+---
+
+ERROR HANDLING
+
+Every important action needs clear feedback.
+
+Examples:
+
+Success:
+
+"Job claimed successfully."
+
+Failure:
+
+"Unable to claim job. This job may have already been claimed."
+
+Network:
+
+"Connection lost. Retrying..."
+
+Payment:
+
+"Deposit status could not be updated."
+
+Never silently fail.
+
+---
+
+LOADING STATES
+
+Use proper:
+
+- Skeleton loaders
+- Loading indicators
+- Empty states
+- Error states
+
+Examples:
+
+"No available jobs right now."
+
+"No bookings found."
+
+"No drivers online."
+
+"Unable to load dispatch board. Retry."
+
+Do not show blank screens.
+
+---
+
+EMPTY STATES
+
+Create professional empty states.
+
+Driver:
+
+"No jobs available right now. Stay online and we'll notify you when a suitable job becomes available."
+
+Admin:
+
+"No urgent issues. Fleet is running smoothly."
+
+---
+
+PERFORMANCE
+
+Do not make the dashboard unnecessarily slow.
+
+Optimize:
+
+- Database queries
+- API requests
+- Polling
+- Rendering
+- Large job lists
+
+Use pagination for large datasets.
+
+Avoid loading every historical booking into the browser at once.
+
+---
+
+DATABASE SAFETY
+
+Before modifying database schemas:
+
+1. Inspect existing schema.
+2. Identify relationships.
+3. Identify foreign keys.
+4. Identify existing production data.
+5. Make additive migrations only where possible.
+6. Do not delete production data.
+7. Do not rename existing fields unless absolutely necessary.
+8. If a new field is required, make it nullable/backward-compatible where possible.
+
+Existing bookings must continue displaying correctly after deployment.
+
+---
+
+BACKWARD COMPATIBILITY
+
+Existing bookings created before this redesign must continue to work.
+
+Test:
+
+- Old bookings
+- New bookings
+- One-bus bookings
+- Multi-bus bookings
+- Paid bookings
+- Deposit-pending bookings
+- Completed bookings
+- Cancelled bookings
+- Urgent bookings
+- Standard bookings
+- Custom quote bookings
+
+Do not break old records.
+
+---
+
+IMPORTANT FARE/BUS RULES
+
+Use the existing master fare configuration as the only authoritative pricing source.
+
+Required passenger brackets:
+
+1–12
+13–15
+16–18
+19–25
+26+ → CUSTOM QUOTE unless explicitly configured
+
+Standard bus capacity:
+
+15 passengers per bus.
+
+Paramin capacity:
+
+10 passengers per bus.
+
+For multiple buses:
+
+NUMBER OF BUSES × APPROVED PER-BUS FARE
+
+No automatic discount.
+
+Rush fee:
+
+TTD $150 once per booking.
+
+Deposit:
+
+25% of final total.
+
+Unknown route:
+
+CUSTOM QUOTE REQUIRED.
+
+Never use an automatic distance-based fallback to invent a fare.
+
+---
+
+PARAMIN
+
+Paramin is special.
+
+Maximum:
+
+10 passengers per bus.
+
+Therefore:
+
+1–10 → one bus
+11–20 → two buses
+21–30 → three buses
+
+Use the approved Paramin fare configuration.
+
+Do not apply the normal 15-passenger capacity to Paramin.
+
+If an approved Paramin fare does not exist for the required passenger/bus configuration:
+
+CUSTOM QUOTE REQUIRED.
+
+---
+
+CONFIGURATION PAGE
+
+Improve "/admin/config".
+
+Keep the existing configuration functionality.
+
+Organize settings into sections:
+
+BOOKING SETTINGS
+
+- Standard booking lead time
+- Same-day threshold
+- Urgent threshold
+- Urgent booking enabled
+
+PAYMENT
+
+- Deposit percentage
+- Deposit expiry
+- Rush fee
+
+FLEET
+
+- Standard bus capacity
+- Paramin capacity
+
+NOTIFICATIONS
+
+- Push notification settings
+- Telegram settings
+- Test notification
+
+FARES
+
+Display/link to the master fare configuration.
+
+Do not create a separate fare database.
+
+---
+
+TESTING REQUIREMENTS
+
+Before declaring the redesign complete, test the application thoroughly.
+
+BOOKING TESTS
+
+Test:
+
+1 passenger
+12 passengers
+13 passengers
+15 passengers
+16 passengers
+18 passengers
+19 passengers
+25 passengers
+26 passengers
+
+Test:
+
+- One-way
+- Round trip
+- Normal booking
+- Same-day booking
+- Urgent booking
+- Deposit required
+- Deposit paid
+- Unknown route
+- Custom quote
+
+---
+
+MULTI-BUS TESTS
+
+Test:
+
+12 passengers → 1 bus
+
+15 passengers → 1 bus
+
+16 passengers → 2 buses
+
+25 passengers → 2 buses
+
+26 passengers → custom quote unless explicitly configured
+
+Test fare:
+
+Per-bus fare × number of buses.
+
+Confirm no automatic discount is applied.
+
+Confirm rush fee is charged only once.
+
+Confirm deposit equals 25% of final total.
+
+---
+
+PARAMIN TESTS
+
+Test:
+
+10 passengers → 1 bus
+
+11 passengers → 2 buses
+
+20 passengers → 2 buses
+
+21 passengers → 3 buses
+
+Confirm Paramin uses 10 passengers per bus.
+
+---
+
+SECURITY TESTS
+
+Attempt to:
+
+- Modify fare from browser
+- Modify deposit from browser
+- Claim an already claimed job
+- Access another driver's job
+- Access admin pages as driver
+- Change another driver's assignment
+- Submit invalid passenger counts
+- Submit invalid bus counts
+- Submit fake payment status
+
+Backend must reject unauthorized actions.
+
+---
+
+UI TESTING
+
+Test:
+
+- Desktop
+- Tablet
+- Android phone
+- Small screen
+- Dark theme
+- Slow network
+- Empty database states
+- Many jobs
+- Many drivers
+
+Make sure no major buttons are hidden or unusable.
+
+---
+
+FINAL IMPLEMENTATION RULE
+
+DO NOT simply create mock screens.
+
+The Admin and Driver pages must connect to the REAL existing data and APIs.
+
+Do not use fake/demo job data in production.
+
+Do not hard-code jobs.
+
+Do not hard-code drivers.
+
+Do not hard-code earnings.
+
+Do not hard-code booking statuses.
+
+Do not create a fake frontend-only dispatch system.
+
+Everything should use the existing backend/database.
+
+---
+
+BEFORE FINISHING
+
+After implementation:
+
+1. Run the application.
+2. Test the customer booking flow.
+3. Test admin login.
+4. Test driver login.
+5. Create a test booking.
+6. Verify it appears in Admin.
+7. Verify dispatch functionality.
+8. Verify the driver can see/claim it.
+9. Verify admin sees the driver claim.
+10. Verify En Route updates.
+11. Verify Completed updates.
+12. Verify payment/deposit display.
+13. Verify fare calculations.
+14. Verify multi-bus jobs.
+15. Verify Paramin capacity.
+16. Verify unknown routes produce CUSTOM QUOTE.
+17. Verify existing Telegram functionality still works.
+18. Verify push notifications still work if configured.
+19. Verify existing customer booking functionality has not been broken.
+
+Fix any errors you encounter.
+
+---
+
+CODE QUALITY
+
+Keep the implementation clean and maintainable.
+
+Use reusable components for:
+
+- Job cards
+- Status badges
+- Driver cards
+- Payment summaries
+- Dispatch rows
+- Timeline events
+- Notification banners
+- Modals
+- Confirmation dialogs
+
+Avoid duplicating business logic.
+
+Especially:
+
+NEVER DUPLICATE THE FARE CALCULATION LOGIC.
+
+Use the existing backend/master fare service everywhere.
+
+---
+
+MOST IMPORTANT PRIORITIES
+
+If you have to choose between adding a visual feature and preserving existing functionality:
+
+1. Existing booking system stability
+2. Existing database/data
+3. Existing authentication
+4. Existing fare calculation
+5. Existing payment/deposit system
+6. Existing dispatch/Telegram functionality
+7. Admin operational functionality
+8. Driver operational functionality
+9. Visual polish
+10. Extra analytics
+
+Do NOT sacrifice existing working functionality just to achieve the redesign.
+
+The finished result should feel like:
+
+MaxiHubTT Fleet Operations Center
+
+for Admin,
+
+and
+
+MaxiHubTT Driver Dispatch
+
+for Drivers.
+
+Build it as a real working system, not a mockup.This prompt should make Replit inspect first, then modify, which is important because you don't want it tearing apart your working customer booking/fare system just to make the dashboards look better.
