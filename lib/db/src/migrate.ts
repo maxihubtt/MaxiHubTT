@@ -1,9 +1,22 @@
 import pg from "pg";
 
-const url = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
+function getConnectionString(): string | undefined {
+  const password = process.env.SUPABASE_DB_PASSWORD;
+  if (password) {
+    const host = process.env.SUPABASE_DB_HOST ?? "aws-1-us-east-2.pooler.supabase.com";
+    const user = process.env.SUPABASE_DB_USER ?? "postgres.bfufjqlofylnjamfoorb";
+    return `postgresql://${user}:${encodeURIComponent(password)}@${host}:5432/postgres`;
+  }
+
+  return process.env.SUPABASE_DB_URL
+    ?? process.env.DIRECT_URL
+    ?? process.env.DATABASE_URL;
+}
+
+const url = getConnectionString();
 
 if (!url) {
-  console.error("ERROR: DIRECT_URL or DATABASE_URL must be set");
+  console.error("ERROR: SUPABASE_DB_PASSWORD, SUPABASE_DB_URL, DIRECT_URL, or DATABASE_URL must be set");
   process.exit(1);
 }
 
