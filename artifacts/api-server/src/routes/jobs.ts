@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { eq, desc, and, isNotNull } from "drizzle-orm";
-import { db, jobsTable, adminConfigTable } from "@workspace/db";
+import { db, jobsTable, adminConfigTable, driversTable } from "@workspace/db";
 import { DEFAULT_CONFIG, type ConfigKey } from "@workspace/db";
 import { CreateJobBody } from "@workspace/api-zod";
 import { sendJobToGroup, notifyGroupClaimed, sendJobDetailsToDriver } from "../lib/telegram";
@@ -230,9 +230,27 @@ router.get("/jobs/analytics", requireAdmin, async (req, res) => {
 router.post("/jobs/:id/claim", requireDriver, async (req, res) => {
   const id = req.params["id"] as string;
   const driverName = req.session.driverName ?? (req.body as { driverName?: string }).driverName ?? "";
+  const driverId = req.session.driverId;
 
   if (!driverName.trim()) {
     res.status(400).json({ error: "Driver name not found in session" });
+    return;
+  }
+  if (!driverId) {
+    res.status(401).json({ error: "Driver session is incomplete. Please sign in again." });
+    return;
+  }
+
+  const [driver] = await db
+    .select({ availability: driversTable.availability })
+    .from(driversTable)
+    .where(eq(driversTable.id, driverId));
+  if (!driver) {
+    res.status(401).json({ error: "Driver account not found. Please sign in again." });
+    return;
+  }
+  if (driver.availability !== "available") {
+    res.status(409).json({ error: "Go online before claiming a job." });
     return;
   }
 
@@ -250,8 +268,16 @@ router.post("/jobs/:id/claim", requireDriver, async (req, res) => {
   const [updated] = await db
     .update(jobsTable)
     .set({ status: newStatus, claimedBy: driverName.trim(), updatedAt: new Date() })
-    .where(eq(jobsTable.id, id))
+    .where(and(
+      eq(jobsTable.id, id),
+      eq(jobsTable.status, job.status),
+    ))
     .returning();
+
+  if (!updated) {
+    res.status(409).json({ error: "Job is no longer available to claim" });
+    return;
+  }
 
   await notifyGroupClaimed(id, driverName.trim());
   req.log.info({ jobId: id, driverName }, "Job claimed via driver portal");
@@ -390,7 +416,12 @@ router.patch("/jobs/:id/price", requireAdmin, async (req, res) => {
   if (!price?.trim()) { res.status(400).json({ error: "Price is required" }); return; }
   const [job] = await db.select().from(jobsTable).where(eq(jobsTable.id, id));
   if (!job) { res.status(404).json({ error: "Job not found" }); return; }
-  const [updated] = await db.update(jobsTable).set({ price: price.trim(), updatedAt: new Date() }).where(eq(jobsTable.id, id)).returning();
+  const parsedPrice = parseJobPrice(price.trim());
+  const [updated] = await db.update(jobsTable).set({
+    price: price.trim(),
+    ...(parsedPrice > 0 ? { totalFare: parsedPrice } : {}),
+    updatedAt: new Date(),
+  }).where(eq(jobsTable.id, id)).returning();
   req.log.info({ jobId: id, price }, "Job price updated by admin");
   res.json(serializeJob(updated));
 });
@@ -646,10 +677,19 @@ export async function handleDriverClaim(
 
   const newStatus = job.status === "deposit_received" ? "driver_assigned" : "claimed";
 
-  await db
+  const [claimed] = await db
     .update(jobsTable)
     .set({ status: newStatus, claimedBy: driverName, updatedAt: new Date() })
-    .where(eq(jobsTable.id, jobId));
+    .where(and(
+      eq(jobsTable.id, jobId),
+      eq(jobsTable.status, job.status),
+    ))
+    .returning({ id: jobsTable.id });
+
+  if (!claimed) {
+    logger.info({ jobId }, "Telegram claim lost race to another claimant");
+    return;
+  }
 
   await sendJobDetailsToDriver(driverId, job);
   await notifyGroupClaimed(jobId, driverName);

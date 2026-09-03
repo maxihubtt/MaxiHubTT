@@ -137,8 +137,15 @@ export default function Dashboard() {
         })
     : [];
 
-  const onlineDrivers = drivers.filter(d => d.availability === "online");
-  const offlineDrivers = drivers.filter(d => d.availability !== "online");
+  const onlineDrivers = drivers.filter(d => d.availability === "available" || d.availability === "online");
+  const offlineDrivers = drivers.filter(d => d.availability !== "available" && d.availability !== "online");
+  const attentionJobs = jobs
+    ? jobs.filter(j =>
+        j.status === "pending_deposit" ||
+        (j.status === "pending" && (j as typeof j & { claimedBy?: string | null }).claimedBy == null) ||
+        (j as typeof j & { urgency?: string }).urgency === "urgent"
+      ).slice(0, 6)
+    : [];
   const maxDayCount = analytics ? Math.max(...analytics.days.map(d => d.count), 1) : 1;
 
   function handleExport() {
@@ -148,6 +155,47 @@ export default function Dashboard() {
   return (
     <Layout>
       <div className="space-y-8">
+
+        {/* Needs Attention */}
+        <Card className="p-5 border-orange-500/30 bg-orange-500/5">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4">
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-orange-400" />
+              <p className="text-xs font-mono uppercase text-orange-300 tracking-wider">Needs Attention</p>
+            </div>
+            <p className="text-xs text-muted-foreground sm:ml-auto">
+              {attentionJobs.length ? `${attentionJobs.length} item${attentionJobs.length === 1 ? "" : "s"} require review` : "Fleet is running smoothly"}
+            </p>
+          </div>
+          {attentionJobs.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border/70 px-4 py-5 text-sm text-muted-foreground">
+              No urgent bookings, deposit holds, or unassigned admin jobs.
+            </div>
+          ) : (
+            <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+              {attentionJobs.map(job => {
+                const ext = job as typeof job & { name?: string; passengerCount?: number | null };
+                const label = job.urgency === "urgent"
+                  ? "Urgent"
+                  : job.status === "pending_deposit"
+                    ? "Deposit pending"
+                    : "Unassigned";
+                return (
+                  <a key={job.id} href={`/jobs/${job.id}`} className="rounded-lg border border-border bg-background/60 p-3 hover:border-primary/60 transition-colors">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-xs text-primary">#{job.id}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-orange-300">{label}</span>
+                    </div>
+                    <p className="mt-2 text-sm font-semibold truncate">{job.pickup} → {job.dropoff}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {ext.name ?? "Customer"} · {ext.passengerCount ?? job.passengers ?? "Passengers not set"} · {job.numberBuses ?? 1} bus{(job.numberBuses ?? 1) === 1 ? "" : "es"}
+                    </p>
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </Card>
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

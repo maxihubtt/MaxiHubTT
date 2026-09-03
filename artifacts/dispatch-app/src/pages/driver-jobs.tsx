@@ -199,12 +199,13 @@ async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
 
 // ── JobCard ────────────────────────────────────────────────────────────────────
 
-function JobCard({ job, isMine, driverName, onClaim, claiming, onEnRoute, onComplete, enRouting, completing }: {
+function JobCard({ job, isMine, driverName, onClaim, claiming, allowClaim, onEnRoute, onComplete, enRouting, completing }: {
   job: DriverJob;
   isMine: boolean;
   driverName?: string;
   onClaim: (id: string) => void;
   claiming: boolean;
+  allowClaim?: boolean;
   onEnRoute?: (id: string) => void;
   onComplete?: (id: string) => void;
   enRouting?: boolean;
@@ -276,13 +277,13 @@ function JobCard({ job, isMine, driverName, onClaim, claiming, onEnRoute, onComp
       {(job.status === "pending" || job.status === "deposit_received") && !isMine && (
         <button
           onClick={() => onClaim(job.id)}
-          disabled={claiming}
+          disabled={claiming || !allowClaim}
           className="w-full py-3 rounded-xl font-black text-teal-900 text-sm disabled:opacity-60 active:scale-[0.98] transition-all"
           style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)" }}
         >
           {claiming
             ? <span className="flex items-center justify-center gap-2"><Loader2 className="w-3.5 h-3.5 animate-spin" />Claiming…</span>
-            : "Claim This Job"}
+            : allowClaim ? "Claim This Job" : "Go Online to Claim"}
         </button>
       )}
 
@@ -860,6 +861,7 @@ export default function DriverJobs() {
                       driverName={driverName}
                       onClaim={handleClaim}
                       claiming={claimingId === job.id}
+                      allowClaim={availability === "available"}
                     />
                   ))}
                 </div>

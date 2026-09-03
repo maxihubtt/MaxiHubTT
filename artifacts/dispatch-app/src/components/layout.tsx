@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Zap, LayoutDashboard, Plus, Clock, LogOut, Users, Settings } from "lucide-react";
+import { Zap, LayoutDashboard, Plus, Clock, LogOut, Users, Settings, Menu, X, CalendarDays, ListChecks, CreditCard, BarChart3, Contact } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -11,6 +11,7 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   const [location, navigate] = useLocation();
   const [time, setTime] = useState(new Date().toLocaleTimeString());
+  const [mobileOpen, setMobileOpen] = useState(false);
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -36,7 +37,7 @@ export function Layout({ children }: LayoutProps) {
               <span className="font-bold text-lg tracking-tight uppercase">Maxi Hub Dispatch</span>
             </Link>
 
-            <nav className="hidden md:flex items-center gap-6">
+            <nav className="hidden lg:flex items-center gap-5">
               <Link
                 href="/admin"
                 className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 ${
@@ -54,6 +55,21 @@ export function Layout({ children }: LayoutProps) {
               >
                 <Users className="h-4 w-4" />
                 Drivers
+              </Link>
+              <Link href="/admin/calendar" className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 ${location === "/admin/calendar" ? "text-foreground" : "text-muted-foreground"}`}>
+                <CalendarDays className="h-4 w-4" /> Calendar
+              </Link>
+              <Link href="/admin/jobs" className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 ${location === "/admin/jobs" ? "text-foreground" : "text-muted-foreground"}`}>
+                <ListChecks className="h-4 w-4" /> Jobs
+              </Link>
+              <Link href="/admin/payments" className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 ${location === "/admin/payments" ? "text-foreground" : "text-muted-foreground"}`}>
+                <CreditCard className="h-4 w-4" /> Payments
+              </Link>
+              <Link href="/admin/customers" className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 ${location === "/admin/customers" ? "text-foreground" : "text-muted-foreground"}`}>
+                <Contact className="h-4 w-4" /> Customers
+              </Link>
+              <Link href="/admin/reports" className={`text-sm font-medium transition-colors hover:text-primary flex items-center gap-2 ${location === "/admin/reports" ? "text-foreground" : "text-muted-foreground"}`}>
+                <BarChart3 className="h-4 w-4" /> Reports
               </Link>
               <Link
                 href="/admin/config"
@@ -89,8 +105,35 @@ export function Layout({ children }: LayoutProps) {
             >
               <LogOut className="h-4 w-4" />
             </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="lg:hidden text-muted-foreground"
+              onClick={() => setMobileOpen(v => !v)}
+              aria-label="Toggle navigation"
+            >
+              {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            </Button>
           </div>
         </div>
+        {mobileOpen && (
+          <nav className="lg:hidden border-t border-border/50 px-4 py-3 grid grid-cols-2 gap-2">
+            {[
+              ["/admin", "Live Feed", LayoutDashboard],
+              ["/admin/drivers", "Drivers", Users],
+              ["/admin/calendar", "Calendar", CalendarDays],
+              ["/admin/jobs", "Jobs", ListChecks],
+              ["/admin/payments", "Payments", CreditCard],
+              ["/admin/customers", "Customers", Contact],
+              ["/admin/reports", "Reports", BarChart3],
+              ["/admin/config", "Config", Settings],
+            ].map(([href, label, Icon]) => (
+              <Link key={href as string} href={href as string} onClick={() => setMobileOpen(false)} className="flex items-center gap-2 rounded-md border border-border bg-muted/20 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:border-primary/50">
+                <Icon className="h-4 w-4" /> {label as string}
+              </Link>
+            ))}
+          </nav>
+        )}
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-8">

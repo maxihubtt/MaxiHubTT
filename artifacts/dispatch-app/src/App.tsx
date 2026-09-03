@@ -18,6 +18,7 @@ import DriverLogin from "@/pages/driver-login";
 import DriverSignup from "@/pages/driver-signup";
 import AdminDrivers from "@/pages/admin-drivers";
 import AdminConfig from "@/pages/admin-config";
+import AdminOperations from "@/pages/admin-operations";
 import TermsUsers from "@/pages/terms-users";
 import TermsDrivers from "@/pages/terms-drivers";
 import NotFound from "@/pages/not-found";
@@ -67,6 +68,11 @@ function Router() {
       <Route path="/admin/config">
         <AdminGuard>
           <AdminConfig />
+        </AdminGuard>
+      </Route>
+      <Route path="/admin/:section">
+        <AdminGuard>
+          <AdminOperations />
         </AdminGuard>
       </Route>
 
