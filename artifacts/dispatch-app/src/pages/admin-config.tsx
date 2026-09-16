@@ -10,6 +10,7 @@ interface ConfigData {
   deposit_pct: string;
   rush_fee: string;
   deposit_expiry_mins: string;
+  advance_deposit_expiry_mins: string;
   urgent_enabled: string;
 }
 
@@ -18,7 +19,8 @@ const FIELD_META: Record<keyof ConfigData, { label: string; description: string;
   same_day_min_hours:  { label: "Same-Day Threshold (Hours)",  description: "Bookings under this many hours are classified as urgent (e.g. 2).", type: "number" },
   deposit_pct:         { label: "Deposit Percentage (%)",       description: "Percentage of the fare required as a deposit (e.g. 25).", type: "number" },
   rush_fee:            { label: "Rush Fee (TTD)",               description: "Additional fee added to urgent bookings, in TTD (e.g. 150).", type: "number" },
-  deposit_expiry_mins: { label: "Deposit Expiry (Minutes)",     description: "How long a pending-deposit booking stays open before it auto-expires (e.g. 45).", type: "number" },
+  deposit_expiry_mins: { label: "Same-Day Deposit Window (Minutes)", description: "How long same-day or short-notice bookings stay open before they auto-expire (e.g. 45).", type: "number" },
+  advance_deposit_expiry_mins: { label: "Advance Booking Deposit Window (Minutes)", description: "How long bookings made more than 24 hours before pickup stay open (default: 1440 minutes / 24 hours).", type: "number" },
   urgent_enabled:      { label: "Urgent Bookings Enabled",      description: "Allow bookings under the same-day threshold (requires full payment + rush fee).", type: "toggle" },
 };
 

@@ -21,8 +21,15 @@ async function telegramRequest(method: string, body: Record<string, unknown>): P
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    const data = await res.json() as { ok: boolean };
-    return data.ok === true;
+    const data = await res.json() as { ok: boolean; description?: string };
+    if (!res.ok || !data.ok) {
+      logger.warn(
+        { method, statusCode: res.status, description: data.description },
+        "Telegram API rejected notification",
+      );
+      return false;
+    }
+    return true;
   } catch (err) {
     logger.error({ err }, "Telegram API request failed");
     return false;
@@ -51,6 +58,58 @@ export async function sendJobToGroup(job: {
   return telegramRequest("sendMessage", {
     chat_id: GROUP_ID,
     text: `NEW JOB #${job.id}\n\nFrom: ${job.pickup}\nTo: ${job.dropoff}\n${paxLine}Price: ${job.price}\n\nLog in to the driver portal to claim.`,
+    ...(markup && { reply_markup: markup }),
+  });
+}
+
+export async function sendCustomerBookingToGroup(job: {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string | null;
+  pickup: string;
+  dropoff: string;
+  price: string;
+  passengers?: string | null;
+  depositAmount?: number | null;
+  expiresAt?: Date | null;
+  urgency?: string | null;
+}): Promise<boolean> {
+  if (!GROUP_ID) return false;
+
+  const appDomain = process.env["APP_DOMAIN"] ?? process.env["REPLIT_DOMAINS"]?.split(",")[0];
+  const adminLink = appDomain ? `https://${appDomain}/admin/operations` : null;
+  const markup = adminLink
+    ? { inline_keyboard: [[{ text: "OPEN BOOKINGS", url: adminLink }]] }
+    : undefined;
+  const deadline = job.expiresAt
+    ? job.expiresAt.toLocaleString("en-TT", {
+        timeZone: "America/Port_of_Spain",
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : "To be confirmed";
+  const deposit = job.depositAmount != null ? `TTD ${job.depositAmount.toLocaleString("en-TT")}` : "To be confirmed";
+  const urgency = job.urgency === "standard" ? "Advance booking" : "Same-day / short-notice booking";
+
+  return telegramRequest("sendMessage", {
+    chat_id: GROUP_ID,
+    text: [
+      `NEW CUSTOMER BOOKING #${job.id}`,
+      ``,
+      `Customer: ${job.name}`,
+      `Phone: ${job.phone}`,
+      ...(job.email ? [`Email: ${job.email}`] : []),
+      `From: ${job.pickup}`,
+      `To: ${job.dropoff}`,
+      ...(job.passengers ? [`Passengers: ${job.passengers}`] : []),
+      `Pickup: ${urgency}`,
+      `Fare: ${job.price}`,
+      `Deposit: ${deposit}`,
+      `Deposit deadline: ${deadline}`,
+      ``,
+      `Awaiting deposit confirmation. Drivers will be notified after payment is confirmed.`,
+    ].join("\n"),
     ...(markup && { reply_markup: markup }),
   });
 }

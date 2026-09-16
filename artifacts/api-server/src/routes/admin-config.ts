@@ -19,6 +19,8 @@ router.get("/config/booking", async (_req, res) => {
       rush_fee: Number(config.rush_fee),
       min_booking_hours: Number(config.min_booking_hours),
       same_day_min_hours: Number(config.same_day_min_hours),
+      deposit_expiry_mins: Number(config.deposit_expiry_mins),
+      advance_deposit_expiry_mins: Number(config.advance_deposit_expiry_mins),
       urgent_enabled: config.urgent_enabled === "true",
     });
   } catch {

@@ -541,6 +541,8 @@ components:
           type: string
         deposit_expiry_mins:
           type: string
+        advance_deposit_expiry_mins:
+          type: string
         urgent_enabled:
           type: string
 

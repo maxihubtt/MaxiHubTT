@@ -9,6 +9,8 @@ interface BookingConfig {
   rush_fee: number;
   min_booking_hours: number;
   same_day_min_hours: number;
+  deposit_expiry_mins: number;
+  advance_deposit_expiry_mins: number;
   urgent_enabled: boolean;
 }
 
@@ -17,6 +19,8 @@ const DEFAULT_BOOKING_CONFIG: BookingConfig = {
   rush_fee: 150,
   min_booking_hours: 6,
   same_day_min_hours: 2,
+  deposit_expiry_mins: 45,
+  advance_deposit_expiry_mins: 1440,
   urgent_enabled: true,
 };
 
@@ -733,9 +737,13 @@ function ExpiryCountdown({ expiresAt }: { expiresAt: string | null | undefined }
       const remaining = new Date(expiresAt!).getTime() - Date.now();
       if (remaining <= 0) { setTimeLeft("Expired"); return; }
       const totalSecs = Math.floor(remaining / 1000);
+       const hours = Math.floor(totalSecs / 3600);
+       const remainingMins = Math.floor((totalSecs % 3600) / 60);
       const mins = Math.floor(totalSecs / 60);
       const secs = totalSecs % 60;
-      setTimeLeft(`${mins}:${secs.toString().padStart(2, "0")}`);
+       setTimeLeft(hours > 0
+         ? `${hours}h ${remainingMins}m`
+         : `${mins}:${secs.toString().padStart(2, "0")}`);
     }
     update();
     const interval = setInterval(update, 1000);
@@ -850,6 +858,12 @@ function ConfirmedScreen({
           <div className="mt-4 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3">
             <p className="text-amber-300 text-sm font-bold">🕐 Same-Day Booking</p>
             <p className="text-amber-200/80 text-xs mt-1">Deposit must be received promptly to confirm your driver.</p>
+          </div>
+        )}
+        {job.urgency === "standard" && (
+          <div className="mt-4 rounded-2xl border border-teal-400/30 bg-teal-400/10 px-4 py-3">
+            <p className="text-teal-200 text-sm font-bold">Advance Booking</p>
+            <p className="text-teal-300/80 text-xs mt-1">You have a longer deposit window for advance bookings. Complete the deposit before the countdown ends to secure your ride.</p>
           </div>
         )}
 
@@ -1522,6 +1536,14 @@ export default function Home() {
                       </p>
                     </div>
                   )}
+                    {urgencyTier === "standard" && pickupDatetime && (
+                      <div className="rounded-xl border border-teal-300 bg-teal-50 px-4 py-3 space-y-1">
+                        <p className="text-sm font-bold text-teal-800">Advance Booking</p>
+                        <p className="text-xs text-teal-700 leading-relaxed">
+                          You have a longer deposit window for bookings made more than 24 hours before pickup. Your exact deadline will be shown after you confirm.
+                        </p>
+                      </div>
+                    )}
                 </div>
               )}
 

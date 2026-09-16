@@ -14,6 +14,7 @@ export const DEFAULT_CONFIG = {
   deposit_pct:          "25",
   rush_fee:             "150",
   deposit_expiry_mins:  "45",
+  advance_deposit_expiry_mins: "1440",
   urgent_enabled:       "true",
 } as const;
 

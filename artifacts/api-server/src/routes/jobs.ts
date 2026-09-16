@@ -3,7 +3,7 @@ import { eq, desc, and, isNotNull } from "drizzle-orm";
 import { db, jobsTable, adminConfigTable, driversTable } from "@workspace/db";
 import { DEFAULT_CONFIG, type ConfigKey } from "@workspace/db";
 import { CreateJobBody } from "@workspace/api-zod";
-import { sendJobToGroup, notifyGroupClaimed, sendJobDetailsToDriver } from "../lib/telegram";
+import { sendJobToGroup, sendCustomerBookingToGroup, notifyGroupClaimed, sendJobDetailsToDriver } from "../lib/telegram";
 import { logger } from "../lib/logger";
 import { requireAdmin } from "../middleware/requireAdmin";
 import { requireDriver } from "../middleware/requireDriver";
@@ -567,6 +567,9 @@ router.post("/jobs", async (req, res) => {
     const depositPct = parseInt(config["deposit_pct"] ?? DEFAULT_CONFIG.deposit_pct) / 100;
     const rushFeeConfig = parseInt(config["rush_fee"] ?? DEFAULT_CONFIG.rush_fee);
     const depositExpiryMins = parseInt(config["deposit_expiry_mins"] ?? DEFAULT_CONFIG.deposit_expiry_mins);
+    const advanceDepositExpiryMins = parseInt(
+      config["advance_deposit_expiry_mins"] ?? DEFAULT_CONFIG.advance_deposit_expiry_mins,
+    );
 
     const fare = calculateFare({
       pickup,
@@ -595,7 +598,14 @@ router.post("/jobs", async (req, res) => {
     price = fare.status === "approved"
       ? `TTD ${formatMoney(fare.totalFare)} (Base fare: TTD ${formatMoney(fare.baseFare)}; Rush fee: TTD ${formatMoney(fare.rushFee)})`
       : "CUSTOM QUOTE REQUIRED";
-    expiresAt = new Date(Date.now() + depositExpiryMins * 60 * 1000);
+    // Same-day and short-notice bookings need a quick payment response. Give
+    // advance bookings a full day instead of expiring them after 45 minutes.
+    const hoursUntilPickup = pickupDatetime
+      ? (new Date(pickupDatetime).getTime() - Date.now()) / (1000 * 60 * 60)
+      : 0;
+    const isShortNotice = !Number.isFinite(hoursUntilPickup) || hoursUntilPickup <= 24;
+    const depositWindowMins = isShortNotice ? depositExpiryMins : advanceDepositExpiryMins;
+    expiresAt = new Date(Date.now() + Math.max(1, depositWindowMins) * 60 * 1000);
     status = "pending_deposit";
   } else if (!price) {
     res.status(400).json({ error: "Price is required for admin-dispatched jobs" });
@@ -654,8 +664,25 @@ router.post("/jobs", async (req, res) => {
     }).catch(err => {
       req.log.error({ err, jobId: job.id }, "Failed to send push notifications");
     });
+  } else {
+    sendCustomerBookingToGroup({
+      id: job.id,
+      name: job.name,
+      phone: job.phone,
+      email: job.email,
+      pickup: job.pickup,
+      dropoff: job.dropoff,
+      price: job.price,
+      passengers: job.passengers,
+      depositAmount: job.depositAmount,
+      expiresAt: job.expiresAt,
+      urgency: job.urgency,
+    }).then(sent => {
+      if (!sent) req.log.warn({ jobId: job.id }, "Failed to send customer booking to Telegram group");
+    }).catch(err => {
+      req.log.error({ err, jobId: job.id }, "Unexpected error sending customer booking to Telegram");
+    });
   }
-  // For customer bookings, notifications are sent after deposit is marked paid
 });
 
 // ── Telegram claim handler (used by bot polling) ──────────────────────────────

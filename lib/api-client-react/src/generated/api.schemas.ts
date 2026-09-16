@@ -164,6 +164,7 @@ export interface AdminConfig {
   deposit_pct?: string;
   rush_fee?: string;
   deposit_expiry_mins?: string;
+  advance_deposit_expiry_mins?: string;
   urgent_enabled?: string;
 }
 

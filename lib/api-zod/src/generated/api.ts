@@ -422,6 +422,7 @@ export const GetAdminConfigResponse = zod.object({
   "deposit_pct": zod.string().optional(),
   "rush_fee": zod.string().optional(),
   "deposit_expiry_mins": zod.string().optional(),
+  "advance_deposit_expiry_mins": zod.string().optional(),
   "urgent_enabled": zod.string().optional()
 })
 
@@ -435,6 +436,7 @@ export const UpdateAdminConfigBody = zod.object({
   "deposit_pct": zod.string().optional(),
   "rush_fee": zod.string().optional(),
   "deposit_expiry_mins": zod.string().optional(),
+  "advance_deposit_expiry_mins": zod.string().optional(),
   "urgent_enabled": zod.string().optional()
 })
 
@@ -444,6 +446,7 @@ export const UpdateAdminConfigResponse = zod.object({
   "deposit_pct": zod.string().optional(),
   "rush_fee": zod.string().optional(),
   "deposit_expiry_mins": zod.string().optional(),
+  "advance_deposit_expiry_mins": zod.string().optional(),
   "urgent_enabled": zod.string().optional()
 })
 
