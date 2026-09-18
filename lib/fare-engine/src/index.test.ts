@@ -65,10 +65,10 @@ test("allocates normal-route passengers evenly and charges each bus", () => {
   assert.equal(sixteen.status, "approved");
   if (sixteen.status === "approved") {
     assert.deepEqual(sixteen.busBreakdown.map(bus => [bus.passengerCount, bus.bracket, bus.fare]), [
-      [8, "1-12", 350],
-      [8, "1-12", 350],
+      [8, "1-12", 300],
+      [8, "1-12", 300],
     ]);
-    assert.equal(sixteen.baseFare, 700);
+    assert.equal(sixteen.baseFare, 600);
   }
 
   const twentyFive = calculateFare({
@@ -81,10 +81,10 @@ test("allocates normal-route passengers evenly and charges each bus", () => {
   assert.equal(twentyFive.status, "approved");
   if (twentyFive.status === "approved") {
     assert.deepEqual(twentyFive.busBreakdown.map(bus => [bus.passengerCount, bus.bracket, bus.fare]), [
-      [13, "13-15", 450],
-      [12, "1-12", 350],
+      [13, "13-15", 400],
+      [12, "1-12", 300],
     ]);
-    assert.equal(twentyFive.baseFare, 800);
+    assert.equal(twentyFive.baseFare, 700);
   }
 });
 
@@ -94,12 +94,25 @@ test("uses the approved round-trip fare per bus and adds rush once", () => {
     dropoff: "Diego Martin",
     tripType: "round",
     passengerCount: 12,
-    numberBuses: 2,
+    numberBuses: 1,
   });
   assert.equal(round.status, "approved");
   if (round.status === "approved") {
-    assert.equal(round.baseFare, 1200);
-    assert.equal(round.busBreakdown[0]?.fare, 600);
+    assert.equal(round.baseFare, 500);
+    assert.equal(round.busBreakdown[0]?.fare, 500);
+  }
+
+  const largerGroup = calculateFare({
+    pickup: "POS",
+    dropoff: "Diego Martin",
+    tripType: "round",
+    passengerCount: 16,
+    numberBuses: 2,
+  });
+  assert.equal(largerGroup.status, "approved");
+  if (largerGroup.status === "approved") {
+    assert.deepEqual(largerGroup.busBreakdown.map(bus => bus.fare), [500, 500]);
+    assert.equal(largerGroup.baseFare, 1000);
   }
 
   const rush = calculateFare({
@@ -115,7 +128,6 @@ test("uses the approved round-trip fare per bus and adds rush once", () => {
     assert.equal(rush.baseFare, 1000);
     assert.equal(rush.rushFee, 150);
     assert.equal(rush.totalFare, 1150);
-    assert.equal(rush.deposit, 287.5);
   }
 });
 

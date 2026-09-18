@@ -27,7 +27,7 @@ const ROUTE_ROWS: { label: string; ow: number[]; rt: number[] }[] = [
   { label: "POS ↔ Cedros / Icacos / Moruga",   ow: [1050, 1150, 1400, 1650, 1900], rt: [1700, 1800, 2200, 2600, 3000] },
   { label: "Central ↔ East / South",           ow: [500, 700, 850, 1000, 1200],  rt: [800, 1000, 1250, 1500, 1750] },
   { label: "Paramin (premium hill route)",     ow: [550, 650, 800, 950, 1100],   rt: [900, 1050, 1300, 1550, 1800] },
-  { label: "Intra-West (POS / Diego Martin)",  ow: [180, 220, 280, 340, 400],    rt: [300, 360, 450, 540, 630] },
+  { label: "POS ↔ Diego Martin / West Near",   ow: [300, 400, 550, 800, 1000],    rt: [500, 600, 750, 1000, 1200] },
   { label: "Intra-Central (Chaguanas area)",   ow: [160, 195, 245, 295, 350],    rt: [260, 315, 395, 475, 555] },
   { label: "Intra-East (Arima / Tunapuna)",    ow: [200, 245, 305, 370, 435],    rt: [330, 400, 500, 600, 700] },
   { label: "Intra-South (SF area)",            ow: [180, 220, 275, 335, 395],    rt: [295, 360, 450, 540, 630] },
@@ -322,7 +322,7 @@ export default function Pricing() {
                 <Anchor className="w-4 h-4 text-teal-700 mt-0.5 shrink-0" />
                 <p className="text-xs text-teal-700 leading-relaxed">
                   Every Down d Islands package includes <strong>door-to-door maxi transport</strong> from your pickup point to Carenage/Chaguaramas, plus a <strong>return boat charter</strong> to the island.
-                  Fares are per group, not per person. A <strong>30% deposit</strong> secures your booking — balance is paid on the day.
+                  Fares are per group, not per person. Our team confirms payment details manually via WhatsApp — balance is paid on the day.
                 </p>
               </div>
 
@@ -387,12 +387,12 @@ export default function Pricing() {
 
       <section className="py-10 px-6 md:px-12 bg-white border-t border-teal-100">
         <div className="max-w-3xl mx-auto">
-          <h3 className="text-lg font-black text-teal-900 mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-teal-600" /> How the Deposit Works</h3>
+          <h3 className="text-lg font-black text-teal-900 mb-4 flex items-center gap-2"><Users className="w-5 h-5 text-teal-600" /> How Booking Works</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { step: "1", title: "Book Online", desc: "Complete the booking form. You'll see your fare before confirming." },
-              { step: "2", title: "Pay 25% Deposit", desc: "We'll contact you via WhatsApp to collect a 25% deposit to secure your driver." },
-              { step: "3", title: "Balance on the Day", desc: "Pay the remaining balance directly to your driver when they arrive." },
+              { step: "2", title: "Confirm on WhatsApp", desc: "We'll contact you via WhatsApp to confirm the ride and send payment details manually." },
+              { step: "3", title: "Pay as Agreed", desc: "Complete payment according to the instructions from our team and settle any balance with your driver on the day." },
             ].map(({ step, title, desc }) => (
               <div key={step} className="flex gap-3">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-teal-900 font-black text-sm shrink-0" style={{ background: "linear-gradient(135deg, #f59e0b, #d97706)" }}>{step}</div>

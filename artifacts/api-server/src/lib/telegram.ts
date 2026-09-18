@@ -71,8 +71,6 @@ export async function sendCustomerBookingToGroup(job: {
   dropoff: string;
   price: string;
   passengers?: string | null;
-  depositAmount?: number | null;
-  expiresAt?: Date | null;
   urgency?: string | null;
 }): Promise<boolean> {
   if (!GROUP_ID) return false;
@@ -82,14 +80,6 @@ export async function sendCustomerBookingToGroup(job: {
   const markup = adminLink
     ? { inline_keyboard: [[{ text: "OPEN BOOKINGS", url: adminLink }]] }
     : undefined;
-  const deadline = job.expiresAt
-    ? job.expiresAt.toLocaleString("en-TT", {
-        timeZone: "America/Port_of_Spain",
-        dateStyle: "medium",
-        timeStyle: "short",
-      })
-    : "To be confirmed";
-  const deposit = job.depositAmount != null ? `TTD ${job.depositAmount.toLocaleString("en-TT")}` : "To be confirmed";
   const urgency = job.urgency === "standard" ? "Advance booking" : "Same-day / short-notice booking";
 
   return telegramRequest("sendMessage", {
@@ -105,10 +95,8 @@ export async function sendCustomerBookingToGroup(job: {
       ...(job.passengers ? [`Passengers: ${job.passengers}`] : []),
       `Pickup: ${urgency}`,
       `Fare: ${job.price}`,
-      `Deposit: ${deposit}`,
-      `Deposit deadline: ${deadline}`,
       ``,
-      `Awaiting deposit confirmation. Drivers will be notified after payment is confirmed.`,
+      `Manual WhatsApp follow-up required. Contact the customer to confirm the booking and payment details.`,
     ].join("\n"),
     ...(markup && { reply_markup: markup }),
   });

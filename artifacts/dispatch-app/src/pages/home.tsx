@@ -5,22 +5,16 @@ import { MapPin, Navigation, User, Phone, CheckCircle2, Info, Loader2, Clock, Ca
 import { BUS_OPTIONS, LOCATION_SUGGESTIONS, busCapacity, calculateFare, formatMoney, hasSufficientBusCapacity, minimumBuses, resolveLocation } from "@workspace/fare-engine";
 
 interface BookingConfig {
-  deposit_pct: number;
   rush_fee: number;
   min_booking_hours: number;
   same_day_min_hours: number;
-  deposit_expiry_mins: number;
-  advance_deposit_expiry_mins: number;
   urgent_enabled: boolean;
 }
 
 const DEFAULT_BOOKING_CONFIG: BookingConfig = {
-  deposit_pct: 25,
   rush_fee: 150,
   min_booking_hours: 6,
   same_day_min_hours: 2,
-  deposit_expiry_mins: 45,
-  advance_deposit_expiry_mins: 1440,
   urgent_enabled: true,
 };
 
@@ -400,7 +394,7 @@ function LiveStatusBadge({ jobId }: { jobId: string }) {
     cancelled:        { label: "Cancelled",          color: "text-red-700 bg-red-50 border-red-200",        dot: "bg-red-400" },
     expired:          { label: "Booking Expired",    color: "text-gray-500 bg-gray-50 border-gray-200",     dot: "bg-gray-300" },
   };
-  const cfg = configs[status] ?? configs["pending_deposit"];
+  const cfg = configs[status] ?? configs["pending"];
   return (
     <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-bold ${cfg.color}`}>
       <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
@@ -638,7 +632,7 @@ function FaqAccordion() {
     },
     {
       q: "How does payment work?",
-      a: "A deposit (usually 25% of the fare) is collected via bank transfer or cash to secure your booking. The remaining balance is paid directly to your driver on the day of the trip. For urgent bookings, full payment is required upfront.",
+      a: "Our team confirms your booking and sends payment details manually via WhatsApp. The remaining balance is paid directly to your driver on the day of the trip.",
     },
     {
       q: "Can I book a round trip?",
@@ -654,7 +648,7 @@ function FaqAccordion() {
     },
     {
       q: "What if I need to cancel or change my booking?",
-      a: "Please contact us as soon as possible via WhatsApp. Cancellations made with sufficient notice are handled on a case-by-case basis. Deposits may be non-refundable for same-day or urgent cancellations.",
+      a: "Please contact us as soon as possible via WhatsApp. Cancellations and changes are handled on a case-by-case basis.",
     },
     {
       q: "How do I know my driver is on the way?",
@@ -728,62 +722,11 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
-function ExpiryCountdown({ expiresAt }: { expiresAt: string | null | undefined }) {
-  const [timeLeft, setTimeLeft] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!expiresAt) return;
-    function update() {
-      const remaining = new Date(expiresAt!).getTime() - Date.now();
-      if (remaining <= 0) { setTimeLeft("Expired"); return; }
-      const totalSecs = Math.floor(remaining / 1000);
-       const hours = Math.floor(totalSecs / 3600);
-       const remainingMins = Math.floor((totalSecs % 3600) / 60);
-      const mins = Math.floor(totalSecs / 60);
-      const secs = totalSecs % 60;
-       setTimeLeft(hours > 0
-         ? `${hours}h ${remainingMins}m`
-         : `${mins}:${secs.toString().padStart(2, "0")}`);
-    }
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
-  }, [expiresAt]);
-
-  if (!expiresAt || !timeLeft) return null;
-
-  const isExpired = timeLeft === "Expired";
-  const isUrgent = (() => {
-    const remaining = new Date(expiresAt).getTime() - Date.now();
-    return remaining < 10 * 60 * 1000; // < 10 mins
-  })();
-
-  return (
-    <div className={`rounded-2xl border-2 px-4 py-3 text-center ${
-      isExpired ? "border-red-500/30 bg-red-500/10" :
-      isUrgent  ? "border-red-400/40 bg-red-400/10 animate-pulse" :
-                  "border-amber-400/40 bg-amber-400/10"
-    }`}>
-      <p className="text-xs font-bold uppercase tracking-widest text-amber-300/80 mb-1">
-        {isExpired ? "Booking Expired" : "Deposit Window Closes In"}
-      </p>
-      <p className={`text-3xl font-black font-mono leading-none ${
-        isExpired ? "text-red-400" : isUrgent ? "text-red-300" : "text-amber-300"
-      }`}>
-        {timeLeft}
-      </p>
-      {!isExpired && (
-        <p className="text-xs text-teal-400/70 mt-1">Contact us now to secure your booking</p>
-      )}
-    </div>
-  );
-}
-
 function ConfirmedScreen({
   job,
   onReset,
 }: {
-  job: { id: string; name: string; phone: string; pickup: string; dropoff: string; fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string; expiresAt?: string | null; urgency?: string };
+  job: { id: string; name: string; phone: string; pickup: string; dropoff: string; fare: number; pickupDatetime: string; returnDatetime: string; tripType: string; urgency?: string };
   onReset: () => void;
 }) {
   return (
@@ -851,47 +794,33 @@ function ConfirmedScreen({
         {job.urgency === "urgent" && (
           <div className="mt-4 rounded-2xl border-2 border-red-500/40 bg-red-500/15 px-4 py-3">
             <p className="text-red-300 text-sm font-black">⚡ Urgent Booking</p>
-            <p className="text-red-200/80 text-xs mt-1">Full payment + rush fee required. Our team will contact you immediately.</p>
+            <p className="text-red-200/80 text-xs mt-1">Our team will contact you immediately on WhatsApp to confirm the trip.</p>
           </div>
         )}
         {job.urgency === "same_day" && (
           <div className="mt-4 rounded-2xl border border-amber-400/40 bg-amber-400/10 px-4 py-3">
             <p className="text-amber-300 text-sm font-bold">🕐 Same-Day Booking</p>
-            <p className="text-amber-200/80 text-xs mt-1">Deposit must be received promptly to confirm your driver.</p>
+            <p className="text-amber-200/80 text-xs mt-1">Our team will confirm availability and payment details with you on WhatsApp.</p>
           </div>
         )}
         {job.urgency === "standard" && (
           <div className="mt-4 rounded-2xl border border-teal-400/30 bg-teal-400/10 px-4 py-3">
             <p className="text-teal-200 text-sm font-bold">Advance Booking</p>
-            <p className="text-teal-300/80 text-xs mt-1">You have a longer deposit window for advance bookings. Complete the deposit before the countdown ends to secure your ride.</p>
-          </div>
-        )}
-
-        {/* Expiry countdown */}
-        {job.expiresAt && (
-          <div className="mt-4">
-            <ExpiryCountdown expiresAt={job.expiresAt} />
+            <p className="text-teal-300/80 text-xs mt-1">Our team will confirm your ride and payment details with you on WhatsApp.</p>
           </div>
         )}
 
         <div className="mt-4 rounded-2xl bg-amber-400/10 border border-amber-400/30 px-4 py-4">
-          <p className="text-amber-300 text-xs font-bold uppercase tracking-widest mb-1">Deposit Due to Confirm</p>
-          {job.deposit > 0 ? (
-            <>
-              <p className="text-amber-400 text-3xl font-black leading-none">TTD {job.deposit.toLocaleString("en-TT")}</p>
-              <p className="text-teal-400 text-xs mt-2 leading-relaxed">
-                Total fare: <strong className="text-white">TTD {job.fare.toLocaleString("en-TT")}</strong> — balance of TTD {(job.fare - job.deposit).toLocaleString("en-TT")} paid to your driver on the day.
-              </p>
-            </>
-          ) : (
-            <p className="text-amber-300 text-sm mt-1 leading-relaxed">Our team will confirm your exact fare and deposit via WhatsApp shortly.</p>
-          )}
+          <p className="text-amber-300 text-xs font-bold uppercase tracking-widest mb-1">Next Step</p>
+          <p className="text-amber-100 text-sm mt-1 leading-relaxed">
+            Your fare is <strong className="text-white">TTD {job.fare.toLocaleString("en-TT")}</strong>. We’ll contact you on WhatsApp to confirm the booking and handle payment manually.
+          </p>
         </div>
 
         <div className="mt-4 flex gap-3 items-start bg-white/5 border border-white/10 rounded-2xl px-4 py-3">
           <Info className="w-4 h-4 text-teal-400 mt-0.5 shrink-0" />
           <p className="text-teal-300 text-xs leading-relaxed">
-            Our team will contact you shortly to collect the deposit and confirm your driver.
+            Keep your phone nearby. Our team will contact you shortly on WhatsApp with the next steps.
           </p>
         </div>
 
@@ -903,8 +832,8 @@ function ConfirmedScreen({
             `📍 To: ${job.dropoff}\n` +
             `📅 Pickup: ${fmtDt(job.pickupDatetime)}\n` +
             `💰 Fare: TTD ${job.fare.toLocaleString("en-TT")}\n` +
-            `💳 Deposit: TTD ${job.deposit.toLocaleString("en-TT")}\n\n` +
-            `Saving this for my records.`
+            `💰 Fare: TTD ${job.fare.toLocaleString("en-TT")}\n\n` +
+            `Please confirm my booking and send me the payment details.`
           )}`}
           target="_blank"
           rel="noopener noreferrer"
@@ -989,8 +918,7 @@ export default function Home() {
   // Booking result
   const [bookedJob, setBookedJob] = useState<{
     id: string; name: string; phone: string; pickup: string; dropoff: string;
-    fare: number; deposit: number; pickupDatetime: string; returnDatetime: string; tripType: string;
-    expiresAt?: string | null; urgency?: string;
+    fare: number; pickupDatetime: string; returnDatetime: string; tripType: string; urgency?: string;
   } | null>(null);
 
   const [stepErrors, setStepErrors] = useState(false);
@@ -1007,14 +935,12 @@ export default function Home() {
       passengerCount: pax,
       numberBuses,
       pickupDatetime: pickupDatetime || null,
-      depositPct: bookingConfig.deposit_pct,
       rushFee: bookingConfig.rush_fee,
       sameDayMinHours: bookingConfig.same_day_min_hours,
       minBookingHours: bookingConfig.min_booking_hours,
     });
   }, [pickup, dropoff, tripType, pax, numberBuses, pickupDatetime, bookingConfig]);
   const displayFare = fareResult?.status === "approved" ? fareResult.totalFare : null;
-  const deposit = fareResult?.status === "approved" ? fareResult.deposit : null;
   const urgencyTier = fareResult?.urgency ?? null;
   const minimumBusCount = minimumBuses(pax, isParaminRoute ? "paramin" : "standard");
   const capacityError = !hasSufficientBusCapacity(pax, numberBuses, isParaminRoute ? "paramin" : "standard")
@@ -1095,8 +1021,8 @@ export default function Home() {
         onSuccess: job => {
           queryClient.invalidateQueries({ queryKey: getListJobsQueryKey() });
           queryClient.invalidateQueries({ queryKey: getGetJobStatsQueryKey() });
-          const jobAny = job as typeof job & { expiresAt?: string | null; urgency?: string };
-          setBookedJob({ id: job.id, name, phone, pickup, dropoff, fare: Number(jobAny.totalFare ?? displayFare ?? 0), deposit: Number(jobAny.depositAmount ?? deposit ?? 0), pickupDatetime, returnDatetime, tripType, expiresAt: jobAny.expiresAt ?? null, urgency: jobAny.urgency ?? "standard" });
+          const jobAny = job as typeof job & { urgency?: string };
+          setBookedJob({ id: job.id, name, phone, pickup, dropoff, fare: Number(jobAny.totalFare ?? displayFare ?? 0), pickupDatetime, returnDatetime, tripType, urgency: jobAny.urgency ?? "standard" });
         },
       }
     );
@@ -1500,7 +1426,6 @@ export default function Home() {
                             )}
                            <span className="text-teal-600">Rush fee</span><span className={`text-right font-semibold ${fareResult.rushFee ? "text-red-600" : "text-teal-900"}`}>{fmtFare(fareResult.rushFee)}</span>
                            <span className="text-teal-900 font-bold pt-2 border-t border-amber-200">Total</span><span className="text-right font-black text-teal-900 pt-2 border-t border-amber-200">{fmtFare(fareResult.totalFare)}</span>
-                           <span className="text-teal-900 font-bold">Deposit</span><span className="text-right font-black text-amber-700">{fmtFare(fareResult.deposit)}</span>
                          </div>
                        </div>
                      ) : fareResult.status === "invalid" ? (
@@ -1522,9 +1447,9 @@ export default function Home() {
                   {/* Urgency tier banner */}
                   {urgencyTier === "urgent" && pickupDatetime && (
                     <div className="rounded-xl border-2 border-red-400 bg-red-50 px-4 py-3 space-y-1">
-                      <p className="text-sm font-black text-red-700">⚡ Urgent Booking — Full Payment Required</p>
+                      <p className="text-sm font-black text-red-700">⚡ Urgent Booking — WhatsApp Confirmation</p>
                       <p className="text-xs text-red-600 leading-relaxed">
-                        Pickups within {bookingConfig.same_day_min_hours} hour{bookingConfig.same_day_min_hours !== 1 ? "s" : ""} require full payment{bookingConfig.rush_fee > 0 ? ` plus a rush fee (TTD ${bookingConfig.rush_fee.toLocaleString("en-TT")})` : ""}. Our team will contact you immediately after booking.
+                        Pickups within {bookingConfig.same_day_min_hours} hour{bookingConfig.same_day_min_hours !== 1 ? "s" : ""} need prompt WhatsApp confirmation{bookingConfig.rush_fee > 0 ? ` and may include a rush fee (TTD ${bookingConfig.rush_fee.toLocaleString("en-TT")})` : ""}. Our team will contact you immediately after booking.
                       </p>
                     </div>
                   )}
@@ -1532,7 +1457,7 @@ export default function Home() {
                     <div className="rounded-xl border border-amber-400 bg-amber-50 px-4 py-3 space-y-1">
                       <p className="text-sm font-bold text-amber-800">🕐 Same-Day Booking</p>
                       <p className="text-xs text-amber-700 leading-relaxed">
-                        Pickup within {bookingConfig.min_booking_hours} hours. A {bookingConfig.deposit_pct}% deposit is required promptly to confirm your driver — please keep your phone nearby.
+                        Pickup within {bookingConfig.min_booking_hours} hours. Our team will contact you promptly on WhatsApp to confirm availability and payment details.
                       </p>
                     </div>
                   )}
@@ -1540,7 +1465,7 @@ export default function Home() {
                       <div className="rounded-xl border border-teal-300 bg-teal-50 px-4 py-3 space-y-1">
                         <p className="text-sm font-bold text-teal-800">Advance Booking</p>
                         <p className="text-xs text-teal-700 leading-relaxed">
-                          You have a longer deposit window for bookings made more than 24 hours before pickup. Your exact deadline will be shown after you confirm.
+                          Our team will confirm your ride and payment details with you on WhatsApp.
                         </p>
                       </div>
                     )}
@@ -1619,7 +1544,7 @@ export default function Home() {
                   <div className="bg-teal-50 border border-teal-100 rounded-xl px-4 py-3 flex gap-3 items-start">
                     <Info className="w-4 h-4 text-teal-600 mt-0.5 shrink-0" />
                     <p className="text-xs text-teal-700 leading-relaxed">
-                      We'll contact you on this number to collect your deposit and confirm your driver. Keep your phone nearby.
+                      We'll contact you on this number to confirm your booking and send the payment details manually via WhatsApp.
                     </p>
                   </div>
                 </div>
@@ -1684,15 +1609,15 @@ export default function Home() {
                          <div className="bg-white/70 border border-amber-100 rounded-xl px-3 py-2.5 flex gap-3 items-start">
                            <Info className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                            <div>
-                             <p className="text-sm font-bold text-teal-900">{bookingConfig.deposit_pct}% Deposit: {fmtFare(fareResult.deposit)}</p>
-                             <p className="text-xs text-teal-700/80 mt-0.5">Base fare {fmtFare(fareResult.baseFare)} + rush fee {fmtFare(fareResult.rushFee)} = total {fmtFare(fareResult.totalFare)}. Balance of {fmtFare(fareResult.totalFare - fareResult.deposit)} is paid to your driver on the day.</p>
+                             <p className="text-sm font-bold text-teal-900">Payment handled manually via WhatsApp</p>
+                             <p className="text-xs text-teal-700/80 mt-0.5">Base fare {fmtFare(fareResult.baseFare)} + rush fee {fmtFare(fareResult.rushFee)} = total {fmtFare(fareResult.totalFare)}. Our team will send payment instructions after you submit the booking.</p>
                            </div>
                          </div>
                        </>
                      ) : (
                        <div>
                          <p className="text-sm font-black text-teal-900">Custom Quote Required</p>
-                         <p className="text-xs text-teal-700 mt-1 leading-relaxed">{fareResult?.message ?? "Our team will confirm your exact fare and deposit by WhatsApp after booking."}</p>
+                         <p className="text-xs text-teal-700 mt-1 leading-relaxed">{fareResult?.message ?? "Our team will confirm your exact fare and payment details by WhatsApp after booking."}</p>
                        </div>
                      )}
                    </div>
@@ -1743,9 +1668,7 @@ export default function Home() {
                   >
                     {createJob.isPending
                       ? <><Loader2 className="w-5 h-5 animate-spin" /> Confirming...</>
-                       : deposit
-                       ? <><CheckCircle2 className="w-5 h-5" /> Confirm Booking &mdash; {fmtFare(deposit)} deposit</>
-                       : <><MessageCircle className="w-5 h-5" /> Continue With Quote Request</>}
+                      : <><CheckCircle2 className="w-5 h-5" /> Confirm Booking</>}
                   </button>
                 </div>
               )}
@@ -1807,7 +1730,7 @@ export default function Home() {
             <div className="hidden md:block absolute top-8 left-[calc(16.66%+1rem)] right-[calc(16.66%+1rem)] h-0.5 bg-amber-400/30" />
             {[
               { num: "1", title: "Enter your route", desc: "Type your pickup and dropoff — we'll calculate an instant fare for your journey.", icon: <MapPin className="w-5 h-5" /> },
-              { num: "2", title: "Confirm & deposit", desc: "Pay just 25% upfront to secure your booking. Balance is paid to the driver on the day.", icon: <CheckCircle2 className="w-5 h-5" /> },
+              { num: "2", title: "Confirm on WhatsApp", desc: "Our team confirms the ride and handles payment details with you manually.", icon: <CheckCircle2 className="w-5 h-5" /> },
               { num: "3", title: "Driver picks you up", desc: "A driver claims your job and contacts you directly. Track the status in real time.", icon: <Navigation className="w-5 h-5" /> },
             ].map(({ num, title, desc, icon }) => (
               <div key={num} className="flex flex-col items-center text-center relative z-10">

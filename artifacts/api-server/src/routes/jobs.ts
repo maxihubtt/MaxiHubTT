@@ -564,12 +564,7 @@ router.post("/jobs", async (req, res) => {
     const config = await getConfig();
     const sameDayMinHours = parseFloat(config["same_day_min_hours"] ?? DEFAULT_CONFIG.same_day_min_hours);
     const minBookingHours = parseFloat(config["min_booking_hours"] ?? DEFAULT_CONFIG.min_booking_hours);
-    const depositPct = parseInt(config["deposit_pct"] ?? DEFAULT_CONFIG.deposit_pct) / 100;
     const rushFeeConfig = parseInt(config["rush_fee"] ?? DEFAULT_CONFIG.rush_fee);
-    const depositExpiryMins = parseInt(config["deposit_expiry_mins"] ?? DEFAULT_CONFIG.deposit_expiry_mins);
-    const advanceDepositExpiryMins = parseInt(
-      config["advance_deposit_expiry_mins"] ?? DEFAULT_CONFIG.advance_deposit_expiry_mins,
-    );
 
     const fare = calculateFare({
       pickup,
@@ -578,7 +573,6 @@ router.post("/jobs", async (req, res) => {
       passengerCount,
       numberBuses: parsed.data.numberBuses,
       pickupDatetime,
-      depositPct: depositPct * 100,
       rushFee: rushFeeConfig,
       sameDayMinHours,
       minBookingHours,
@@ -594,19 +588,13 @@ router.post("/jobs", async (req, res) => {
     baseFare = fare.status === "approved" ? fare.baseFare : null;
     totalFare = fare.status === "approved" ? fare.totalFare : null;
     rushFee = fare.status === "approved" ? fare.rushFee : 0;
-    depositAmount = fare.status === "approved" ? fare.deposit : null;
+    // Deposits are handled manually over WhatsApp. New bookings do not wait
+    // for a deposit and are not given an automatic expiry deadline.
+    depositAmount = null;
     price = fare.status === "approved"
       ? `TTD ${formatMoney(fare.totalFare)} (Base fare: TTD ${formatMoney(fare.baseFare)}; Rush fee: TTD ${formatMoney(fare.rushFee)})`
       : "CUSTOM QUOTE REQUIRED";
-    // Same-day and short-notice bookings need a quick payment response. Give
-    // advance bookings a full day instead of expiring them after 45 minutes.
-    const hoursUntilPickup = pickupDatetime
-      ? (new Date(pickupDatetime).getTime() - Date.now()) / (1000 * 60 * 60)
-      : 0;
-    const isShortNotice = !Number.isFinite(hoursUntilPickup) || hoursUntilPickup <= 24;
-    const depositWindowMins = isShortNotice ? depositExpiryMins : advanceDepositExpiryMins;
-    expiresAt = new Date(Date.now() + Math.max(1, depositWindowMins) * 60 * 1000);
-    status = "pending_deposit";
+    status = "pending";
   } else if (!price) {
     res.status(400).json({ error: "Price is required for admin-dispatched jobs" });
     return;
@@ -674,8 +662,6 @@ router.post("/jobs", async (req, res) => {
       dropoff: job.dropoff,
       price: job.price,
       passengers: job.passengers,
-      depositAmount: job.depositAmount,
-      expiresAt: job.expiresAt,
       urgency: job.urgency,
     }).then(sent => {
       if (!sent) req.log.warn({ jobId: job.id }, "Failed to send customer booking to Telegram group");
